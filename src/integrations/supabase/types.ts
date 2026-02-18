@@ -14,7 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      installations: {
+        Row: {
+          admin_url: string | null
+          backend_url: string
+          block_reason: string | null
+          blocked_at: string | null
+          created_at: string
+          deploy_password: string | null
+          frontend_url: string
+          hostname: string | null
+          id: number
+          installer_version: string | null
+          ip: string
+          is_blocked: boolean
+          master_password: string | null
+          os_info: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_url?: string | null
+          backend_url: string
+          block_reason?: string | null
+          blocked_at?: string | null
+          created_at?: string
+          deploy_password?: string | null
+          frontend_url: string
+          hostname?: string | null
+          id?: number
+          installer_version?: string | null
+          ip: string
+          is_blocked?: boolean
+          master_password?: string | null
+          os_info?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_url?: string | null
+          backend_url?: string
+          block_reason?: string | null
+          blocked_at?: string | null
+          created_at?: string
+          deploy_password?: string | null
+          frontend_url?: string
+          hostname?: string | null
+          id?: number
+          installer_version?: string | null
+          ip?: string
+          is_blocked?: boolean
+          master_password?: string | null
+          os_info?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
