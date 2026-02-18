@@ -26,64 +26,31 @@ interface Installation {
   hostname?: string;
   os_info?: string;
   installer_version?: string;
+  is_blocked: boolean;
+  block_reason?: string;
+  blocked_at?: string;
   created_at: string;
 }
 
-// ── MOCK DATA ─────────────────────────────────────────────────────────────────
-function makeMock(): Installation[] {
-  const oses = ["Ubuntu 22.04 LTS", "Ubuntu 20.04 LTS", "Debian 11", "Debian 12"];
-  const versions = ["v5.4", "v5.3", "v5.2", "v5.5"];
-  return Array.from({ length: 38 }, (_, i) => ({
-    id: i + 1,
-    ip: `${45 + Math.floor(Math.random() * 180)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-    frontend_url: `https://chat${i + 1}.cliente${i + 1}.com.br`,
-    backend_url: `https://api${i + 1}.cliente${i + 1}.com.br`,
-    admin_url: `https://api${i + 1}.cliente${i + 1}.com.br/admin`,
-    deploy_password: `Deploy@${Math.random().toString(36).slice(2, 10)}Xz`,
-    master_password: `Master@${Math.random().toString(36).slice(2, 10)}Qr`,
-    hostname: `VPS-${["BRZ", "AWS", "GCP", "OVH", "HNT"][i % 5]}-${String(i + 1).padStart(3, "0")}`,
-    os_info: oses[i % oses.length],
-    installer_version: versions[i % versions.length],
-    created_at: subDays(new Date(), Math.floor(Math.random() * 75)).toISOString(),
-  }));
-}
-
-const MOCK_DATA = makeMock();
 const PALETTE = ["hsl(213,94%,58%)", "hsl(152,68%,46%)", "hsl(36,94%,54%)", "hsl(280,65%,60%)", "hsl(0,72%,55%)"];
-const STORAGE_KEY = "equipechat_blocked_ids";
+const ADMIN_KEY = "equipechat@2024";
+const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+const BASE_URL = `https://${PROJECT_ID}.supabase.co/functions/v1`;
 
 interface BlockedEntry { reason: string; blockedAt: string; }
 
-// ── HELPERS ───────────────────────────────────────────────────────────────────
-function useBlockedIds() {
-  const [blockedMap, setBlockedMap] = useState<Map<number, BlockedEntry>>(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return new Map();
-      const parsed = JSON.parse(raw) as Array<[number, BlockedEntry]>;
-      return new Map(parsed);
-    } catch { return new Map(); }
+// ── API HELPERS ───────────────────────────────────────────────────────────────
+async function apiFetch(path: string, opts?: RequestInit) {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    ...opts,
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-key": ADMIN_KEY,
+      ...(opts?.headers ?? {}),
+    },
   });
-
-  const block = useCallback((id: number, reason: string) => {
-    setBlockedMap(prev => {
-      const next = new Map(prev);
-      next.set(id, { reason, blockedAt: new Date().toISOString() });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next.entries())));
-      return next;
-    });
-  }, []);
-
-  const unblock = useCallback((id: number) => {
-    setBlockedMap(prev => {
-      const next = new Map(prev);
-      next.delete(id);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next.entries())));
-      return next;
-    });
-  }, []);
-
-  return { blockedMap, block, unblock };
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
 
 // ── BLOCKED PAGE PREVIEW MODAL ────────────────────────────────────────────────
@@ -506,11 +473,11 @@ function StatCard({ icon: Icon, label, value, sub, color, delay = 0 }: {
 // ── DASHBOARD ──────────────────────────────────────────────────────────────────
 export default function MonitorDashboard() {
   const navigate = useNavigate();
-  const { blockedMap, block, unblock } = useBlockedIds();
 
   const [installations, setInstallations] = useState<Installation[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [sortField, setSortField] = useState<keyof Installation>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [dateRange, setDateRange] = useState("30");
@@ -524,9 +491,16 @@ export default function MonitorDashboard() {
   const [confirmInst, setConfirmInst] = useState<Installation | null>(null);
   const [previewInst, setPreviewInst] = useState<Installation | null>(null);
 
-  const loadData = useCallback(() => {
+  const loadData = useCallback(async () => {
     setLoading(true);
-    setTimeout(() => { setInstallations(MOCK_DATA); setLoading(false); }, 600);
+    try {
+      const result = await apiFetch("/manage-installations");
+      setInstallations(result.data ?? []);
+    } catch (err) {
+      console.error("Erro ao carregar instalações:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -539,8 +513,8 @@ export default function MonitorDashboard() {
     const cutoff = subDays(new Date(), parseInt(dateRange));
     let result = installations.filter(i => new Date(i.created_at) >= cutoff);
     if (versionFilter !== "all") result = result.filter(i => (i.installer_version || "?") === versionFilter);
-    if (statusFilter === "active") result = result.filter(i => !blockedMap.has(i.id));
-    if (statusFilter === "blocked") result = result.filter(i => blockedMap.has(i.id));
+    if (statusFilter === "active") result = result.filter(i => !i.is_blocked);
+    if (statusFilter === "blocked") result = result.filter(i => i.is_blocked);
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(i =>
@@ -555,7 +529,7 @@ export default function MonitorDashboard() {
       const vb = String(b[sortField] ?? "");
       return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
     });
-  }, [installations, search, dateRange, sortField, sortDir, versionFilter, statusFilter, blockedMap]);
+  }, [installations, search, dateRange, sortField, sortDir, versionFilter, statusFilter]);
 
   const paginated = useMemo(() => filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE), [filtered, page]);
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
@@ -591,7 +565,7 @@ export default function MonitorDashboard() {
     const rows = filtered.map(i => [
       i.id, i.ip, i.hostname || "", i.os_info || "",
       i.frontend_url, i.backend_url, i.installer_version || "",
-      blockedMap.has(i.id) ? "BLOQUEADA" : "ATIVA",
+      i.is_blocked ? "BLOQUEADA" : "ATIVA",
       format(new Date(i.created_at), "dd/MM/yyyy HH:mm")
     ]);
     const csv = [header, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
@@ -609,16 +583,26 @@ export default function MonitorDashboard() {
       : <ChevronDown className="w-3 h-3 opacity-25" />
   );
 
-  const blockedCount = blockedMap.size;
+  const blockedCount = installations.filter(i => i.is_blocked).length;
   const thisWeek = installations.filter(i => new Date(i.created_at) >= subDays(new Date(), 7)).length;
   const uniqueIPs = new Set(installations.map(i => i.ip)).size;
 
   // Handlers
   const handleBlockAction = (inst: Installation) => { setConfirmInst(inst); setSelectedInst(null); };
-  const handleConfirmBlock = (reason: string) => {
-    if (confirmInst) {
-      if (blockedMap.has(confirmInst.id)) unblock(confirmInst.id);
-      else block(confirmInst.id, reason);
+  const handleConfirmBlock = async (reason: string) => {
+    if (!confirmInst) return;
+    setActionLoading(true);
+    try {
+      const action = confirmInst.is_blocked ? "unblock" : "block";
+      await apiFetch("/manage-installations", {
+        method: "POST",
+        body: JSON.stringify({ id: confirmInst.id, action, reason }),
+      });
+      await loadData();
+    } catch (err) {
+      console.error("Erro ao bloquear/desbloquear:", err);
+    } finally {
+      setActionLoading(false);
       setConfirmInst(null);
     }
   };
@@ -632,7 +616,7 @@ export default function MonitorDashboard() {
       {selectedInst && (
         <DetailDrawer
           inst={selectedInst}
-          isBlocked={blockedMap.has(selectedInst.id)}
+          isBlocked={selectedInst.is_blocked}
           onClose={() => setSelectedInst(null)}
           onToggleBlock={() => handleBlockAction(selectedInst)}
           onPreview={() => { setPreviewInst(selectedInst); setSelectedInst(null); }}
@@ -641,13 +625,19 @@ export default function MonitorDashboard() {
       {confirmInst && (
         <ConfirmBlockModal
           inst={confirmInst}
-          isBlocked={blockedMap.has(confirmInst.id)}
+          isBlocked={confirmInst.is_blocked}
           onConfirm={handleConfirmBlock}
           onCancel={() => setConfirmInst(null)}
         />
       )}
       {previewInst && (
-        <BlockedPreviewModal inst={previewInst} entry={blockedMap.get(previewInst.id)} onClose={() => setPreviewInst(null)} />
+        <BlockedPreviewModal
+          inst={previewInst}
+          entry={previewInst.is_blocked && previewInst.block_reason
+            ? { reason: previewInst.block_reason, blockedAt: previewInst.blocked_at ?? new Date().toISOString() }
+            : undefined}
+          onClose={() => setPreviewInst(null)}
+        />
       )}
 
       {/* ── HEADER ── */}
@@ -895,7 +885,7 @@ export default function MonitorDashboard() {
                 </thead>
                 <tbody>
                   {paginated.map((inst, idx) => {
-                    const isInstBlocked = blockedMap.has(inst.id);
+                    const isInstBlocked = inst.is_blocked;
                     return (
                       <tr key={inst.id}
                         className="table-row-hover border-b border-border cursor-pointer"
