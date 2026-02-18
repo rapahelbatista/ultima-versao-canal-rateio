@@ -1,31 +1,33 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Shield, Eye, EyeOff, Lock, AlertTriangle } from "lucide-react";
-
-const MONITOR_USER = "admin";
-const MONITOR_PASS = "equipechat@2024";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function LoginMonitor() {
-  const [user, setUser] = useState("");
+  const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-    setTimeout(() => {
-      if (user === MONITOR_USER && pass === MONITOR_PASS) {
-        sessionStorage.setItem("monitor_auth", "true");
-        navigate("/");
-      } else {
-        setError("Usuário ou senha inválidos.");
-      }
+
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: pass,
+    });
+
+    if (authError) {
+      setError("E-mail ou senha inválidos.");
       setLoading(false);
-    }, 700);
+      return;
+    }
+
+    navigate("/");
   };
 
   return (
@@ -71,18 +73,19 @@ export default function LoginMonitor() {
         {/* Card */}
         <div className="glass-card p-8" style={{ boxShadow: "0 24px 64px hsl(0 0% 0% / 0.4)" }}>
           <form onSubmit={handleLogin} className="space-y-5">
-            {/* User */}
+
+            {/* Email */}
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Usuário
+                E-mail
               </label>
               <input
-                type="text"
-                value={user}
-                onChange={e => setUser(e.target.value)}
-                className="input-base w-full px-4 py-3 text-sm font-mono"
-                placeholder="admin"
-                autoComplete="username"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="input-base w-full px-4 py-3 text-sm"
+                placeholder="admin@equipechat.com"
+                autoComplete="email"
                 autoFocus
                 required
               />
@@ -130,7 +133,7 @@ export default function LoginMonitor() {
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading || !user || !pass}
+              disabled={loading || !email || !pass}
               className="w-full py-3 px-6 rounded-lg font-semibold text-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
                 background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)))",
