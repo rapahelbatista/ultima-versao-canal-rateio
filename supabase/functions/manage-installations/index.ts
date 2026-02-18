@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendEmailNotification } from "../_shared/notify.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,7 +28,6 @@ Deno.serve(async (req) => {
   );
 
   const url = new URL(req.url);
-  const action = url.searchParams.get("action");
 
   try {
     // GET - listar instalações
@@ -57,6 +57,13 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Buscar dados da instalação para a notificação
+      const { data: installation } = await supabase
+        .from("installations")
+        .select("*")
+        .eq("id", id)
+        .single();
+
       if (bodyAction === "block") {
         const { error } = await supabase
           .from("installations")
@@ -68,6 +75,24 @@ Deno.serve(async (req) => {
           .eq("id", id);
 
         if (error) throw error;
+
+        // Notificação de bloqueio
+        if (installation) {
+          const subject = `🚫 Instalação Bloqueada — ${installation.hostname || installation.ip}`;
+          const html = `
+            <h2>Instalação bloqueada</h2>
+            <table cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;font-size:14px;">
+              <tr><td><strong>IP</strong></td><td>${installation.ip}</td></tr>
+              <tr><td><strong>Hostname</strong></td><td>${installation.hostname || "-"}</td></tr>
+              <tr><td><strong>Frontend URL</strong></td><td><a href="${installation.frontend_url}">${installation.frontend_url}</a></td></tr>
+              <tr><td><strong>Motivo do Bloqueio</strong></td><td style="color:#c0392b;">${reason || "Motivo não informado"}</td></tr>
+              <tr><td><strong>Bloqueado em</strong></td><td>${new Date().toLocaleString("pt-BR")}</td></tr>
+            </table>
+            <p style="color:#888;font-size:12px;margin-top:16px;">Notificação automática — EquipeChat Monitor</p>
+          `;
+          await sendEmailNotification(subject, html);
+        }
+
         return new Response(
           JSON.stringify({ success: true }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -85,6 +110,23 @@ Deno.serve(async (req) => {
           .eq("id", id);
 
         if (error) throw error;
+
+        // Notificação de desbloqueio
+        if (installation) {
+          const subject = `✅ Instalação Desbloqueada — ${installation.hostname || installation.ip}`;
+          const html = `
+            <h2>Instalação desbloqueada</h2>
+            <table cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;font-size:14px;">
+              <tr><td><strong>IP</strong></td><td>${installation.ip}</td></tr>
+              <tr><td><strong>Hostname</strong></td><td>${installation.hostname || "-"}</td></tr>
+              <tr><td><strong>Frontend URL</strong></td><td><a href="${installation.frontend_url}">${installation.frontend_url}</a></td></tr>
+              <tr><td><strong>Desbloqueado em</strong></td><td>${new Date().toLocaleString("pt-BR")}</td></tr>
+            </table>
+            <p style="color:#888;font-size:12px;margin-top:16px;">Notificação automática — EquipeChat Monitor</p>
+          `;
+          await sendEmailNotification(subject, html);
+        }
+
         return new Response(
           JSON.stringify({ success: true }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
