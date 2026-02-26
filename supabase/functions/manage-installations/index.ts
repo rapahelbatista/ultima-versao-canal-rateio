@@ -3,19 +3,17 @@ import { sendEmailNotification } from "../_shared/notify.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-admin-key",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const ADMIN_KEY = "equipechat@2024";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Verificar chave de admin no header
-  const adminKey = req.headers.get("x-admin-key");
-  if (adminKey !== ADMIN_KEY) {
+  // Verify JWT from Authorization header
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
     return new Response(
       JSON.stringify({ error: "Não autorizado" }),
       { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -24,15 +22,29 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: authHeader } } }
   );
 
-  const url = new URL(req.url);
+  // Validate the user session
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    return new Response(
+      JSON.stringify({ error: "Não autorizado" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  // Use service role client for data operations
+  const adminClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
 
   try {
     // GET - listar instalações
     if (req.method === "GET") {
-      const { data, error } = await supabase
+      const { data, error } = await adminClient
         .from("installations")
         .select("*")
         .order("created_at", { ascending: false });
@@ -58,14 +70,14 @@ Deno.serve(async (req) => {
       }
 
       // Buscar dados da instalação para a notificação
-      const { data: installation } = await supabase
+      const { data: installation } = await adminClient
         .from("installations")
         .select("*")
         .eq("id", id)
         .single();
 
       if (bodyAction === "block") {
-        const { error } = await supabase
+        const { error } = await adminClient
           .from("installations")
           .update({
             is_blocked: true,
@@ -76,7 +88,6 @@ Deno.serve(async (req) => {
 
         if (error) throw error;
 
-        // Notificação de bloqueio
         if (installation) {
           const subject = `🚫 Instalação Bloqueada — ${installation.hostname || installation.ip}`;
           const html = `
@@ -100,7 +111,7 @@ Deno.serve(async (req) => {
       }
 
       if (bodyAction === "unblock") {
-        const { error } = await supabase
+        const { error } = await adminClient
           .from("installations")
           .update({
             is_blocked: false,
@@ -111,7 +122,6 @@ Deno.serve(async (req) => {
 
         if (error) throw error;
 
-        // Notificação de desbloqueio
         if (installation) {
           const subject = `✅ Instalação Desbloqueada — ${installation.hostname || installation.ip}`;
           const html = `
