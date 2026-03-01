@@ -1,1 +1,7 @@
 project_id = "cicwzhpsiewdpugmceqm"
+
+[functions.register-installation]
+verify_jwt = false
+
+[functions.check-block-status]
+verify_jwt = false
