@@ -31,6 +31,7 @@ interface Installation {
   block_reason?: string;
   blocked_at?: string;
   created_at: string;
+  updated_at: string;
 }
 
 const PALETTE = ["hsl(213,94%,58%)", "hsl(152,68%,46%)", "hsl(36,94%,54%)", "hsl(280,65%,60%)", "hsl(0,72%,55%)"];
@@ -482,7 +483,7 @@ export default function MonitorDashboard() {
   const [actionLoading, setActionLoading] = useState(false);
   const [sortField, setSortField] = useState<keyof Installation>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [dateRange, setDateRange] = useState("30");
+  const [dateRange, setDateRange] = useState("all");
   const [versionFilter, setVersionFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "blocked">("all");
   const [page, setPage] = useState(1);
@@ -512,9 +513,11 @@ export default function MonitorDashboard() {
   }, [installations]);
 
   const filtered = useMemo(() => {
-    const cutoff = subDays(new Date(), parseInt(dateRange));
-    let result = installations.filter(i => new Date(i.created_at) >= cutoff);
-    if (versionFilter !== "all") result = result.filter(i => (i.installer_version || "?") === versionFilter);
+    const cutoff = dateRange === "all" ? null : subDays(new Date(), parseInt(dateRange));
+    let result = installations.filter(i => {
+      const refDate = new Date(i.updated_at || i.created_at);
+      return cutoff ? refDate >= cutoff : true;
+    });
     if (statusFilter === "active") result = result.filter(i => !i.is_blocked);
     if (statusFilter === "blocked") result = result.filter(i => i.is_blocked);
     if (search.trim()) {
@@ -817,6 +820,7 @@ export default function MonitorDashboard() {
                   <option value="30">30 dias</option>
                   <option value="60">60 dias</option>
                   <option value="365">1 ano</option>
+                  <option value="all">Todos</option>
                 </select>
                 {/* Version */}
                 <select value={versionFilter} onChange={e => setVersionFilter(e.target.value)}
