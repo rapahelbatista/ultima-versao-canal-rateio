@@ -122,5 +122,3 @@ const blockCheck = async (
 };
 
 export default blockCheck;
-
-export default blockCheck;
