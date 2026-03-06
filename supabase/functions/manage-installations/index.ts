@@ -143,8 +143,22 @@ Deno.serve(async (req) => {
         );
       }
 
+      if (bodyAction === "delete") {
+        const { error } = await adminClient
+          .from("installations")
+          .delete()
+          .eq("id", id);
+
+        if (error) throw error;
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       return new Response(
-        JSON.stringify({ error: "Ação inválida. Use 'block' ou 'unblock'" }),
+        JSON.stringify({ error: "Ação inválida. Use 'block', 'unblock' ou 'delete'" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

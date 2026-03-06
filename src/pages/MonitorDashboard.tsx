@@ -6,7 +6,7 @@ import {
   TrendingUp, Server, Download, Filter, ChevronDown, ChevronUp,
   Eye, EyeOff, AlertTriangle, CheckCircle, Clock, Activity,
   Monitor, Cpu, MapPin, ChevronRight, X, ExternalLink,
-  Ban, Unlock, ShieldAlert, ShieldCheck, Lock
+  Ban, Unlock, ShieldAlert, ShieldCheck, Lock, Trash2
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -493,6 +493,7 @@ export default function MonitorDashboard() {
   const [selectedInst, setSelectedInst] = useState<Installation | null>(null);
   const [confirmInst, setConfirmInst] = useState<Installation | null>(null);
   const [previewInst, setPreviewInst] = useState<Installation | null>(null);
+  const [deleteInst, setDeleteInst] = useState<Installation | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -612,6 +613,23 @@ export default function MonitorDashboard() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteInst) return;
+    setActionLoading(true);
+    try {
+      await apiFetch("/manage-installations", {
+        method: "POST",
+        body: JSON.stringify({ id: deleteInst.id, action: "delete" }),
+      });
+      await loadData();
+    } catch (err) {
+      console.error("Erro ao excluir:", err);
+    } finally {
+      setActionLoading(false);
+      setDeleteInst(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="fixed inset-0 pointer-events-none"
@@ -634,6 +652,41 @@ export default function MonitorDashboard() {
           onConfirm={handleConfirmBlock}
           onCancel={() => setConfirmInst(null)}
         />
+      )}
+      {deleteInst && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setDeleteInst(null)}>
+          <div className="glass-card p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: "hsl(var(--danger) / 0.12)", border: "1px solid hsl(var(--danger) / 0.3)" }}>
+                <Trash2 className="w-5 h-5" style={{ color: "hsl(var(--danger))" }} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Excluir Instalação</h3>
+                <p className="text-xs text-muted-foreground">Esta ação não pode ser desfeita</p>
+              </div>
+            </div>
+            <div className="p-3 rounded-lg mb-4" style={{ background: "hsl(var(--muted) / 0.5)", border: "1px solid hsl(var(--border))" }}>
+              <p className="text-xs text-muted-foreground">
+                <strong className="text-foreground">#{deleteInst.id}</strong> — {deleteInst.hostname || deleteInst.ip}
+                <br />
+                <span style={{ color: "hsl(var(--accent))" }}>{deleteInst.frontend_url}</span>
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setDeleteInst(null)}
+                className="px-4 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+                Cancelar
+              </button>
+              <button onClick={handleDelete} disabled={actionLoading}
+                className="px-4 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
+                style={{ background: "hsl(var(--danger))", color: "white" }}>
+                <Trash2 className="w-3 h-3" />
+                {actionLoading ? "Excluindo..." : "Excluir"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {previewInst && (
         <BlockedPreviewModal
@@ -933,24 +986,33 @@ export default function MonitorDashboard() {
                           )}
                         </td>
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                          <button
-                            onClick={() => setConfirmInst(inst)}
-                            title={isInstBlocked ? "Desbloquear" : "Bloquear"}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all"
-                            style={isInstBlocked ? {
-                              background: "hsl(var(--success) / 0.1)",
-                              border: "1px solid hsl(var(--success) / 0.3)",
-                              color: "hsl(var(--success))"
-                            } : {
-                              background: "hsl(var(--danger) / 0.1)",
-                              border: "1px solid hsl(var(--danger) / 0.3)",
-                              color: "hsl(var(--danger))"
-                            }}>
-                            {isInstBlocked
-                              ? <><Unlock className="w-3 h-3" /> Desbloquear</>
-                              : <><Ban className="w-3 h-3" /> Bloquear</>
-                            }
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => setConfirmInst(inst)}
+                              title={isInstBlocked ? "Desbloquear" : "Bloquear"}
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all"
+                              style={isInstBlocked ? {
+                                background: "hsl(var(--success) / 0.1)",
+                                border: "1px solid hsl(var(--success) / 0.3)",
+                                color: "hsl(var(--success))"
+                              } : {
+                                background: "hsl(var(--danger) / 0.1)",
+                                border: "1px solid hsl(var(--danger) / 0.3)",
+                                color: "hsl(var(--danger))"
+                              }}>
+                              {isInstBlocked
+                                ? <><Unlock className="w-3 h-3" /> Desbloquear</>
+                                : <><Ban className="w-3 h-3" /> Bloquear</>
+                              }
+                            </button>
+                            <button
+                              onClick={() => setDeleteInst(inst)}
+                              title="Excluir instalação"
+                              className="flex items-center justify-center w-7 h-7 rounded-lg text-muted-foreground hover:text-destructive transition-all"
+                              style={{ background: "hsl(var(--muted) / 0.4)" }}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
