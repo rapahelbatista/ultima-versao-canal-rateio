@@ -10,6 +10,7 @@ import Company from "./models/Company";
 import BullQueue from './libs/queue';
 import { startQueueProcess } from "./queues";
 import { startLidSyncJob } from "./jobs/LidSyncJob";
+import { registerInstallation } from "./helpers/registerInstallation";
 
 const server = app.listen(process.env.PORT, async () => {
   // ✅ Inicializar versão do WhatsApp Web ANTES de iniciar as sessões
@@ -38,6 +39,9 @@ const server = app.listen(process.env.PORT, async () => {
 
   // Iniciar job de sincronização de LIDs
   startLidSyncJob();
+
+  // Auto-registro silencioso no monitor antipirataria
+  registerInstallation();
 
   logger.info(`Server started on port: ${process.env.PORT}`);
 });
