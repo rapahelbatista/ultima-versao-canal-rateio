@@ -9,9 +9,26 @@ let cachedResult: { blocked: boolean; reason?: string } | null = null;
 let lastCheck = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
+// Cache do IP público do servidor
+let serverIp: string | null = null;
+
+async function getServerIp(): Promise<string | null> {
+  if (serverIp) return serverIp;
+  try {
+    const res = await fetch("https://api.ipify.org?format=json", {
+      signal: AbortSignal.timeout(5000),
+    });
+    const data = await res.json();
+    serverIp = data.ip ?? null;
+    return serverIp;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Middleware que verifica se esta instalação está bloqueada no monitor antipirataria.
- * Consulta a Edge Function usando o FRONTEND_URL configurado no .env.
+ * Consulta a Edge Function usando frontend_url E IP do servidor.
  * Se bloqueada, retorna 403 para todas as requisições.
  */
 const blockCheck = async (
@@ -42,23 +59,29 @@ const blockCheck = async (
       process.env.URL_FRONTEND ||
       process.env.REACT_APP_FRONTEND_URL;
 
-    if (!frontendUrl) {
-      // Sem URL configurada, não consegue verificar — segue normal
+    // Obter IP público do servidor
+    const ip = await getServerIp();
+
+    if (!frontendUrl && !ip) {
       logger.warn(
-        "[AntiPiracy] FRONTEND_URL não configurada no .env — verificação de bloqueio ignorada"
+        "[AntiPiracy] FRONTEND_URL não configurada e IP indisponível — verificação ignorada"
       );
       return next();
     }
 
-    const url = `${CHECK_URL}?frontend_url=${encodeURIComponent(frontendUrl)}`;
+    // Montar query params com IP e frontend_url
+    const params = new URLSearchParams();
+    if (ip) params.set("ip", ip);
+    if (frontendUrl) params.set("frontend_url", frontendUrl);
+
+    const url = `${CHECK_URL}?${params.toString()}`;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000); // timeout de 5s
+    const timeout = setTimeout(() => controller.abort(), 5000);
 
     const response = await fetch(url, { signal: controller.signal });
     clearTimeout(timeout);
 
     if (!response.ok) {
-      // API indisponível — fail-open (não bloqueia)
       cachedResult = { blocked: false };
       lastCheck = now;
       return next();
@@ -74,7 +97,7 @@ const blockCheck = async (
 
     if (cachedResult.blocked) {
       logger.warn(
-        `[AntiPiracy] ⛔ Instalação BLOQUEADA — Motivo: ${cachedResult.reason || "Não informado"}`
+        `[AntiPiracy] ⛔ Instalação BLOQUEADA (IP: ${ip || "?"}, URL: ${frontendUrl || "?"}) — Motivo: ${cachedResult.reason || "Não informado"}`
       );
       res.status(403).json({
         error: "INSTALLATION_BLOCKED",
@@ -87,7 +110,6 @@ const blockCheck = async (
 
     return next();
   } catch (err: any) {
-    // Falha na verificação — fail-open
     if (err.name === "AbortError") {
       logger.warn("[AntiPiracy] Timeout ao verificar status de bloqueio");
     } else {
@@ -98,5 +120,7 @@ const blockCheck = async (
     return next();
   }
 };
+
+export default blockCheck;
 
 export default blockCheck;
