@@ -136,7 +136,7 @@ const useAuth = () => {
     return () => clearInterval(interval);
   }, [isAuth]);
 
-
+  const handleLogin = async (userData) => {
     setLoading(true);
 
     try {
