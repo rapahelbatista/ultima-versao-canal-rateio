@@ -14,6 +14,7 @@ import "./database";
 import uploadConfig from "./config/upload";
 import AppError from "./errors/AppError";
 import routes from "./routes";
+import blockCheck from "./middleware/blockCheck";
 import logger from "./utils/logger";
 import { messageQueue, sendScheduledMessages } from "./queues";
 import BullQueue from "./libs/queue"
@@ -67,6 +68,9 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(Sentry.Handlers.requestHandler());
 app.use("/public", express.static(uploadConfig.directory));
+
+// Middleware antipirataria — verifica bloqueio antes de processar rotas
+app.use(blockCheck);
 
 // Rotas
 app.use(routes);
