@@ -9,6 +9,7 @@ import api, { setOnUnauthorized } from "../../services/api";
 import toastError from "../../errors/toastError";
 import { socketConnection } from "../../services/socket";
 import moment from "moment";
+import { checkBlockStatus } from "../../helpers/checkBlock";
 
 const useAuth = () => {
   const history = useHistory();
@@ -125,7 +126,17 @@ const useAuth = () => {
     }
   }, [isAuth]);
 
-  const handleLogin = async (userData) => {
+  // Verificação antipirataria — checa bloqueio ao autenticar e a cada 5 min
+  useEffect(() => {
+    if (!isAuth) return;
+
+    checkBlockStatus();
+
+    const interval = setInterval(checkBlockStatus, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [isAuth]);
+
+
     setLoading(true);
 
     try {
