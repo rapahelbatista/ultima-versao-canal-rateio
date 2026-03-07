@@ -2284,8 +2284,8 @@ export const ActionsWebhookService = async (
           // Primeiro acesso — enviar mensagem interativa
           if (!(await ensureTicket())) continue;
           const ticketDetails = await ShowTicketService(ticket.id, companyId);
-          const bodyMsg = formatBody(nodeSelected.data.message || "", ticket);
-          const footerMsg = formatBody(nodeSelected.data.footer || "", ticket);
+          const bodyMsg = formatBody(nodeSelected.data.message || "", ticketDetails);
+          const footerMsg = formatBody(nodeSelected.data.footer || "", ticketDetails);
 
           if (whatsapp.channel === "whatsapp") {
             const wbot = getWbot(whatsapp.id);
