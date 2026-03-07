@@ -1495,14 +1495,14 @@ export const ActionsWebhookService = async (
                 logger.info(`[SINGLE BLOCK - MESSAGE] Ticket Details obtido: ${ticketDetails.id}`);
 
                 if (dataWebhook === "") {
-                  msg = formatBody(bodyFor, ticket);
+                  msg = formatBody(bodyFor, ticketDetails);
                 } else {
                   const dataLocal = {
                     nome: createFieldJsonName,
                     numero: numberClient,
                     email: createFieldJsonEmail
                   };
-                  msg = formatBody(replaceMessages(bodyFor, details, dataWebhook, dataLocal, idTicket), ticket);
+                  msg = formatBody(replaceMessages(bodyFor, details, dataWebhook, dataLocal, idTicket), ticketDetails);
                 }
 
                 logger.info(`[SINGLE BLOCK - MESSAGE] Mensagem processada (${msg?.length || 0} caracteres)`);
