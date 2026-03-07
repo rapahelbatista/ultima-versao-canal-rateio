@@ -682,9 +682,13 @@ export const ActionsWebhookService = async (
         if (!ticket?.whatsapp && idTicket) {
           ticket = await getTicketWithWhatsapp(idTicket, whatsappId, companyId);
         }
+
+        // ✅ Carregar ticket com relações para interpolação de variáveis ({{queue}}, {{userName}}, etc.)
+        const ticketDetailsMsg = idTicket ? await ShowTicketService(idTicket, companyId) : null;
+
         if (dataWebhook === "") {
           msg = {
-            body: nodeSelected.data.label,
+            body: ticketDetailsMsg ? formatBody(nodeSelected.data.label, ticketDetailsMsg) : nodeSelected.data.label,
             number: numberClient,
             companyId: companyId
           };
@@ -694,14 +698,15 @@ export const ActionsWebhookService = async (
             numero: numberClient,
             email: createFieldJsonEmail
           };
+          const replacedBody = replaceMessages(
+            nodeSelected.data.label,
+            details,
+            dataWebhook,
+            dataLocal,
+            idTicket
+          );
           msg = {
-            body: replaceMessages(
-              nodeSelected.data.label,
-              details,
-              dataWebhook,
-              dataLocal,
-              idTicket
-            ),
+            body: ticketDetailsMsg ? formatBody(replacedBody, ticketDetailsMsg) : replacedBody,
             number: numberClient,
             companyId: companyId
           };
