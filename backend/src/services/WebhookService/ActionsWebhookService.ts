@@ -1760,7 +1760,8 @@ export const ActionsWebhookService = async (
               const currentElement = nodeSelected.data.elements.filter(item => item.number === elementNowSelected)[0];
               const filePath = path.join(publicFolder, `company${companyId}/flow`, currentElement.value);
               const captionRaw = currentElement.caption || "";
-              const caption = captionRaw ? formatBody(captionRaw, ticket) : "";
+              const ticketInt = await ShowTicketService(ticket.id, companyId);
+              const caption = captionRaw ? formatBody(captionRaw, ticketInt) : "";
               logger.info(`[FLOW MEDIA - VIDEO] FilePath: ${filePath}`);
               logger.info(`[FLOW MEDIA - VIDEO] Caption: ${caption}`);
               logger.info(`[FLOW MEDIA - VIDEO] Company ID: ${companyId}`);
