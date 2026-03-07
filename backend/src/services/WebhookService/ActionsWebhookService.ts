@@ -1536,7 +1536,7 @@ export const ActionsWebhookService = async (
                 logger.info(`[SINGLE BLOCK - MESSAGE] Atualizando lastMessage do ticket ${ticket.id}`);
 
                 await ticketDetails.update({
-                  lastMessage: formatBody(bodyFor, ticket.contact)
+                  lastMessage: formatBody(bodyFor, ticketDetails)
                 });
 
                 logger.info(`[SINGLE BLOCK - MESSAGE] ✅ LastMessage atualizada`);
