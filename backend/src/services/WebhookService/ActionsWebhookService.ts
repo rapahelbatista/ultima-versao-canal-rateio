@@ -1695,7 +1695,7 @@ export const ActionsWebhookService = async (
               logger.info(`[FLOW MEDIA - AUDIO] Company ID: ${companyId}`);
               logger.info(`[FLOW MEDIA - AUDIO] WhatsApp Channel: ${whatsapp.channel}`);
 
-              const ticketInt = await ShowTicketService(ticket.id, companyId);
+              // ticketInt já carregado acima
               logger.info(`[FLOW MEDIA - AUDIO] Ticket ID: ${ticketInt?.id}`);
 
               if (whatsapp.channel === "whatsapp") {
