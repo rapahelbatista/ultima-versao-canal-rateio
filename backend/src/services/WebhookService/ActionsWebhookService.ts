@@ -2626,9 +2626,11 @@ export const ActionsWebhookService = async (
           logger.info(`[MENU NODE] Menu completo criado com ${nodeSelected.data.arrayOption.length} opções`);
 
           let msg;
+          // ✅ Carregar ticket com relações para interpolação de variáveis ({{queue}}, {{userName}}, etc.)
+          const ticketDetailsMenu = await ShowTicketService(ticket.id, companyId);
           if (dataWebhook === "") {
             msg = {
-              body: menuCreate,
+              body: formatBody(menuCreate, ticketDetailsMenu),
               number: numberClient,
               companyId: companyId
             };
@@ -2639,7 +2641,7 @@ export const ActionsWebhookService = async (
               email: createFieldJsonEmail
             };
             msg = {
-              body: replaceMessages(menuCreate, details, dataWebhook, dataLocal, idTicket),
+              body: formatBody(replaceMessages(menuCreate, details, dataWebhook, dataLocal, idTicket), ticketDetailsMenu),
               number: numberClient,
               companyId: companyId
             };
