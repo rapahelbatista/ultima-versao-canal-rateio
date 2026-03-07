@@ -1495,14 +1495,14 @@ export const ActionsWebhookService = async (
                 logger.info(`[SINGLE BLOCK - MESSAGE] Ticket Details obtido: ${ticketDetails.id}`);
 
                 if (dataWebhook === "") {
-                  msg = formatBody(bodyFor, ticket);
+                  msg = formatBody(bodyFor, ticketDetails);
                 } else {
                   const dataLocal = {
                     nome: createFieldJsonName,
                     numero: numberClient,
                     email: createFieldJsonEmail
                   };
-                  msg = formatBody(replaceMessages(bodyFor, details, dataWebhook, dataLocal, idTicket), ticket);
+                  msg = formatBody(replaceMessages(bodyFor, details, dataWebhook, dataLocal, idTicket), ticketDetails);
                 }
 
                 logger.info(`[SINGLE BLOCK - MESSAGE] Mensagem processada (${msg?.length || 0} caracteres)`);
@@ -1536,7 +1536,7 @@ export const ActionsWebhookService = async (
                 logger.info(`[SINGLE BLOCK - MESSAGE] Atualizando lastMessage do ticket ${ticket.id}`);
 
                 await ticketDetails.update({
-                  lastMessage: formatBody(bodyFor, ticket.contact)
+                  lastMessage: formatBody(bodyFor, ticketDetails)
                 });
 
                 logger.info(`[SINGLE BLOCK - MESSAGE] ✅ LastMessage atualizada`);
@@ -1605,13 +1605,14 @@ export const ActionsWebhookService = async (
               const currentElement = nodeSelected.data.elements.filter(item => item.number === elementNowSelected)[0];
               const filePath = path.join(publicFolder, `company${companyId}/flow`, currentElement.value);
               const captionRaw = currentElement.caption || "";
-              const caption = captionRaw ? formatBody(captionRaw, ticket) : "";
+              const ticketInt = await ShowTicketService(ticket.id, companyId);
+              const caption = captionRaw ? formatBody(captionRaw, ticketInt) : "";
               logger.info(`[FLOW MEDIA - IMG] FilePath: ${filePath}`);
               logger.info(`[FLOW MEDIA - IMG] Caption: ${caption}`);
               logger.info(`[FLOW MEDIA - IMG] Company ID: ${companyId}`);
               logger.info(`[FLOW MEDIA - IMG] WhatsApp Channel: ${whatsapp.channel}`);
 
-              const ticketInt = await ShowTicketService(ticket.id, companyId);
+              // ticketInt já carregado acima
               logger.info(`[FLOW MEDIA - IMG] Ticket ID: ${ticketInt?.id}`);
 
               if (whatsapp.channel === "whatsapp") {
@@ -1687,13 +1688,14 @@ export const ActionsWebhookService = async (
               const currentElement = nodeSelected.data.elements.filter(item => item.number === elementNowSelected)[0];
               const filePath = path.join(publicFolder, `company${companyId}/flow`, currentElement.value);
               const captionRaw = currentElement.caption || "";
-              const caption = captionRaw ? formatBody(captionRaw, ticket) : "";
+              const ticketInt = await ShowTicketService(ticket.id, companyId);
+              const caption = captionRaw ? formatBody(captionRaw, ticketInt) : "";
               logger.info(`[FLOW MEDIA - AUDIO] FilePath: ${filePath}`);
               logger.info(`[FLOW MEDIA - AUDIO] Caption: ${caption}`);
               logger.info(`[FLOW MEDIA - AUDIO] Company ID: ${companyId}`);
               logger.info(`[FLOW MEDIA - AUDIO] WhatsApp Channel: ${whatsapp.channel}`);
 
-              const ticketInt = await ShowTicketService(ticket.id, companyId);
+              // ticketInt já carregado acima
               logger.info(`[FLOW MEDIA - AUDIO] Ticket ID: ${ticketInt?.id}`);
 
               if (whatsapp.channel === "whatsapp") {
@@ -1758,13 +1760,14 @@ export const ActionsWebhookService = async (
               const currentElement = nodeSelected.data.elements.filter(item => item.number === elementNowSelected)[0];
               const filePath = path.join(publicFolder, `company${companyId}/flow`, currentElement.value);
               const captionRaw = currentElement.caption || "";
-              const caption = captionRaw ? formatBody(captionRaw, ticket) : "";
+              const ticketInt = await ShowTicketService(ticket.id, companyId);
+              const caption = captionRaw ? formatBody(captionRaw, ticketInt) : "";
               logger.info(`[FLOW MEDIA - VIDEO] FilePath: ${filePath}`);
               logger.info(`[FLOW MEDIA - VIDEO] Caption: ${caption}`);
               logger.info(`[FLOW MEDIA - VIDEO] Company ID: ${companyId}`);
               logger.info(`[FLOW MEDIA - VIDEO] WhatsApp Channel: ${whatsapp.channel}`);
 
-              const ticketInt = await ShowTicketService(ticket.id, companyId);
+              // ticketInt já carregado acima
               logger.info(`[FLOW MEDIA - VIDEO] Ticket ID: ${ticketInt?.id}`);
 
               if (whatsapp.channel === "whatsapp") {
@@ -2166,8 +2169,8 @@ export const ActionsWebhookService = async (
             logger.warn(`[INTERACTIVE MENU] ❌ Opção inválida: "${pressKey}"`);
             if (!(await ensureTicket())) continue;
             const ticketDetails = await ShowTicketService(ticket.id, companyId);
-            const bodyMsg = formatBody(nodeSelected.data.message || "", ticket);
-            const footerMsg = formatBody(nodeSelected.data.footer || "", ticket);
+            const bodyMsg = formatBody(nodeSelected.data.message || "", ticketDetails);
+            const footerMsg = formatBody(nodeSelected.data.footer || "", ticketDetails);
 
             if (whatsapp.channel === "whatsapp") {
               const wbot = getWbot(whatsapp.id);
@@ -2281,8 +2284,8 @@ export const ActionsWebhookService = async (
           // Primeiro acesso — enviar mensagem interativa
           if (!(await ensureTicket())) continue;
           const ticketDetails = await ShowTicketService(ticket.id, companyId);
-          const bodyMsg = formatBody(nodeSelected.data.message || "", ticket);
-          const footerMsg = formatBody(nodeSelected.data.footer || "", ticket);
+          const bodyMsg = formatBody(nodeSelected.data.message || "", ticketDetails);
+          const footerMsg = formatBody(nodeSelected.data.footer || "", ticketDetails);
 
           if (whatsapp.channel === "whatsapp") {
             const wbot = getWbot(whatsapp.id);
@@ -2678,7 +2681,7 @@ export const ActionsWebhookService = async (
           logger.info(`[TICKET UPDATE] Atualizando lastMessage do ticket ${ticket.id} no menu`);
 
           await ticketDetails.update({
-            lastMessage: formatBody(msg.body, ticket.contact)
+            lastMessage: formatBody(msg.body, ticketDetails)
           });
 
           logger.info(`[TICKET UPDATE] LastMessage atualizada para ticket ${ticket.id} no menu`);
