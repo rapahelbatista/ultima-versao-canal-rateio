@@ -899,6 +899,9 @@ export const ActionsWebhookService = async (
             continue;
           }
 
+          // ✅ Carregar ticket com relações para interpolação de variáveis ({{queue}}, {{userName}}, etc.)
+          const ticketDetailsInput = idTicket ? await ShowTicketService(idTicket, companyId) : null;
+
           if (question.includes("${")) {
             const dataLocal = {
               nome: createFieldJsonName,
@@ -913,6 +916,11 @@ export const ActionsWebhookService = async (
               dataLocal,
               idTicket
             );
+          }
+
+          // Aplicar formatBody para variáveis Mustache ({{queue}}, {{userName}}, etc.)
+          if (ticketDetailsInput) {
+            question = formatBody(question, ticketDetailsInput);
           }
 
           // Verifica se este input específico já foi respondido
