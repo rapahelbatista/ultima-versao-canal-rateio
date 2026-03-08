@@ -20,14 +20,14 @@ Deno.serve(async (req) => {
     );
   }
 
-  const supabase = createClient(
+  const anonClient = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: authHeader } } }
   );
 
   // Validate the user session
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  const { data: { user }, error: userError } = await anonClient.auth.getUser();
   if (userError || !user) {
     return new Response(
       JSON.stringify({ error: "Não autorizado" }),
@@ -35,11 +35,26 @@ Deno.serve(async (req) => {
     );
   }
 
-  // Use service role client for data operations
+  // Use service role client for data operations and role checks
   const adminClient = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
+
+  // Verify user has admin role
+  const { data: roleData, error: roleError } = await adminClient
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+
+  if (roleError || !roleData) {
+    return new Response(
+      JSON.stringify({ error: "Acesso negado: permissão de admin necessária" }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
 
   try {
     // GET - listar instalações
@@ -169,9 +184,8 @@ Deno.serve(async (req) => {
     );
   } catch (err: unknown) {
     console.error("Erro:", err);
-    const message = err instanceof Error ? err.message : "Erro interno";
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ error: "Erro interno do servidor" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
