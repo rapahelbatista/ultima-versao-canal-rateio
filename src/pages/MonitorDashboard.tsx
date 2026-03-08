@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import {
@@ -605,8 +606,14 @@ export default function MonitorDashboard() {
         body: JSON.stringify({ id: confirmInst.id, action, reason }),
       });
       await loadData();
+      if (action === "unblock") {
+        toast.success(`Instalação #${confirmInst.id} desbloqueada com sucesso`);
+      } else {
+        toast.success(`Instalação #${confirmInst.id} bloqueada com sucesso`);
+      }
     } catch (err) {
       console.error("Erro ao bloquear/desbloquear:", err);
+      toast.error("Erro ao executar ação. Tente novamente.");
     } finally {
       setActionLoading(false);
       setConfirmInst(null);
