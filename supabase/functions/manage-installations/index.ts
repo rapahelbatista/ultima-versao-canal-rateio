@@ -189,6 +189,40 @@ Para regularizar sua situação, entre em contato conosco imediatamente.
             <p style="color:#888;font-size:12px;margin-top:16px;">Notificação automática — EquipeChat Monitor</p>
           `;
           await sendEmailNotification(subject, html);
+
+          // Send WhatsApp unblock notification
+          try {
+            const { data: purchaseReq } = await adminClient
+              .from("purchase_requests")
+              .select("contact_phone, contact_name, company_name")
+              .not("contact_phone", "is", null)
+              .limit(50);
+
+            if (purchaseReq && purchaseReq.length > 0) {
+              for (const pr of purchaseReq) {
+                if (pr.contact_phone) {
+                  const unblockMsg = `✅ *AVISO DE DESBLOQUEIO — EquipeChat*
+
+Prezado(a) *${pr.contact_name}*,
+
+A instalação vinculada à empresa *${pr.company_name || "—"}* foi *desbloqueada* com sucesso.
+
+🔓 *Status:* Ativa
+🖥️ *Servidor:* ${installation.hostname || installation.ip}
+📅 *Data:* ${new Date().toLocaleString("pt-BR")}
+
+Sua instância está funcionando normalmente. Agradecemos a regularização! 🎉
+
+— *EquipeChat*`;
+
+                  await sendWhatsAppMessage(adminClient, pr.contact_phone, unblockMsg);
+                  break;
+                }
+              }
+            }
+          } catch (whatsErr) {
+            console.error("WhatsApp unblock notification error:", whatsErr);
+          }
         }
 
         return new Response(
