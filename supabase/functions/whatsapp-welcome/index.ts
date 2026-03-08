@@ -13,24 +13,36 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json();
-    const { phone, contact_name, company_name, link_id } = body;
+    const { phone, contact_name, company_name } = body;
 
     if (!phone || !contact_name) {
       return new Response(
-        JSON.stringify({ error: "phone e contact_name são obrigatórios" }),
+        JSON.stringify({ error: "phone e contact_name são obrigatórios", sent: false }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const ZAPMEOW_URL = Deno.env.get("ZAPMEOW_URL");
-    const ZAPMEOW_INSTANCE = Deno.env.get("ZAPMEOW_INSTANCE") || "equipechat";
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
-    if (!ZAPMEOW_URL) {
+    // Read ZapMeow config from DB
+    const { data: config } = await supabaseAdmin
+      .from("whatsapp_config")
+      .select("zapmeow_url, instance_id")
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!config?.zapmeow_url) {
       return new Response(
-        JSON.stringify({ error: "ZAPMEOW_URL não configurada", sent: false }),
+        JSON.stringify({ error: "WhatsApp não configurado", sent: false }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const ZAPMEOW_URL = config.zapmeow_url;
+    const ZAPMEOW_INSTANCE = config.instance_id || "equipechat";
 
     // Normalize phone
     const cleanPhone = phone.replace(/\D/g, "");

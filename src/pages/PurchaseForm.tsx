@@ -150,6 +150,21 @@ export default function PurchaseForm() {
         .update({ status: "completed" })
         .eq("id", linkData.id);
 
+      // Send WhatsApp welcome message (fire-and-forget)
+      if (data.contact_phone) {
+        const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        fetch(`https://${PROJECT_ID}.supabase.co/functions/v1/whatsapp-welcome`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone: data.contact_phone,
+            contact_name: data.contact_name,
+            company_name: data.company_name,
+            link_id: linkData.id,
+          }),
+        }).catch(() => {}); // silently ignore errors
+      }
+
       setSubmitted(true);
     } catch (err: any) {
       setError("Erro ao enviar formulário. Tente novamente.");

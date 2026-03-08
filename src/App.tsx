@@ -7,6 +7,7 @@ import MonitorDashboard from "./pages/MonitorDashboard";
 import BlockedPage from "./pages/BlockedPage";
 import PurchaseForm from "./pages/PurchaseForm";
 import ClientFormsDashboard from "./pages/ClientFormsDashboard";
+import WhatsAppPanel from "./pages/WhatsAppPanel";
 
 function RequireAuth({ children, session }: { children: React.ReactNode; session: Session | null }) {
   if (!session) {
@@ -69,6 +70,14 @@ export default function App() {
           element={
             <RequireAuth session={session}>
               <ClientFormsDashboard />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/whatsapp"
+          element={
+            <RequireAuth session={session}>
+              <WhatsAppPanel />
             </RequireAuth>
           }
         />
