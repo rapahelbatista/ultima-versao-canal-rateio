@@ -6,7 +6,7 @@ import {
   MessageSquare, QrCode, RefreshCw, Wifi, WifiOff,
   ArrowLeft, LogOut, Send, Loader2, CheckCircle,
   XCircle, Shield, Smartphone, Power, Zap, Ban,
-  Unlock, UserPlus, Bell, Settings
+  Unlock, UserPlus, Bell, Pencil, Save, RotateCcw, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,38 +32,31 @@ async function whatsappApi(action: string, extra: Record<string, any> = {}) {
 
 type ConnectionStatus = "disconnected" | "connected" | "loading" | "not_configured";
 
-const AUTOMATIONS = [
-  {
-    id: "welcome",
-    icon: UserPlus,
-    title: "Mensagem de Boas-Vindas",
-    description: "Envia automaticamente uma mensagem ao cliente quando ele preenche o formulário de aquisição.",
-    color: "text-green-500",
-    bgColor: "bg-green-500/10",
-    borderColor: "border-green-500/20",
-    active: true,
-  },
-  {
-    id: "block",
-    icon: Ban,
-    title: "Notificação de Bloqueio",
-    description: "Avisa o cliente via WhatsApp quando sua instalação é bloqueada por irregularidade.",
-    color: "text-destructive",
-    bgColor: "bg-destructive/10",
-    borderColor: "border-destructive/20",
-    active: true,
-  },
-  {
-    id: "unblock",
-    icon: Unlock,
-    title: "Notificação de Desbloqueio",
-    description: "Confirma ao cliente que a instalação foi desbloqueada e está funcionando normalmente.",
-    color: "text-blue-500",
-    bgColor: "bg-blue-500/10",
-    borderColor: "border-blue-500/20",
-    active: true,
-  },
-];
+interface Template {
+  id: string;
+  template_key: string;
+  title: string;
+  message_body: string;
+  is_active: boolean;
+}
+
+const VARIABLE_HINTS: Record<string, string[]> = {
+  welcome: ["{{contact_name}}", "{{company_name}}"],
+  block: ["{{contact_name}}", "{{company_name}}", "{{reason}}", "{{hostname}}", "{{date}}"],
+  unblock: ["{{contact_name}}", "{{company_name}}", "{{hostname}}", "{{date}}"],
+};
+
+const TEMPLATE_ICONS: Record<string, any> = {
+  welcome: UserPlus,
+  block: Ban,
+  unblock: Unlock,
+};
+
+const TEMPLATE_COLORS: Record<string, { color: string; bg: string; border: string }> = {
+  welcome: { color: "text-green-500", bg: "bg-green-500/10", border: "border-green-500/20" },
+  block: { color: "text-destructive", bg: "bg-destructive/10", border: "border-destructive/20" },
+  unblock: { color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+};
 
 export default function WhatsAppPanel() {
   const navigate = useNavigate();
@@ -75,14 +68,18 @@ export default function WhatsAppPanel() {
   const [sendMessage, setSendMessage] = useState("");
   const [sending, setSending] = useState(false);
 
+  // Templates
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editBody, setEditBody] = useState("");
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [previewKey, setPreviewKey] = useState<string | null>(null);
+
   const checkStatus = useCallback(async () => {
     setStatus("loading");
     try {
       const data = await whatsappApi("status");
-      if (data.configured === false) {
-        setStatus("not_configured");
-        return;
-      }
+      if (data.configured === false) { setStatus("not_configured"); return; }
       if (data?.Connected || data?.connected || data?.status === "connected") {
         setStatus("connected");
         const profileData = await whatsappApi("profile");
@@ -91,12 +88,18 @@ export default function WhatsAppPanel() {
       } else {
         setStatus("disconnected");
       }
-    } catch {
-      setStatus("disconnected");
-    }
+    } catch { setStatus("disconnected"); }
   }, []);
 
-  useEffect(() => { checkStatus(); }, [checkStatus]);
+  const loadTemplates = useCallback(async () => {
+    const { data } = await supabase
+      .from("whatsapp_templates")
+      .select("*")
+      .order("template_key");
+    if (data) setTemplates(data as Template[]);
+  }, []);
+
+  useEffect(() => { checkStatus(); loadTemplates(); }, [checkStatus, loadTemplates]);
 
   const fetchQrCode = async () => {
     setQrLoading(true);
@@ -117,60 +120,80 @@ export default function WhatsAppPanel() {
           }
         }, 5000);
         setTimeout(() => clearInterval(interval), 120000);
-      } else {
-        toast.error("Não foi possível gerar o QR Code.");
-      }
-    } catch {
-      toast.error("Erro ao buscar QR Code.");
-    } finally {
-      setQrLoading(false);
-    }
+      } else { toast.error("Não foi possível gerar o QR Code."); }
+    } catch { toast.error("Erro ao buscar QR Code."); }
+    finally { setQrLoading(false); }
   };
 
   const handleLogout = async () => {
     try {
       await whatsappApi("logout");
-      setStatus("disconnected");
-      setProfile(null);
-      setQrCode(null);
+      setStatus("disconnected"); setProfile(null); setQrCode(null);
       toast.success("WhatsApp desconectado.");
-    } catch {
-      toast.error("Erro ao desconectar.");
-    }
+    } catch { toast.error("Erro ao desconectar."); }
   };
 
   const handleSend = async () => {
-    if (!sendPhone.trim() || !sendMessage.trim()) {
-      toast.error("Preencha o número e a mensagem.");
-      return;
-    }
+    if (!sendPhone.trim() || !sendMessage.trim()) { toast.error("Preencha o número e a mensagem."); return; }
     setSending(true);
     try {
-      const data = await whatsappApi("send-text", {
-        phone: sendPhone.trim(),
-        message: sendMessage.trim(),
-      });
-      if (data?.error) {
-        toast.error(`Erro: ${data.error}`);
-      } else {
-        toast.success("Mensagem enviada!");
-        setSendMessage("");
-      }
-    } catch {
-      toast.error("Erro ao enviar mensagem.");
-    } finally {
-      setSending(false);
-    }
+      const data = await whatsappApi("send-text", { phone: sendPhone.trim(), message: sendMessage.trim() });
+      if (data?.error) toast.error(`Erro: ${data.error}`);
+      else { toast.success("Mensagem enviada!"); setSendMessage(""); }
+    } catch { toast.error("Erro ao enviar mensagem."); }
+    finally { setSending(false); }
   };
 
-  const handleLogoutAuth = async () => {
-    await supabase.auth.signOut();
-    navigate("/login");
+  const startEdit = (tpl: Template) => {
+    setEditingKey(tpl.template_key);
+    setEditBody(tpl.message_body);
+    setPreviewKey(null);
+  };
+
+  const cancelEdit = () => { setEditingKey(null); setEditBody(""); };
+
+  const saveTemplate = async (tpl: Template) => {
+    setSavingTemplate(true);
+    try {
+      const { error } = await supabase
+        .from("whatsapp_templates")
+        .update({ message_body: editBody })
+        .eq("id", tpl.id);
+      if (error) throw error;
+      toast.success(`Template "${tpl.title}" salvo!`);
+      setEditingKey(null);
+      loadTemplates();
+    } catch { toast.error("Erro ao salvar template."); }
+    finally { setSavingTemplate(false); }
+  };
+
+  const toggleActive = async (tpl: Template) => {
+    const { error } = await supabase
+      .from("whatsapp_templates")
+      .update({ is_active: !tpl.is_active })
+      .eq("id", tpl.id);
+    if (error) { toast.error("Erro ao atualizar."); return; }
+    toast.success(tpl.is_active ? `"${tpl.title}" desativada` : `"${tpl.title}" ativada`);
+    loadTemplates();
+  };
+
+  const getPreview = (body: string, key: string) => {
+    const sampleVars: Record<string, string> = {
+      contact_name: "João Silva",
+      company_name: "Empresa Exemplo",
+      reason: "Uso não autorizado detectado",
+      hostname: "srv-exemplo.com",
+      date: new Date().toLocaleString("pt-BR"),
+    };
+    let preview = body;
+    for (const [k, v] of Object.entries(sampleVars)) {
+      preview = preview.replaceAll(`{{${k}}}`, v);
+    }
+    return preview;
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/95 backdrop-blur-md">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-4 h-14">
           <div className="flex items-center gap-3">
@@ -196,10 +219,10 @@ export default function WhatsAppPanel() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={checkStatus} title="Atualizar status">
+            <Button variant="ghost" size="sm" onClick={() => { checkStatus(); loadTemplates(); }} title="Atualizar">
               <RefreshCw className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleLogoutAuth}>
+            <Button variant="ghost" size="sm" onClick={async () => { await supabase.auth.signOut(); navigate("/login"); }}>
               <LogOut className="w-4 h-4" />
             </Button>
           </div>
@@ -215,7 +238,7 @@ export default function WhatsAppPanel() {
             </div>
             <h2 className="text-xl font-bold">ZapMeow não configurado</h2>
             <p className="text-muted-foreground max-w-md mx-auto">
-              Execute o instalador do ZapMeow no seu servidor VPS. Ele vai registrar automaticamente a URL da API aqui.
+              Execute o instalador no servidor VPS para registrar automaticamente.
             </p>
             <div className="bg-muted/50 rounded-lg p-4 text-left font-mono text-sm max-w-lg mx-auto">
               <p className="text-muted-foreground mb-1"># No seu servidor VPS:</p>
@@ -224,7 +247,6 @@ export default function WhatsAppPanel() {
           </div>
         )}
 
-        {/* Loading */}
         {status === "loading" && (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -239,40 +261,23 @@ export default function WhatsAppPanel() {
                 <QrCode className="w-5 h-5 text-green-500" />
                 <h2 className="text-lg font-semibold">Conectar WhatsApp</h2>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Clique para gerar o QR Code e escaneie com o WhatsApp do seu celular.
-              </p>
+              <p className="text-sm text-muted-foreground">Escaneie o QR Code com o WhatsApp do celular.</p>
               {!qrCode ? (
-                <Button
-                  onClick={fetchQrCode}
-                  disabled={qrLoading}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
-                >
-                  {qrLoading ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Gerando...</>
-                  ) : (
-                    <><QrCode className="w-4 h-4 mr-2" /> Gerar QR Code</>
-                  )}
+                <Button onClick={fetchQrCode} disabled={qrLoading} className="w-full bg-green-600 hover:bg-green-700 text-white">
+                  {qrLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Gerando...</> : <><QrCode className="w-4 h-4 mr-2" /> Gerar QR Code</>}
                 </Button>
               ) : (
                 <div className="space-y-3">
                   <div className="bg-white rounded-lg p-4 flex items-center justify-center">
-                    <img
-                      src={qrCode.startsWith("data:") ? qrCode : `data:image/png;base64,${qrCode}`}
-                      alt="QR Code WhatsApp"
-                      className="w-64 h-64 object-contain"
-                    />
+                    <img src={qrCode.startsWith("data:") ? qrCode : `data:image/png;base64,${qrCode}`} alt="QR Code" className="w-64 h-64 object-contain" />
                   </div>
-                  <p className="text-xs text-center text-muted-foreground">
-                    Abra o WhatsApp → Aparelhos conectados → Conectar aparelho
-                  </p>
+                  <p className="text-xs text-center text-muted-foreground">WhatsApp → Aparelhos conectados → Conectar</p>
                   <Button variant="outline" onClick={fetchQrCode} className="w-full" size="sm">
                     <RefreshCw className="w-3 h-3 mr-2" /> Novo QR Code
                   </Button>
                 </div>
               )}
             </div>
-
             <div className="rounded-xl border border-border bg-card p-6 space-y-4">
               <div className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-primary" />
@@ -283,14 +288,8 @@ export default function WhatsAppPanel() {
                 <li>Abra o <strong>WhatsApp</strong> no celular</li>
                 <li>Vá em <strong>Configurações → Aparelhos conectados</strong></li>
                 <li>Toque em <strong>"Conectar um aparelho"</strong></li>
-                <li>Escaneie o QR Code exibido aqui</li>
-                <li>Aguarde a confirmação de conexão</li>
+                <li>Escaneie o QR Code</li>
               </ol>
-              <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3">
-                <p className="text-xs text-green-600 dark:text-green-400">
-                  ✅ Após conectado, mensagens automáticas serão ativadas.
-                </p>
-              </div>
             </div>
           </div>
         )}
@@ -299,7 +298,6 @@ export default function WhatsAppPanel() {
         {status === "connected" && (
           <div className="space-y-8">
             <div className="grid gap-8 md:grid-cols-2">
-              {/* Profile / Status */}
               <div className="rounded-xl border border-border bg-card p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -312,23 +310,12 @@ export default function WhatsAppPanel() {
                 </div>
                 {profile && (
                   <div className="space-y-2 text-sm">
-                    {profile.Name && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Nome:</span>
-                        <span className="font-medium">{profile.Name || profile.name}</span>
-                      </div>
-                    )}
-                    {(profile.Phone || profile.phone) && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Telefone:</span>
-                        <span className="font-medium">{profile.Phone || profile.phone}</span>
-                      </div>
-                    )}
+                    {profile.Name && <div className="flex justify-between"><span className="text-muted-foreground">Nome:</span><span className="font-medium">{profile.Name || profile.name}</span></div>}
+                    {(profile.Phone || profile.phone) && <div className="flex justify-between"><span className="text-muted-foreground">Telefone:</span><span className="font-medium">{profile.Phone || profile.phone}</span></div>}
                   </div>
                 )}
               </div>
 
-              {/* Send manual message */}
               <div className="rounded-xl border border-border bg-card p-6 space-y-4">
                 <div className="flex items-center gap-2">
                   <Send className="w-5 h-5 text-primary" />
@@ -337,86 +324,140 @@ export default function WhatsAppPanel() {
                 <div className="space-y-3">
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Número (com DDD)</label>
-                    <Input
-                      placeholder="5511999999999"
-                      value={sendPhone}
-                      onChange={(e) => setSendPhone(e.target.value)}
-                    />
+                    <Input placeholder="5511999999999" value={sendPhone} onChange={(e) => setSendPhone(e.target.value)} />
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Mensagem</label>
-                    <Textarea
-                      placeholder="Sua mensagem..."
-                      value={sendMessage}
-                      onChange={(e) => setSendMessage(e.target.value)}
-                      rows={4}
-                    />
+                    <Textarea placeholder="Sua mensagem..." value={sendMessage} onChange={(e) => setSendMessage(e.target.value)} rows={4} />
                   </div>
-                  <Button
-                    onClick={handleSend}
-                    disabled={sending}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    {sending ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...</>
-                    ) : (
-                      <><Send className="w-4 h-4 mr-2" /> Enviar</>
-                    )}
+                  <Button onClick={handleSend} disabled={sending} className="w-full bg-green-600 hover:bg-green-700 text-white">
+                    {sending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...</> : <><Send className="w-4 h-4 mr-2" /> Enviar</>}
                   </Button>
                 </div>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Automations Section */}
-            <div className="rounded-xl border border-border bg-card p-6 space-y-5">
-              <div className="flex items-center gap-2">
-                <Zap className="w-5 h-5 text-yellow-500" />
-                <h2 className="text-lg font-semibold">Automações Ativas</h2>
-                <span className="text-xs bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 px-2 py-0.5 rounded-full font-medium">
-                  {AUTOMATIONS.filter(a => a.active).length} ativas
-                </span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Mensagens enviadas automaticamente pelo WhatsApp em eventos do sistema.
-              </p>
+        {/* Templates Section - always visible when not loading/not_configured */}
+        {(status === "connected" || status === "disconnected") && templates.length > 0 && (
+          <div className="rounded-xl border border-border bg-card p-6 space-y-5">
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-yellow-500" />
+              <h2 className="text-lg font-semibold">Automações & Templates</h2>
+              <span className="text-xs bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 px-2 py-0.5 rounded-full font-medium">
+                {templates.filter(t => t.is_active).length} ativas
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Edite as mensagens automáticas ou use o padrão. Variáveis disponíveis são substituídas automaticamente.
+            </p>
 
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {AUTOMATIONS.map((auto) => {
-                  const Icon = auto.icon;
-                  return (
-                    <div
-                      key={auto.id}
-                      className={`rounded-lg border ${auto.borderColor} ${auto.bgColor} p-4 space-y-2 transition-all hover:shadow-md`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Icon className={`w-4 h-4 ${auto.color}`} />
-                          <span className="text-sm font-semibold">{auto.title}</span>
-                        </div>
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${auto.active ? "bg-green-500/20 text-green-600 dark:text-green-400" : "bg-muted text-muted-foreground"}`}>
-                          {auto.active ? "Ativa" : "Inativa"}
-                        </span>
+            <div className="space-y-4">
+              {templates.map((tpl) => {
+                const Icon = TEMPLATE_ICONS[tpl.template_key] || MessageSquare;
+                const colors = TEMPLATE_COLORS[tpl.template_key] || { color: "text-primary", bg: "bg-primary/10", border: "border-primary/20" };
+                const isEditing = editingKey === tpl.template_key;
+                const isPreviewing = previewKey === tpl.template_key;
+                const hints = VARIABLE_HINTS[tpl.template_key] || [];
+
+                return (
+                  <div key={tpl.id} className={`rounded-lg border ${colors.border} ${colors.bg} p-4 space-y-3 transition-all`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Icon className={`w-4 h-4 ${colors.color}`} />
+                        <span className="text-sm font-semibold">{tpl.title}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        {auto.description}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => toggleActive(tpl)}
+                          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded cursor-pointer transition-colors ${
+                            tpl.is_active
+                              ? "bg-green-500/20 text-green-600 dark:text-green-400 hover:bg-green-500/30"
+                              : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          }`}
+                        >
+                          {tpl.is_active ? "Ativa" : "Inativa"}
+                        </button>
+                        {!isEditing && (
+                          <>
+                            <Button variant="ghost" size="sm" onClick={() => setPreviewKey(isPreviewing ? null : tpl.template_key)} title="Pré-visualizar">
+                              <Eye className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => startEdit(tpl)} title="Editar">
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
 
-              <div className="rounded-lg bg-muted/50 border border-border p-4 space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <Bell className="w-4 h-4 text-muted-foreground" />
-                  Como funciona
-                </div>
-                <ul className="text-xs text-muted-foreground space-y-1.5 ml-6 list-disc">
-                  <li><strong>Boas-vindas:</strong> Dispara ao enviar o formulário de aquisição com número de telefone</li>
-                  <li><strong>Bloqueio:</strong> Envia aviso legal automaticamente ao bloquear uma instalação no painel</li>
-                  <li><strong>Desbloqueio:</strong> Confirma a regularização quando a instalação é desbloqueada</li>
-                  <li>Todas as mensagens são enviadas pelo número conectado acima</li>
-                </ul>
+                    {/* Variable hints */}
+                    {hints.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {hints.map(h => (
+                          <span key={h} className="text-[10px] font-mono bg-background/60 border border-border/50 px-1.5 py-0.5 rounded">
+                            {h}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Editing mode */}
+                    {isEditing && (
+                      <div className="space-y-3">
+                        <Textarea
+                          value={editBody}
+                          onChange={(e) => setEditBody(e.target.value)}
+                          rows={10}
+                          className="font-mono text-xs bg-background"
+                          placeholder="Corpo da mensagem..."
+                        />
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" onClick={() => saveTemplate(tpl)} disabled={savingTemplate} className="bg-green-600 hover:bg-green-700 text-white">
+                            {savingTemplate ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}
+                            Salvar
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={cancelEdit}>
+                            <RotateCcw className="w-3 h-3 mr-1" /> Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Preview mode */}
+                    {isPreviewing && !isEditing && (
+                      <div className="rounded-lg bg-background/80 border border-border/50 p-3">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2 font-semibold">Pré-visualização</p>
+                        <pre className="text-xs whitespace-pre-wrap text-foreground/80 font-sans leading-relaxed">
+                          {getPreview(tpl.message_body, tpl.template_key)}
+                        </pre>
+                      </div>
+                    )}
+
+                    {/* Collapsed view - just first line */}
+                    {!isEditing && !isPreviewing && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {tpl.message_body.split("\n")[0]}...
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="rounded-lg bg-muted/50 border border-border p-4 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Bell className="w-4 h-4 text-muted-foreground" />
+                Como funciona
               </div>
+              <ul className="text-xs text-muted-foreground space-y-1.5 ml-6 list-disc">
+                <li><strong>Boas-vindas:</strong> Dispara ao enviar o formulário de aquisição</li>
+                <li><strong>Bloqueio:</strong> Envia aviso automático ao bloquear uma instalação</li>
+                <li><strong>Desbloqueio:</strong> Confirma regularização ao desbloquear</li>
+                <li>Variáveis como <code className="bg-background/60 px-1 rounded">{"{{contact_name}}"}</code> são substituídas automaticamente</li>
+                <li>Desative uma automação para parar o envio sem excluir o template</li>
+              </ul>
             </div>
           </div>
         )}
