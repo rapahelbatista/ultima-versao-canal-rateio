@@ -8,7 +8,7 @@ import {
   Eye, EyeOff, AlertTriangle, CheckCircle, Clock, Activity,
   Monitor, Cpu, MapPin, ChevronRight, X, ExternalLink,
   Ban, Unlock, ShieldAlert, ShieldCheck, Lock, Trash2,
-  ClipboardList
+  ClipboardList, MessageSquare
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
