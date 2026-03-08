@@ -232,11 +232,34 @@ chmod +x /usr/local/bin/zapmeow
 # Salvar porta no .env para referência
 echo "ZAPMEOW_PORT=${ZAPMEOW_PORT}" >> .env
 
-# ── RESUMO FINAL ──────────────────────────────────────────────────────────
+# ── AUTO-REGISTRAR NO PAINEL ──────────────────────────────────────────────
 PUBLIC_IP=$(curl -s4 ifconfig.me 2>/dev/null || echo "seu-ip")
 API_URL="${DOMAIN:+https://${DOMAIN}}"
 API_URL="${API_URL:-http://${PUBLIC_IP}:${ZAPMEOW_PORT}}"
 
+SUPABASE_URL="https://cicwzhpsiewdpugmceqm.supabase.co/functions/v1"
+SUPABASE_SERVICE_KEY=""
+
+log "Registrando ZapMeow no painel antipirataria..."
+echo ""
+read -rp "Cole a Service Role Key do Supabase (para registro automático, ou Enter para pular): " SUPABASE_SERVICE_KEY
+
+if [[ -n "$SUPABASE_SERVICE_KEY" ]]; then
+  REG_RESPONSE=$(curl -s -X POST "${SUPABASE_URL}/register-zapmeow" \
+    -H "Content-Type: application/json" \
+    -d "{\"zapmeow_url\": \"${API_URL}/api\", \"instance_id\": \"${INSTANCE_ID}\", \"installer_key\": \"${SUPABASE_SERVICE_KEY}\"}" 2>/dev/null)
+
+  if echo "$REG_RESPONSE" | grep -q '"success":true'; then
+    log "✅ ZapMeow registrado no painel com sucesso!"
+  else
+    warn "Não foi possível registrar automaticamente. Registre manualmente no painel."
+    warn "Resposta: $REG_RESPONSE"
+  fi
+else
+  warn "Registro automático pulado. Configure manualmente no painel."
+fi
+
+# ── RESUMO FINAL ──────────────────────────────────────────────────────────
 echo ""
 echo -e "${GREEN}${BOLD}╔══════════════════════════════════════════════════════════╗${NC}"
 echo -e "${GREEN}${BOLD}║       ✅ ZapMeow instalado com sucesso!                  ║${NC}"
@@ -248,9 +271,5 @@ echo -e "  ${BOLD}Instância:${NC}      ${CYAN}equipechat${NC}"
 echo -e "  ${BOLD}QR Code:${NC}        ${CYAN}${API_URL}/api/equipechat/qrcode${NC}"
 echo -e "  ${BOLD}Gerenciador:${NC}    ${CYAN}zapmeow${NC} (execute no terminal)"
 echo ""
-echo -e "  ${YELLOW}⚠️  Configure no painel antipirataria:${NC}"
-echo -e "     URL da API: ${BOLD}${API_URL}/api${NC}"
-echo -e "     Instance ID: ${BOLD}equipechat${NC}"
-echo ""
-echo -e "  ${YELLOW}📱 Escaneie o QR Code no painel para conectar o WhatsApp${NC}"
+echo -e "  ${YELLOW}📱 Escaneie o QR Code no painel: https://animate-sale-spark.lovable.app/whatsapp${NC}"
 echo ""
