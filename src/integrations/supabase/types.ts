@@ -166,6 +166,33 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_config: {
+        Row: {
+          created_at: string
+          id: string
+          instance_id: string
+          is_active: boolean
+          updated_at: string
+          zapmeow_url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instance_id?: string
+          is_active?: boolean
+          updated_at?: string
+          zapmeow_url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instance_id?: string
+          is_active?: boolean
+          updated_at?: string
+          zapmeow_url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
