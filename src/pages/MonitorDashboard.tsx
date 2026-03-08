@@ -15,6 +15,7 @@ import {
   ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell,
 } from "recharts";
 import { format, subDays } from "date-fns";
+import ClientLinksPanel from "@/components/ClientLinksPanel";
 import { ptBR } from "date-fns/locale";
 
 // ── TYPES ────────────────────────────────────────────────────────────────────
