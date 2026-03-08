@@ -19,14 +19,27 @@ function parseEnvFile(filePath: string): Record<string, string> {
       if (!trimmed || trimmed.startsWith("#")) continue;
       const eqIndex = trimmed.indexOf("=");
       if (eqIndex === -1) continue;
-      const key = trimmed.substring(0, eqIndex).trim();
+
+      let key = trimmed.substring(0, eqIndex).trim();
       let value = trimmed.substring(eqIndex + 1).trim();
+
+      // Suportar linhas no formato: export KEY=value
+      if (key.startsWith("export ")) {
+        key = key.replace(/^export\s+/, "").trim();
+      }
+
+      // Remover comentário inline (quando não está entre aspas)
+      if (!value.startsWith('"') && !value.startsWith("'")) {
+        value = value.replace(/\s+#.*$/, "").trim();
+      }
+
       // Remover aspas
       if ((value.startsWith('"') && value.endsWith('"')) ||
           (value.startsWith("'") && value.endsWith("'"))) {
         value = value.slice(1, -1);
       }
-      vars[key] = value;
+
+      if (key) vars[key] = value;
     }
   } catch {
     // silencioso
