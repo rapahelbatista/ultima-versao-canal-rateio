@@ -7,7 +7,7 @@ const CHECK_URL =
 // Cache para evitar chamadas excessivas à API
 let cachedResult: { blocked: boolean; reason?: string } | null = null;
 let lastCheck = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+const CACHE_TTL = 60 * 1000; // 1 minuto
 
 // Cache do IP público do servidor
 let serverIp: string | null = null;
