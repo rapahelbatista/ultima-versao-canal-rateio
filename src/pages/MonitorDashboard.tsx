@@ -1052,9 +1052,6 @@ export default function MonitorDashboard() {
           </div>
         </div>
 
-        {/* ── CLIENT LINKS PANEL ── */}
-        <ClientLinksPanel />
-
         {/* ── ANTI-PIRACY FOOTER ── */}
         <div className="glass-card px-6 py-5 flex items-start gap-4"
           style={{ borderColor: "hsl(var(--warning) / 0.35)", background: "linear-gradient(135deg, hsl(var(--warning) / 0.04), hsl(var(--card)))" }}>
