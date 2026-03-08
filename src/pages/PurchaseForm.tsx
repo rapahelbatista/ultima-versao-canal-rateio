@@ -108,8 +108,8 @@ export default function PurchaseForm() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="max-w-md w-full text-center space-y-6">
-          <div className="mx-auto w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
-            <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+          <div className="mx-auto w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+            <CheckCircle2 className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">Solicitação Enviada!</h1>
           <p className="text-muted-foreground">
