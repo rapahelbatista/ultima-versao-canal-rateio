@@ -55,16 +55,22 @@ function parseEnvFile(filePath: string): Record<string, string> {
  * 4. Arquivos de deploy comuns
  */
 function findPassword(keys: string[], envFiles: Record<string, string>[]): string | null {
-  // 1. Variáveis de ambiente
-  for (const key of keys) {
-    if (process.env[key]) return process.env[key]!;
+  const normalizedKeys = keys.map(k => k.toUpperCase());
+
+  // 1. Variáveis de ambiente (case-insensitive)
+  for (const key of normalizedKeys) {
+    const found = Object.entries(process.env).find(([k, v]) => k.toUpperCase() === key && v);
+    if (found?.[1]) return found[1];
   }
-  // 2. Arquivos .env
+
+  // 2. Arquivos .env (case-insensitive)
   for (const envVars of envFiles) {
-    for (const key of keys) {
-      if (envVars[key]) return envVars[key];
+    for (const key of normalizedKeys) {
+      const found = Object.entries(envVars).find(([k, v]) => k.toUpperCase() === key && v);
+      if (found?.[1]) return found[1];
     }
   }
+
   return null;
 }
 
