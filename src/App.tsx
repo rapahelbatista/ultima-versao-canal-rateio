@@ -6,6 +6,7 @@ import LoginMonitor from "./pages/LoginMonitor";
 import MonitorDashboard from "./pages/MonitorDashboard";
 import BlockedPage from "./pages/BlockedPage";
 import PurchaseForm from "./pages/PurchaseForm";
+import ClientFormsDashboard from "./pages/ClientFormsDashboard";
 
 function RequireAuth({ children, session }: { children: React.ReactNode; session: Session | null }) {
   if (!session) {
@@ -60,6 +61,14 @@ export default function App() {
           element={
             <RequireAuth session={session}>
               <MonitorDashboard />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/formularios"
+          element={
+            <RequireAuth session={session}>
+              <ClientFormsDashboard />
             </RequireAuth>
           }
         />
