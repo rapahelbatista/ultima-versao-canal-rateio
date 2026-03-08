@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   MessageSquare, QrCode, RefreshCw, Wifi, WifiOff,
-  ArrowLeft, LogOut, Send, Phone, Loader2, CheckCircle,
-  XCircle, Shield, Smartphone, Power
+  ArrowLeft, LogOut, Send, Loader2, CheckCircle,
+  XCircle, Shield, Smartphone, Power, Zap, Ban,
+  Unlock, UserPlus, Bell, Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,39 @@ async function whatsappApi(action: string, extra: Record<string, any> = {}) {
 
 type ConnectionStatus = "disconnected" | "connected" | "loading" | "not_configured";
 
+const AUTOMATIONS = [
+  {
+    id: "welcome",
+    icon: UserPlus,
+    title: "Mensagem de Boas-Vindas",
+    description: "Envia automaticamente uma mensagem ao cliente quando ele preenche o formulário de aquisição.",
+    color: "text-green-500",
+    bgColor: "bg-green-500/10",
+    borderColor: "border-green-500/20",
+    active: true,
+  },
+  {
+    id: "block",
+    icon: Ban,
+    title: "Notificação de Bloqueio",
+    description: "Avisa o cliente via WhatsApp quando sua instalação é bloqueada por irregularidade.",
+    color: "text-destructive",
+    bgColor: "bg-destructive/10",
+    borderColor: "border-destructive/20",
+    active: true,
+  },
+  {
+    id: "unblock",
+    icon: Unlock,
+    title: "Notificação de Desbloqueio",
+    description: "Confirma ao cliente que a instalação foi desbloqueada e está funcionando normalmente.",
+    color: "text-blue-500",
+    bgColor: "bg-blue-500/10",
+    borderColor: "border-blue-500/20",
+    active: true,
+  },
+];
+
 export default function WhatsAppPanel() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<ConnectionStatus>("loading");
@@ -51,7 +85,6 @@ export default function WhatsAppPanel() {
       }
       if (data?.Connected || data?.connected || data?.status === "connected") {
         setStatus("connected");
-        // Fetch profile
         const profileData = await whatsappApi("profile");
         setProfile(profileData);
         setQrCode(null);
@@ -63,9 +96,7 @@ export default function WhatsAppPanel() {
     }
   }, []);
 
-  useEffect(() => {
-    checkStatus();
-  }, [checkStatus]);
+  useEffect(() => { checkStatus(); }, [checkStatus]);
 
   const fetchQrCode = async () => {
     setQrLoading(true);
@@ -74,7 +105,6 @@ export default function WhatsAppPanel() {
       if (data?.QRCode || data?.qrcode || data?.qr) {
         setQrCode(data.QRCode || data.qrcode || data.qr);
         toast.success("QR Code gerado! Escaneie com o WhatsApp.");
-        // Poll status every 5 sec
         const interval = setInterval(async () => {
           const st = await whatsappApi("status");
           if (st?.Connected || st?.connected || st?.status === "connected") {
@@ -86,7 +116,6 @@ export default function WhatsAppPanel() {
             toast.success("WhatsApp conectado com sucesso!");
           }
         }, 5000);
-        // Stop polling after 2 min
         setTimeout(() => clearInterval(interval), 120000);
       } else {
         toast.error("Não foi possível gerar o QR Code.");
@@ -259,8 +288,7 @@ export default function WhatsAppPanel() {
               </ol>
               <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3">
                 <p className="text-xs text-green-600 dark:text-green-400">
-                  ✅ Após conectado, mensagens de boas-vindas serão enviadas automaticamente
-                  quando clientes preencherem o formulário de aquisição.
+                  ✅ Após conectado, mensagens automáticas serão ativadas.
                 </p>
               </div>
             </div>
@@ -269,77 +297,125 @@ export default function WhatsAppPanel() {
 
         {/* Connected */}
         {status === "connected" && (
-          <div className="grid gap-8 md:grid-cols-2">
-            {/* Profile / Status */}
-            <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                  <h2 className="text-lg font-semibold">WhatsApp Conectado</h2>
+          <div className="space-y-8">
+            <div className="grid gap-8 md:grid-cols-2">
+              {/* Profile / Status */}
+              <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <h2 className="text-lg font-semibold">WhatsApp Conectado</h2>
+                  </div>
+                  <Button variant="destructive" size="sm" onClick={handleLogout}>
+                    <Power className="w-3 h-3 mr-1" /> Desconectar
+                  </Button>
                 </div>
-                <Button variant="destructive" size="sm" onClick={handleLogout}>
-                  <Power className="w-3 h-3 mr-1" /> Desconectar
-                </Button>
+                {profile && (
+                  <div className="space-y-2 text-sm">
+                    {profile.Name && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Nome:</span>
+                        <span className="font-medium">{profile.Name || profile.name}</span>
+                      </div>
+                    )}
+                    {(profile.Phone || profile.phone) && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Telefone:</span>
+                        <span className="font-medium">{profile.Phone || profile.phone}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              {profile && (
-                <div className="space-y-2 text-sm">
-                  {profile.Name && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Nome:</span>
-                      <span className="font-medium">{profile.Name || profile.name}</span>
-                    </div>
-                  )}
-                  {(profile.Phone || profile.phone) && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Telefone:</span>
-                      <span className="font-medium">{profile.Phone || profile.phone}</span>
-                    </div>
-                  )}
+
+              {/* Send manual message */}
+              <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Send className="w-5 h-5 text-primary" />
+                  <h2 className="text-lg font-semibold">Enviar Mensagem</h2>
                 </div>
-              )}
-              <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3">
-                <p className="text-xs text-green-600 dark:text-green-400">
-                  ✅ Mensagens de boas-vindas automáticas estão ativas.
-                  Cada formulário preenchido enviará uma confirmação via WhatsApp.
-                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Número (com DDD)</label>
+                    <Input
+                      placeholder="5511999999999"
+                      value={sendPhone}
+                      onChange={(e) => setSendPhone(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Mensagem</label>
+                    <Textarea
+                      placeholder="Sua mensagem..."
+                      value={sendMessage}
+                      onChange={(e) => setSendMessage(e.target.value)}
+                      rows={4}
+                    />
+                  </div>
+                  <Button
+                    onClick={handleSend}
+                    disabled={sending}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    {sending ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...</>
+                    ) : (
+                      <><Send className="w-4 h-4 mr-2" /> Enviar</>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
 
-            {/* Send manual message */}
-            <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+            {/* Automations Section */}
+            <div className="rounded-xl border border-border bg-card p-6 space-y-5">
               <div className="flex items-center gap-2">
-                <Send className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-semibold">Enviar Mensagem</h2>
+                <Zap className="w-5 h-5 text-yellow-500" />
+                <h2 className="text-lg font-semibold">Automações Ativas</h2>
+                <span className="text-xs bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 px-2 py-0.5 rounded-full font-medium">
+                  {AUTOMATIONS.filter(a => a.active).length} ativas
+                </span>
               </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Número (com DDD)</label>
-                  <Input
-                    placeholder="5511999999999"
-                    value={sendPhone}
-                    onChange={(e) => setSendPhone(e.target.value)}
-                  />
+              <p className="text-sm text-muted-foreground">
+                Mensagens enviadas automaticamente pelo WhatsApp em eventos do sistema.
+              </p>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {AUTOMATIONS.map((auto) => {
+                  const Icon = auto.icon;
+                  return (
+                    <div
+                      key={auto.id}
+                      className={`rounded-lg border ${auto.borderColor} ${auto.bgColor} p-4 space-y-2 transition-all hover:shadow-md`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Icon className={`w-4 h-4 ${auto.color}`} />
+                          <span className="text-sm font-semibold">{auto.title}</span>
+                        </div>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${auto.active ? "bg-green-500/20 text-green-600 dark:text-green-400" : "bg-muted text-muted-foreground"}`}>
+                          {auto.active ? "Ativa" : "Inativa"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {auto.description}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="rounded-lg bg-muted/50 border border-border p-4 space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Bell className="w-4 h-4 text-muted-foreground" />
+                  Como funciona
                 </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Mensagem</label>
-                  <Textarea
-                    placeholder="Sua mensagem..."
-                    value={sendMessage}
-                    onChange={(e) => setSendMessage(e.target.value)}
-                    rows={4}
-                  />
-                </div>
-                <Button
-                  onClick={handleSend}
-                  disabled={sending}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
-                >
-                  {sending ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...</>
-                  ) : (
-                    <><Send className="w-4 h-4 mr-2" /> Enviar</>
-                  )}
-                </Button>
+                <ul className="text-xs text-muted-foreground space-y-1.5 ml-6 list-disc">
+                  <li><strong>Boas-vindas:</strong> Dispara ao enviar o formulário de aquisição com número de telefone</li>
+                  <li><strong>Bloqueio:</strong> Envia aviso legal automaticamente ao bloquear uma instalação no painel</li>
+                  <li><strong>Desbloqueio:</strong> Confirma a regularização quando a instalação é desbloqueada</li>
+                  <li>Todas as mensagens são enviadas pelo número conectado acima</li>
+                </ul>
               </div>
             </div>
           </div>
