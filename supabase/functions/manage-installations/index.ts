@@ -181,7 +181,7 @@ Deno.serve(async (req) => {
           `;
           await sendEmailNotification(subject, html);
 
-          // Send WhatsApp unblock notification
+          // Send WhatsApp unblock notification using template
           try {
             const { data: purchaseReq } = await adminClient
               .from("purchase_requests")
@@ -192,20 +192,14 @@ Deno.serve(async (req) => {
             if (purchaseReq && purchaseReq.length > 0) {
               for (const pr of purchaseReq) {
                 if (pr.contact_phone) {
-                  const unblockMsg = `✅ *AVISO DE DESBLOQUEIO — EquipeChat*
-
-Prezado(a) *${pr.contact_name}*,
-
-A instalação vinculada à empresa *${pr.company_name || "—"}* foi *desbloqueada* com sucesso.
-
-🔓 *Status:* Ativa
-🖥️ *Servidor:* ${installation.hostname || installation.ip}
-📅 *Data:* ${new Date().toLocaleString("pt-BR")}
-
-Sua instância está funcionando normalmente. Agradecemos a regularização! 🎉
-
-— *EquipeChat*`;
-
+                  const variables = {
+                    contact_name: pr.contact_name,
+                    company_name: pr.company_name || "—",
+                    hostname: installation.hostname || installation.ip,
+                    date: new Date().toLocaleString("pt-BR"),
+                  };
+                  const defaultMsg = `✅ *DESBLOQUEIO*\n\nPrezado(a) *${pr.contact_name}*,\nInstalação desbloqueada com sucesso.\n— EquipeChat`;
+                  const unblockMsg = await getTemplate(adminClient, "unblock", variables, defaultMsg);
                   await sendWhatsAppMessage(adminClient, pr.contact_phone, unblockMsg);
                   break;
                 }
