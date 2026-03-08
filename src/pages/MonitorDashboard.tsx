@@ -15,6 +15,7 @@ import {
   ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell,
 } from "recharts";
 import { format, subDays } from "date-fns";
+import ClientLinksPanel from "@/components/ClientLinksPanel";
 import { ptBR } from "date-fns/locale";
 
 // ── TYPES ────────────────────────────────────────────────────────────────────
@@ -732,12 +733,6 @@ export default function MonitorDashboard() {
               <span className="pulse-dot" />
               <span className="font-medium">Ativo</span>
             </div>
-            <button onClick={() => navigate("/comprar")}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-              style={{ background: "hsl(var(--primary) / 0.12)", border: "1px solid hsl(var(--primary) / 0.3)", color: "hsl(var(--primary))" }}>
-              <ClipboardList className="w-3.5 h-3.5" />
-              Formulário de Compra
-            </button>
             <button onClick={loadData}
               className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -1056,6 +1051,9 @@ export default function MonitorDashboard() {
             </div>
           </div>
         </div>
+
+        {/* ── CLIENT LINKS PANEL ── */}
+        <ClientLinksPanel />
 
         {/* ── ANTI-PIRACY FOOTER ── */}
         <div className="glass-card px-6 py-5 flex items-start gap-4"

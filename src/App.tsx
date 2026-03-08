@@ -50,7 +50,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/blocked" element={<BlockedPage />} />
-        <Route path="/comprar" element={<PurchaseForm />} />
+        <Route path="/comprar/:token" element={<PurchaseForm />} />
         <Route
           path="/login"
           element={session ? <Navigate to="/" replace /> : <LoginMonitor />}
