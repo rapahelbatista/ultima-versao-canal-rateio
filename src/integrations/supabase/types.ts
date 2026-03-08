@@ -68,6 +68,30 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_links: {
+        Row: {
+          client_label: string | null
+          created_at: string
+          id: string
+          status: string
+          token: string
+        }
+        Insert: {
+          client_label?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          token?: string
+        }
+        Update: {
+          client_label?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          token?: string
+        }
+        Relationships: []
+      }
       purchase_requests: {
         Row: {
           agreed_anti_piracy: boolean
@@ -80,6 +104,7 @@ export type Database = {
           document_type: string
           how_found_us: string | null
           id: string
+          link_id: string | null
           notes: string | null
           usage_type: string
         }
@@ -94,6 +119,7 @@ export type Database = {
           document_type: string
           how_found_us?: string | null
           id?: string
+          link_id?: string | null
           notes?: string | null
           usage_type: string
         }
@@ -108,10 +134,19 @@ export type Database = {
           document_type?: string
           how_found_us?: string | null
           id?: string
+          link_id?: string | null
           notes?: string | null
           usage_type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requests_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_links"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
