@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import LoginMonitor from "./pages/LoginMonitor";
 import MonitorDashboard from "./pages/MonitorDashboard";
 import BlockedPage from "./pages/BlockedPage";
+import PurchaseForm from "./pages/PurchaseForm";
 
 function RequireAuth({ children, session }: { children: React.ReactNode; session: Session | null }) {
   if (!session) {
@@ -49,6 +50,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/blocked" element={<BlockedPage />} />
+        <Route path="/comprar" element={<PurchaseForm />} />
         <Route
           path="/login"
           element={session ? <Navigate to="/" replace /> : <LoginMonitor />}

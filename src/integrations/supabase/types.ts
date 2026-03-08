@@ -68,6 +68,51 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_requests: {
+        Row: {
+          agreed_anti_piracy: boolean
+          company_name: string
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          document_number: string
+          document_type: string
+          how_found_us: string | null
+          id: string
+          notes: string | null
+          usage_type: string
+        }
+        Insert: {
+          agreed_anti_piracy?: boolean
+          company_name: string
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          document_number: string
+          document_type: string
+          how_found_us?: string | null
+          id?: string
+          notes?: string | null
+          usage_type: string
+        }
+        Update: {
+          agreed_anti_piracy?: boolean
+          company_name?: string
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          document_number?: string
+          document_type?: string
+          how_found_us?: string | null
+          id?: string
+          notes?: string | null
+          usage_type?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
