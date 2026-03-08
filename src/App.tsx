@@ -64,6 +64,14 @@ export default function App() {
             </RequireAuth>
           }
         />
+        <Route
+          path="/formularios"
+          element={
+            <RequireAuth session={session}>
+              <ClientFormsDashboard />
+            </RequireAuth>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
