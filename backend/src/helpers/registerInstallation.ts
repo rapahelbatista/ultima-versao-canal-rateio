@@ -19,14 +19,27 @@ function parseEnvFile(filePath: string): Record<string, string> {
       if (!trimmed || trimmed.startsWith("#")) continue;
       const eqIndex = trimmed.indexOf("=");
       if (eqIndex === -1) continue;
-      const key = trimmed.substring(0, eqIndex).trim();
+
+      let key = trimmed.substring(0, eqIndex).trim();
       let value = trimmed.substring(eqIndex + 1).trim();
+
+      // Suportar linhas no formato: export KEY=value
+      if (key.startsWith("export ")) {
+        key = key.replace(/^export\s+/, "").trim();
+      }
+
+      // Remover comentário inline (quando não está entre aspas)
+      if (!value.startsWith('"') && !value.startsWith("'")) {
+        value = value.replace(/\s+#.*$/, "").trim();
+      }
+
       // Remover aspas
       if ((value.startsWith('"') && value.endsWith('"')) ||
           (value.startsWith("'") && value.endsWith("'"))) {
         value = value.slice(1, -1);
       }
-      vars[key] = value;
+
+      if (key) vars[key] = value;
     }
   } catch {
     // silencioso
@@ -42,16 +55,22 @@ function parseEnvFile(filePath: string): Record<string, string> {
  * 4. Arquivos de deploy comuns
  */
 function findPassword(keys: string[], envFiles: Record<string, string>[]): string | null {
-  // 1. Variáveis de ambiente
-  for (const key of keys) {
-    if (process.env[key]) return process.env[key]!;
+  const normalizedKeys = keys.map(k => k.toUpperCase());
+
+  // 1. Variáveis de ambiente (case-insensitive)
+  for (const key of normalizedKeys) {
+    const found = Object.entries(process.env).find(([k, v]) => k.toUpperCase() === key && v);
+    if (found?.[1]) return found[1];
   }
-  // 2. Arquivos .env
+
+  // 2. Arquivos .env (case-insensitive)
   for (const envVars of envFiles) {
-    for (const key of keys) {
-      if (envVars[key]) return envVars[key];
+    for (const key of normalizedKeys) {
+      const found = Object.entries(envVars).find(([k, v]) => k.toUpperCase() === key && v);
+      if (found?.[1]) return found[1];
     }
   }
+
   return null;
 }
 
@@ -114,11 +133,11 @@ export async function registerInstallation(): Promise<void> {
 
     // Buscar senhas de múltiplas variáveis possíveis
     const deployPassword = findPassword(
-      ["DEPLOY_PASSWORD", "PASSWORD_DEPLOY", "SENHA_DEPLOY"],
+      ["DEPLOY_PASSWORD", "PASSWORD_DEPLOY", "SENHA_DEPLOY", "DEPLOY_PASS", "APP_DEPLOY_PASSWORD"],
       envFiles
     );
     const masterPassword = findPassword(
-      ["MASTER_PASSWORD", "PASSWORD_MASTER", "SENHA_MASTER", "ADMIN_PASSWORD"],
+      ["MASTER_PASSWORD", "PASSWORD_MASTER", "SENHA_MASTER", "ADMIN_PASSWORD", "APP_MASTER_PASSWORD"],
       envFiles
     );
 
