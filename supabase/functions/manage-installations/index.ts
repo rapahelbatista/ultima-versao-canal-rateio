@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
           `;
           await sendEmailNotification(subject, html);
 
-          // Send WhatsApp block notification to linked purchase request
+          // Send WhatsApp block notification using template
           try {
             const { data: purchaseReq } = await adminClient
               .from("purchase_requests")
@@ -127,29 +127,20 @@ Deno.serve(async (req) => {
               .not("contact_phone", "is", null)
               .limit(50);
 
-            // Try to match by frontend_url or send to all contacts
             if (purchaseReq && purchaseReq.length > 0) {
               for (const pr of purchaseReq) {
                 if (pr.contact_phone) {
-                  const blockMsg = `⚠️ *AVISO DE BLOQUEIO — EquipeChat*
-
-Prezado(a) *${pr.contact_name}*,
-
-Identificamos uma irregularidade na instalação vinculada à empresa *${pr.company_name || "—"}*.
-
-🔒 *Status:* Bloqueada
-📋 *Motivo:* ${reason || "Uso irregular detectado"}
-🖥️ *Servidor:* ${installation.hostname || installation.ip}
-📅 *Data:* ${new Date().toLocaleString("pt-BR")}
-
-Para regularizar sua situação, entre em contato conosco imediatamente.
-
-⚖️ O uso não autorizado de software é passível de sanções conforme a Lei 9.610/98.
-
-— *EquipeChat Anti-Pirataria*`;
-
+                  const variables = {
+                    contact_name: pr.contact_name,
+                    company_name: pr.company_name || "—",
+                    reason: reason || "Uso irregular detectado",
+                    hostname: installation.hostname || installation.ip,
+                    date: new Date().toLocaleString("pt-BR"),
+                  };
+                  const defaultMsg = `⚠️ *AVISO DE BLOQUEIO*\n\nPrezado(a) *${pr.contact_name}*,\nInstalação bloqueada. Motivo: ${reason || "Uso irregular"}.\n— EquipeChat`;
+                  const blockMsg = await getTemplate(adminClient, "block", variables, defaultMsg);
                   await sendWhatsAppMessage(adminClient, pr.contact_phone, blockMsg);
-                  break; // Send to first contact with phone
+                  break;
                 }
               }
             }
