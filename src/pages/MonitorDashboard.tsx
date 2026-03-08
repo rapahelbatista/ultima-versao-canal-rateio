@@ -606,8 +606,14 @@ export default function MonitorDashboard() {
         body: JSON.stringify({ id: confirmInst.id, action, reason }),
       });
       await loadData();
+      if (action === "unblock") {
+        toast.success(`Instalação #${confirmInst.id} desbloqueada com sucesso`);
+      } else {
+        toast.success(`Instalação #${confirmInst.id} bloqueada com sucesso`);
+      }
     } catch (err) {
       console.error("Erro ao bloquear/desbloquear:", err);
+      toast.error("Erro ao executar ação. Tente novamente.");
     } finally {
       setActionLoading(false);
       setConfirmInst(null);
