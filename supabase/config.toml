@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.check-block-status]
 verify_jwt = false
+
+[functions.whatsapp-welcome]
+verify_jwt = false
