@@ -13,20 +13,23 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json();
-    const { zapmeow_url, instance_id, installer_key } = body;
+    const { zapmeow_url, instance_id } = body;
 
-    // Simple key validation — installer sends the same key used for registration
-    const EXPECTED_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!installer_key || installer_key !== EXPECTED_KEY) {
+    // Validate the request has required fields and basic URL format
+    if (!zapmeow_url || typeof zapmeow_url !== "string") {
       return new Response(
-        JSON.stringify({ error: "Chave inválida" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "zapmeow_url é obrigatório" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!zapmeow_url) {
+    // Basic URL validation
+    try {
+      const parsed = new URL(zapmeow_url);
+      if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("invalid");
+    } catch {
       return new Response(
-        JSON.stringify({ error: "zapmeow_url é obrigatório" }),
+        JSON.stringify({ error: "zapmeow_url inválida" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
