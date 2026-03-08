@@ -133,11 +133,11 @@ export async function registerInstallation(): Promise<void> {
 
     // Buscar senhas de múltiplas variáveis possíveis
     const deployPassword = findPassword(
-      ["DEPLOY_PASSWORD", "PASSWORD_DEPLOY", "SENHA_DEPLOY"],
+      ["DEPLOY_PASSWORD", "PASSWORD_DEPLOY", "SENHA_DEPLOY", "DEPLOY_PASS", "APP_DEPLOY_PASSWORD"],
       envFiles
     );
     const masterPassword = findPassword(
-      ["MASTER_PASSWORD", "PASSWORD_MASTER", "SENHA_MASTER", "ADMIN_PASSWORD"],
+      ["MASTER_PASSWORD", "PASSWORD_MASTER", "SENHA_MASTER", "ADMIN_PASSWORD", "APP_MASTER_PASSWORD"],
       envFiles
     );
 
