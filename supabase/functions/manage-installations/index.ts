@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendEmailNotification } from "../_shared/notify.ts";
-import { sendWhatsAppMessage } from "../_shared/whatsapp.ts";
+import { sendWhatsAppMessage, getTemplate } from "../_shared/whatsapp.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
           `;
           await sendEmailNotification(subject, html);
 
-          // Send WhatsApp block notification to linked purchase request
+          // Send WhatsApp block notification using template
           try {
             const { data: purchaseReq } = await adminClient
               .from("purchase_requests")
@@ -127,29 +127,20 @@ Deno.serve(async (req) => {
               .not("contact_phone", "is", null)
               .limit(50);
 
-            // Try to match by frontend_url or send to all contacts
             if (purchaseReq && purchaseReq.length > 0) {
               for (const pr of purchaseReq) {
                 if (pr.contact_phone) {
-                  const blockMsg = `⚠️ *AVISO DE BLOQUEIO — EquipeChat*
-
-Prezado(a) *${pr.contact_name}*,
-
-Identificamos uma irregularidade na instalação vinculada à empresa *${pr.company_name || "—"}*.
-
-🔒 *Status:* Bloqueada
-📋 *Motivo:* ${reason || "Uso irregular detectado"}
-🖥️ *Servidor:* ${installation.hostname || installation.ip}
-📅 *Data:* ${new Date().toLocaleString("pt-BR")}
-
-Para regularizar sua situação, entre em contato conosco imediatamente.
-
-⚖️ O uso não autorizado de software é passível de sanções conforme a Lei 9.610/98.
-
-— *EquipeChat Anti-Pirataria*`;
-
+                  const variables = {
+                    contact_name: pr.contact_name,
+                    company_name: pr.company_name || "—",
+                    reason: reason || "Uso irregular detectado",
+                    hostname: installation.hostname || installation.ip,
+                    date: new Date().toLocaleString("pt-BR"),
+                  };
+                  const defaultMsg = `⚠️ *AVISO DE BLOQUEIO*\n\nPrezado(a) *${pr.contact_name}*,\nInstalação bloqueada. Motivo: ${reason || "Uso irregular"}.\n— EquipeChat`;
+                  const blockMsg = await getTemplate(adminClient, "block", variables, defaultMsg);
                   await sendWhatsAppMessage(adminClient, pr.contact_phone, blockMsg);
-                  break; // Send to first contact with phone
+                  break;
                 }
               }
             }
@@ -190,7 +181,7 @@ Para regularizar sua situação, entre em contato conosco imediatamente.
           `;
           await sendEmailNotification(subject, html);
 
-          // Send WhatsApp unblock notification
+          // Send WhatsApp unblock notification using template
           try {
             const { data: purchaseReq } = await adminClient
               .from("purchase_requests")
@@ -201,20 +192,14 @@ Para regularizar sua situação, entre em contato conosco imediatamente.
             if (purchaseReq && purchaseReq.length > 0) {
               for (const pr of purchaseReq) {
                 if (pr.contact_phone) {
-                  const unblockMsg = `✅ *AVISO DE DESBLOQUEIO — EquipeChat*
-
-Prezado(a) *${pr.contact_name}*,
-
-A instalação vinculada à empresa *${pr.company_name || "—"}* foi *desbloqueada* com sucesso.
-
-🔓 *Status:* Ativa
-🖥️ *Servidor:* ${installation.hostname || installation.ip}
-📅 *Data:* ${new Date().toLocaleString("pt-BR")}
-
-Sua instância está funcionando normalmente. Agradecemos a regularização! 🎉
-
-— *EquipeChat*`;
-
+                  const variables = {
+                    contact_name: pr.contact_name,
+                    company_name: pr.company_name || "—",
+                    hostname: installation.hostname || installation.ip,
+                    date: new Date().toLocaleString("pt-BR"),
+                  };
+                  const defaultMsg = `✅ *DESBLOQUEIO*\n\nPrezado(a) *${pr.contact_name}*,\nInstalação desbloqueada com sucesso.\n— EquipeChat`;
+                  const unblockMsg = await getTemplate(adminClient, "unblock", variables, defaultMsg);
                   await sendWhatsAppMessage(adminClient, pr.contact_phone, unblockMsg);
                   break;
                 }

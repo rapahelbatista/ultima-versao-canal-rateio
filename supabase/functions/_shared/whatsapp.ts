@@ -2,7 +2,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 /**
  * Sends a WhatsApp message using the ZapMeow API configured in whatsapp_config.
- * Returns { sent: boolean, error?: string }
  */
 export async function sendWhatsAppMessage(
   supabaseAdmin: any,
@@ -42,5 +41,34 @@ export async function sendWhatsAppMessage(
   } catch (err) {
     console.error("sendWhatsAppMessage error:", err);
     return { sent: false, error: String(err) };
+  }
+}
+
+/**
+ * Fetches a message template from whatsapp_templates table and replaces variables.
+ * Falls back to defaultMessage if template not found or inactive.
+ */
+export async function getTemplate(
+  supabaseAdmin: any,
+  templateKey: string,
+  variables: Record<string, string>,
+  defaultMessage: string
+): Promise<string> {
+  try {
+    const { data } = await supabaseAdmin
+      .from("whatsapp_templates")
+      .select("message_body, is_active")
+      .eq("template_key", templateKey)
+      .maybeSingle();
+
+    if (!data || !data.is_active) return defaultMessage;
+
+    let msg = data.message_body;
+    for (const [key, value] of Object.entries(variables)) {
+      msg = msg.replaceAll(`{{${key}}}`, value || "—");
+    }
+    return msg;
+  } catch {
+    return defaultMessage;
   }
 }

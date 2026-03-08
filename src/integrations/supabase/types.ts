@@ -193,6 +193,36 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_templates: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          message_body: string
+          template_key: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          message_body: string
+          template_key: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          message_body?: string
+          template_key?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

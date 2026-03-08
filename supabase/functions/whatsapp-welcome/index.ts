@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendWhatsAppMessage, getTemplate } from "../_shared/whatsapp.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,24 +28,15 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Read ZapMeow config from DB
-    const { data: config } = await supabaseAdmin
-      .from("whatsapp_config")
-      .select("zapmeow_url, instance_id")
-      .eq("is_active", true)
-      .maybeSingle();
+    const variables = {
+      contact_name,
+      company_name: company_name || "sua empresa",
+    };
 
-    if (!config?.zapmeow_url) {
-      return new Response(
-        JSON.stringify({ error: "WhatsApp não configurado", sent: false }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const defaultMessage = `🎉 *Olá, ${contact_name}!*\n\nSeja muito bem-vindo(a) ao *EquipeChat*! 🚀\n\nRecebemos o formulário de aquisição da empresa *${company_name || "sua empresa"}* com sucesso. ✅\n\n— *Equipe EquipeChat*`;
 
-    const ZAPMEOW_URL = config.zapmeow_url;
-    const ZAPMEOW_INSTANCE = config.instance_id || "equipechat";
+    const message = await getTemplate(supabaseAdmin, "welcome", variables, defaultMessage);
 
-    // Normalize phone
     const cleanPhone = phone.replace(/\D/g, "");
     if (cleanPhone.length < 10) {
       return new Response(
@@ -53,34 +45,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const jid = `${cleanPhone}@s.whatsapp.net`;
-
-    const message = `🎉 *Olá, ${contact_name}!*
-
-Seja muito bem-vindo(a) ao *EquipeChat*! 🚀
-
-Recebemos o formulário de aquisição da empresa *${company_name || "sua empresa"}* com sucesso. ✅
-
-Nossa equipe já está analisando suas informações e em breve entraremos em contato com os próximos passos.
-
-📋 *Resumo:*
-• Empresa: ${company_name || "—"}
-• Contato: ${contact_name}
-
-Se tiver qualquer dúvida, responda esta mensagem que ficaremos felizes em ajudar! 😊
-
-— *Equipe EquipeChat*`;
-
-    const res = await fetch(`${ZAPMEOW_URL}/${ZAPMEOW_INSTANCE}/chat/send/text`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone: jid, message }),
-    });
-
-    const data = await res.json();
+    const result = await sendWhatsAppMessage(supabaseAdmin, cleanPhone, message);
 
     return new Response(
-      JSON.stringify({ sent: res.ok, data }),
+      JSON.stringify(result),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
