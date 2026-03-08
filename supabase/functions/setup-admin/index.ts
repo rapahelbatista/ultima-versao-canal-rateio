@@ -33,10 +33,27 @@ Deno.serve(async (req) => {
     });
   }
 
-  const supabase = createClient(
+  // Check if calling user is an admin using service role client
+  const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
+
+  const { data: roleData, error: roleError } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+
+  if (roleError || !roleData) {
+    return new Response(JSON.stringify({ error: "Acesso negado: permissão de admin necessária" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const supabase = supabaseAdmin;
 
   const body = await req.json();
   const { email, password } = body;
