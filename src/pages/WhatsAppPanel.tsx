@@ -187,7 +187,7 @@ export default function WhatsAppPanel() {
     };
     let preview = body;
     for (const [k, v] of Object.entries(sampleVars)) {
-      preview = preview.replaceAll(`{{${k}}}`, v);
+      preview = preview.split(`{{${k}}}`).join(v);
     }
     return preview;
   };
