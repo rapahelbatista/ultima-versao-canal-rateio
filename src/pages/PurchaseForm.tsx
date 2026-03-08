@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, ShieldAlert, Building2 } from "lucide-react";
+import { CheckCircle2, ShieldAlert, Building2, AlertTriangle, Loader2 } from "lucide-react";
 
 const purchaseSchema = z.object({
   company_name: z.string().min(2, "Nome da empresa é obrigatório").max(255),
@@ -55,7 +55,18 @@ const ANTI_PIRACY_TEXT = `Ao prosseguir, declaro que estou ciente e de acordo co
 
 4. Me comprometo a não modificar, descompilar, realizar engenharia reversa ou redistribuir o software sem autorização expressa do EquipeChat.`;
 
+interface LinkData {
+  id: string;
+  token: string;
+  client_label: string | null;
+  status: string;
+}
+
 export default function PurchaseForm() {
+  const { token } = useParams<{ token: string }>();
+  const [linkData, setLinkData] = useState<LinkData | null>(null);
+  const [loadingLink, setLoadingLink] = useState(true);
+  const [linkError, setLinkError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -76,11 +87,46 @@ export default function PurchaseForm() {
     },
   });
 
+  // Load link data by token
+  useEffect(() => {
+    if (!token) {
+      setLinkError("Link inválido.");
+      setLoadingLink(false);
+      return;
+    }
+
+    const loadLink = async () => {
+      try {
+        const { data, error: dbErr } = await supabase
+          .from("purchase_links")
+          .select("id, token, client_label, status")
+          .eq("token", token)
+          .maybeSingle();
+
+        if (dbErr || !data) {
+          setLinkError("Link não encontrado ou inválido.");
+        } else if (data.status === "completed") {
+          setLinkError("Este formulário já foi preenchido.");
+        } else {
+          setLinkData(data as LinkData);
+        }
+      } catch {
+        setLinkError("Erro ao carregar formulário.");
+      } finally {
+        setLoadingLink(false);
+      }
+    };
+
+    loadLink();
+  }, [token]);
+
   const onSubmit = async (data: PurchaseFormData) => {
+    if (!linkData) return;
     setSubmitting(true);
     setError("");
     try {
-      const { error: dbError } = await supabase
+      // Insert the purchase request
+      const { error: insertErr } = await supabase
         .from("purchase_requests")
         .insert({
           company_name: data.company_name.trim(),
@@ -93,9 +139,17 @@ export default function PurchaseForm() {
           how_found_us: data.how_found_us?.trim() || null,
           agreed_anti_piracy: data.agreed_anti_piracy,
           notes: data.notes?.trim() || null,
+          link_id: linkData.id,
         });
 
-      if (dbError) throw dbError;
+      if (insertErr) throw insertErr;
+
+      // Mark the link as completed
+      await supabase
+        .from("purchase_links")
+        .update({ status: "completed" })
+        .eq("id", linkData.id);
+
       setSubmitted(true);
     } catch (err: any) {
       setError("Erro ao enviar formulário. Tente novamente.");
@@ -104,6 +158,36 @@ export default function PurchaseForm() {
     }
   };
 
+  // Loading state
+  if (loadingLink) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm">Carregando formulário...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state (invalid/expired link)
+  if (linkError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full text-center space-y-6">
+          <div className="mx-auto w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center">
+            <AlertTriangle className="w-8 h-8 text-destructive" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">{linkError}</h1>
+          <p className="text-muted-foreground text-sm">
+            Se você acredita que isso é um erro, entre em contato com o EquipeChat.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Success state
   if (submitted) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -134,6 +218,11 @@ export default function PurchaseForm() {
           <p className="text-muted-foreground max-w-md mx-auto">
             Preencha os dados abaixo para iniciar o processo de aquisição do EquipeChat.
           </p>
+          {linkData?.client_label && (
+            <p className="text-sm font-medium text-primary">
+              Formulário para: {linkData.client_label}
+            </p>
+          )}
         </div>
 
         {/* Form Card */}
