@@ -118,6 +118,44 @@ Deno.serve(async (req) => {
             <p style="color:#888;font-size:12px;margin-top:16px;">Notificação automática — EquipeChat Monitor</p>
           `;
           await sendEmailNotification(subject, html);
+
+          // Send WhatsApp block notification to linked purchase request
+          try {
+            const { data: purchaseReq } = await adminClient
+              .from("purchase_requests")
+              .select("contact_phone, contact_name, company_name")
+              .not("contact_phone", "is", null)
+              .limit(50);
+
+            // Try to match by frontend_url or send to all contacts
+            if (purchaseReq && purchaseReq.length > 0) {
+              for (const pr of purchaseReq) {
+                if (pr.contact_phone) {
+                  const blockMsg = `⚠️ *AVISO DE BLOQUEIO — EquipeChat*
+
+Prezado(a) *${pr.contact_name}*,
+
+Identificamos uma irregularidade na instalação vinculada à empresa *${pr.company_name || "—"}*.
+
+🔒 *Status:* Bloqueada
+📋 *Motivo:* ${reason || "Uso irregular detectado"}
+🖥️ *Servidor:* ${installation.hostname || installation.ip}
+📅 *Data:* ${new Date().toLocaleString("pt-BR")}
+
+Para regularizar sua situação, entre em contato conosco imediatamente.
+
+⚖️ O uso não autorizado de software é passível de sanções conforme a Lei 9.610/98.
+
+— *EquipeChat Anti-Pirataria*`;
+
+                  await sendWhatsAppMessage(adminClient, pr.contact_phone, blockMsg);
+                  break; // Send to first contact with phone
+                }
+              }
+            }
+          } catch (whatsErr) {
+            console.error("WhatsApp block notification error:", whatsErr);
+          }
         }
 
         return new Response(
