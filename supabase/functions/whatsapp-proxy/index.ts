@@ -6,13 +6,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function getZapMeowConfig(supabaseAdmin: any) {
+  const { data } = await supabaseAdmin
+    .from("whatsapp_config")
+    .select("zapmeow_url, instance_id")
+    .eq("is_active", true)
+    .maybeSingle();
+  return data;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Auth check — admin only
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Não autenticado" }), {
@@ -35,7 +43,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Verify admin role
     const { data: roleData } = await supabaseAdmin
       .from("user_roles")
       .select("role")
@@ -50,24 +57,24 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const ZAPMEOW_URL = Deno.env.get("ZAPMEOW_URL");
-    const ZAPMEOW_INSTANCE = Deno.env.get("ZAPMEOW_INSTANCE") || "equipechat";
-
-    if (!ZAPMEOW_URL) {
+    // Read config from DB
+    const config = await getZapMeowConfig(supabaseAdmin);
+    if (!config?.zapmeow_url) {
       return new Response(
-        JSON.stringify({ error: "ZAPMEOW_URL não configurada" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "ZapMeow não configurado. Execute o instalador no servidor.", configured: false }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const ZAPMEOW_URL = config.zapmeow_url;
+    const ZAPMEOW_INSTANCE = config.instance_id || "equipechat";
 
     const body = await req.json();
     const { action } = body;
 
     // ── GET QR CODE ────────────────────────────────────────────
     if (action === "qrcode") {
-      const res = await fetch(`${ZAPMEOW_URL}/${ZAPMEOW_INSTANCE}/qrcode`, {
-        method: "GET",
-      });
+      const res = await fetch(`${ZAPMEOW_URL}/${ZAPMEOW_INSTANCE}/qrcode`, { method: "GET" });
       const data = await res.json();
       return new Response(JSON.stringify(data), {
         status: res.status,
@@ -77,9 +84,7 @@ Deno.serve(async (req: Request) => {
 
     // ── GET STATUS ─────────────────────────────────────────────
     if (action === "status") {
-      const res = await fetch(`${ZAPMEOW_URL}/${ZAPMEOW_INSTANCE}/status`, {
-        method: "GET",
-      });
+      const res = await fetch(`${ZAPMEOW_URL}/${ZAPMEOW_INSTANCE}/status`, { method: "GET" });
       const data = await res.json();
       return new Response(JSON.stringify(data), {
         status: res.status,
@@ -89,9 +94,7 @@ Deno.serve(async (req: Request) => {
 
     // ── GET PROFILE ────────────────────────────────────────────
     if (action === "profile") {
-      const res = await fetch(`${ZAPMEOW_URL}/${ZAPMEOW_INSTANCE}/profile`, {
-        method: "GET",
-      });
+      const res = await fetch(`${ZAPMEOW_URL}/${ZAPMEOW_INSTANCE}/profile`, { method: "GET" });
       const data = await res.json();
       return new Response(JSON.stringify(data), {
         status: res.status,
@@ -108,11 +111,8 @@ Deno.serve(async (req: Request) => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-
-      // Normalize phone: remove non-digits, add @s.whatsapp.net
       const cleanPhone = phone.replace(/\D/g, "");
       const jid = cleanPhone.includes("@") ? cleanPhone : `${cleanPhone}@s.whatsapp.net`;
-
       const res = await fetch(`${ZAPMEOW_URL}/${ZAPMEOW_INSTANCE}/chat/send/text`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -127,9 +127,7 @@ Deno.serve(async (req: Request) => {
 
     // ── LOGOUT ─────────────────────────────────────────────────
     if (action === "logout") {
-      const res = await fetch(`${ZAPMEOW_URL}/${ZAPMEOW_INSTANCE}/logout`, {
-        method: "POST",
-      });
+      const res = await fetch(`${ZAPMEOW_URL}/${ZAPMEOW_INSTANCE}/logout`, { method: "POST" });
       const data = await res.json();
       return new Response(JSON.stringify(data), {
         status: res.status,
