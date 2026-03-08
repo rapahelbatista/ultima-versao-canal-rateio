@@ -73,6 +73,14 @@ export default function App() {
             </RequireAuth>
           }
         />
+        <Route
+          path="/whatsapp"
+          element={
+            <RequireAuth session={session}>
+              <WhatsAppPanel />
+            </RequireAuth>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
