@@ -100,6 +100,12 @@ const FindOrCreateTicketService = async (
         logger.info(`[AI PERMANENT] Preservando modo IA permanente para ticket ${ticket.id}`);
       }
 
+      // ✅ CORRIGIDO: Auto-atribuir fila se ticket não tem fila e foi passado queueId válido
+      if ((!ticket.queueId || ticket.queueId === 0) && queueId && queueId !== 0) {
+        updateData.queueId = queueId;
+        logger.info(`[AUTO-QUEUE] Atribuindo fila ${queueId} ao ticket existente ${ticket.id} que não tinha fila`);
+      }
+
       if (!["open", "pending", "chatbot", "nps"].includes(ticket.status)) {
         // Verificar se é um grupo analisando o remoteJid (se termina com @g.us) ou a propriedade isGroup do ticket
         const isGroupTicket = ticket.status === "group" ||
