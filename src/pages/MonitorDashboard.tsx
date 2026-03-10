@@ -496,6 +496,35 @@ export default function MonitorDashboard() {
   const [confirmInst, setConfirmInst] = useState<Installation | null>(null);
   const [previewInst, setPreviewInst] = useState<Installation | null>(null);
   const [deleteInst, setDeleteInst] = useState<Installation | null>(null);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+
+  const handlePasswordReset = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("As senhas não coincidem.");
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success("Senha atualizada com sucesso!");
+      setShowPasswordReset(false);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar senha.");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
 
   const loadData = useCallback(async () => {
     setLoading(true);
