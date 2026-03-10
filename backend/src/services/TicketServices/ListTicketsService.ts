@@ -257,31 +257,29 @@ const ListTicketsService = async ({
               let ticketsIds = [];
 
               if (!showTicketAllQueues) {
-                ticketsIds = await Ticket.findAll({
-                  where: {
-                    companyId,
-                    userId:
-                      { [Op.or]: [user.id, null] },
-                    status: "pending",
-                    queueId: { [Op.in]: queueIds }
-                  },
-                });
+                const pendingWhere2: any = {
+                  companyId,
+                  userId: { [Op.or]: [user.id, null] },
+                  status: "pending",
+                  queueId: { [Op.in]: queueIds }
+                };
+                if (userWhatsappIds.length > 0) {
+                  pendingWhere2.whatsappId = { [Op.in]: userWhatsappIds };
+                }
+                ticketsIds = await Ticket.findAll({ where: pendingWhere2 });
               } else {
-                ticketsIds = await Ticket.findAll({
-                  where: {
-                    companyId,
-                    [Op.or]:
-                      [{
-                        userId:
-                          { [Op.or]: [user.id, null] }
-                      },
-                      {
-                        status: "pending"
-                      }
-                      ],
-                    status: "pending"
-                  },
-                });
+                const pendingWhere2: any = {
+                  companyId,
+                  [Op.or]: [
+                    { userId: { [Op.or]: [user.id, null] } },
+                    { status: "pending" }
+                  ],
+                  status: "pending"
+                };
+                if (userWhatsappIds.length > 0) {
+                  pendingWhere2.whatsappId = { [Op.in]: userWhatsappIds };
+                }
+                ticketsIds = await Ticket.findAll({ where: pendingWhere2 });
               }
               if (ticketsIds) {
                 TicketsUserFilter.push(ticketsIds.map(t => t.id));
