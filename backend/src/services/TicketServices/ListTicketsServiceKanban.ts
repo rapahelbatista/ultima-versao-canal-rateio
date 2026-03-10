@@ -56,12 +56,22 @@ const ListTicketsServiceKanban = async ({
   // Verificar se o usuário é admin
   const user = await ShowUserService(userId, companyId);
   const isAdmin = user.profile === 'admin';
+
+  // Coletar IDs de conexões vinculadas ao usuário
+  const userWhatsappIds: number[] = [];
+  if (user.whatsapps && user.whatsapps.length > 0) {
+    user.whatsapps.forEach((w: any) => userWhatsappIds.push(w.id));
+  }
+  if (user.whatsappId && !userWhatsappIds.includes(user.whatsappId)) {
+    userWhatsappIds.push(user.whatsappId);
+  }
   
   let whereCondition: Filterable["where"] = isAdmin 
     ? { queueId: { [Op.or]: [queueIds, null] } }
     : {
         [Op.or]: [{ userId }, { status: "pending" }],
-        queueId: { [Op.or]: [queueIds, null] }
+        queueId: { [Op.or]: [queueIds, null] },
+        ...(userWhatsappIds.length > 0 ? { whatsappId: { [Op.in]: userWhatsappIds } } : {})
       };
   let includeCondition: Includeable[];
 

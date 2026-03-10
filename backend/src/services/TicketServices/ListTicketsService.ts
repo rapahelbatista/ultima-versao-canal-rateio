@@ -79,13 +79,31 @@ const ListTicketsService = async ({
   const showGroups = user.allowGroup === true;
   const showPendingNotification = await FindCompanySettingOneService({ companyId, column: "showNotificationPending" });
   const showNotificationPendingValue = showPendingNotification[0].showNotificationPending;
-    let whereCondition: Filterable["where"];
+
+  // Coletar IDs de conexões (whatsapps) vinculadas ao usuário
+  const userWhatsappIds: number[] = [];
+  if (user.whatsapps && user.whatsapps.length > 0) {
+    user.whatsapps.forEach((w: any) => userWhatsappIds.push(w.id));
+  }
+  if (user.whatsappId && !userWhatsappIds.includes(user.whatsappId)) {
+    userWhatsappIds.push(user.whatsappId);
+  }
+
+  let whereCondition: Filterable["where"];
 
   whereCondition = {
     [Op.or]: [{ userId }, { status: "pending" }],
     queueId: showTicketWithoutQueue ? { [Op.or]: [queueIds, null] } : { [Op.or]: [queueIds] },
     companyId
   };
+
+  // Filtrar por conexões do usuário (não-admin com conexões vinculadas)
+  if (user.profile !== "admin" && userWhatsappIds.length > 0) {
+    whereCondition = {
+      ...whereCondition,
+      whatsappId: { [Op.in]: userWhatsappIds }
+    };
+  }
 
 
   let includeCondition: Includeable[];
@@ -140,6 +158,13 @@ const ListTicketsService = async ({
       userId,
       queueId: { [Op.in]: queueIds }
     };
+    // Filtrar por conexões do usuário para status open
+    if (user.profile !== "admin" && userWhatsappIds.length > 0) {
+      whereCondition = {
+        ...whereCondition,
+        whatsappId: { [Op.in]: userWhatsappIds }
+      };
+    }
   } else
     if (status === "group" && user.allowGroup) {
       // Coletar todos os IDs de WhatsApp vinculados ao usuário (via UserWhatsapp + whatsappId direto)
@@ -192,22 +217,26 @@ const ListTicketsService = async ({
             let ticketsIds = [];
 
             if (!showTicketAllQueues) {
-              ticketsIds = await Ticket.findAll({
-                where: {
-                  userId: { [Op.or]: [user.id, null] },
-                  queueId: { [Op.or]: [queueIds, null] },
-                  status: "pending",
-                  companyId
-                },
-              });
+              const pendingWhere: any = {
+                userId: { [Op.or]: [user.id, null] },
+                queueId: { [Op.or]: [queueIds, null] },
+                status: "pending",
+                companyId
+              };
+              if (userWhatsappIds.length > 0) {
+                pendingWhere.whatsappId = { [Op.in]: userWhatsappIds };
+              }
+              ticketsIds = await Ticket.findAll({ where: pendingWhere });
             } else {
-              ticketsIds = await Ticket.findAll({
-                where: {
-                  userId: { [Op.or]: [user.id, null] },
-                  status: "pending",
-                  companyId
-                },
-              });
+              const pendingWhere: any = {
+                userId: { [Op.or]: [user.id, null] },
+                status: "pending",
+                companyId
+              };
+              if (userWhatsappIds.length > 0) {
+                pendingWhere.whatsappId = { [Op.in]: userWhatsappIds };
+              }
+              ticketsIds = await Ticket.findAll({ where: pendingWhere });
             }
 
             if (ticketsIds) {
@@ -228,31 +257,29 @@ const ListTicketsService = async ({
               let ticketsIds = [];
 
               if (!showTicketAllQueues) {
-                ticketsIds = await Ticket.findAll({
-                  where: {
-                    companyId,
-                    userId:
-                      { [Op.or]: [user.id, null] },
-                    status: "pending",
-                    queueId: { [Op.in]: queueIds }
-                  },
-                });
+                const pendingWhere2: any = {
+                  companyId,
+                  userId: { [Op.or]: [user.id, null] },
+                  status: "pending",
+                  queueId: { [Op.in]: queueIds }
+                };
+                if (userWhatsappIds.length > 0) {
+                  pendingWhere2.whatsappId = { [Op.in]: userWhatsappIds };
+                }
+                ticketsIds = await Ticket.findAll({ where: pendingWhere2 });
               } else {
-                ticketsIds = await Ticket.findAll({
-                  where: {
-                    companyId,
-                    [Op.or]:
-                      [{
-                        userId:
-                          { [Op.or]: [user.id, null] }
-                      },
-                      {
-                        status: "pending"
-                      }
-                      ],
-                    status: "pending"
-                  },
-                });
+                const pendingWhere2: any = {
+                  companyId,
+                  [Op.or]: [
+                    { userId: { [Op.or]: [user.id, null] } },
+                    { status: "pending" }
+                  ],
+                  status: "pending"
+                };
+                if (userWhatsappIds.length > 0) {
+                  pendingWhere2.whatsappId = { [Op.in]: userWhatsappIds };
+                }
+                ticketsIds = await Ticket.findAll({ where: pendingWhere2 });
               }
               if (ticketsIds) {
                 TicketsUserFilter.push(ticketsIds.map(t => t.id));
