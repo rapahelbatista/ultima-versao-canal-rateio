@@ -86,13 +86,18 @@ const CreateMessageService = async ({
 
   // Incrementar contadores de mensagens enviadas/recebidas na conexão
   try {
-    const ticket = await Ticket.findByPk(correctedMessageData.ticketId);
+    const ticket = await Ticket.findByPk(correctedMessageData.ticketId, {
+      attributes: ['id', 'whatsappId', 'channel']
+    });
     if (ticket?.whatsappId) {
       const field = correctedMessageData.fromMe ? 'sentMessages' : 'receivedMessages';
-      await Whatsapp.increment(field, { where: { id: ticket.whatsappId } });
+      const [affectedRows] = await Whatsapp.increment(field, { where: { id: ticket.whatsappId } });
+      console.log(`[MSG COUNTER] ${field} incrementado para whatsappId=${ticket.whatsappId}, channel=${ticket.channel}, ticketId=${ticket.id}`);
+    } else {
+      console.warn(`[MSG COUNTER] Ticket ${correctedMessageData.ticketId} sem whatsappId - contador não incrementado`);
     }
   } catch (err) {
-    console.warn('Erro ao incrementar contador de mensagens:', err);
+    console.warn('[MSG COUNTER] Erro ao incrementar contador de mensagens:', err);
   }
 
   const message = await Message.findOne({
