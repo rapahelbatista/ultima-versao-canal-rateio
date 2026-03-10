@@ -948,8 +948,27 @@ export const handleMessage = async (
         order: [["id", "DESC"]]
       });
 
-      // ✅ CORRIGIDO: Auto-atribuir fila quando a conexão tem apenas 1 fila
-      const autoQueueId = getSession.queues?.length === 1 ? getSession.queues[0].id : 0;
+      // ✅ CORRIGIDO: Auto-atribuir primeira fila da conexão
+      let autoQueueId = 0;
+      if (getSession.queues && getSession.queues.length > 0) {
+        autoQueueId = getSession.queues[0].id;
+        logger.info(`[${channel?.toUpperCase()}] Auto-queue: usando fila ${autoQueueId} (${getSession.queues[0].name}) de ${getSession.queues.length} filas da conexão ${getSession.id}`);
+      } else {
+        // Fallback: buscar filas diretamente da tabela de associação
+        try {
+          const whatsappWithQueues = await Whatsapp.findByPk(getSession.id, {
+            include: [{ model: Queue, as: "queues", attributes: ["id", "name"] }]
+          });
+          if (whatsappWithQueues?.queues && whatsappWithQueues.queues.length > 0) {
+            autoQueueId = whatsappWithQueues.queues[0].id;
+            logger.info(`[${channel?.toUpperCase()}] Auto-queue FALLBACK: usando fila ${autoQueueId} (${whatsappWithQueues.queues[0].name}) da conexão ${getSession.id}`);
+          } else {
+            logger.warn(`[${channel?.toUpperCase()}] Conexão ${getSession.id} não tem filas configuradas`);
+          }
+        } catch (err) {
+          logger.error(`[${channel?.toUpperCase()}] Erro ao buscar filas fallback: ${err.message}`);
+        }
+      }
       
       const mutex = new Mutex();
       const ticket = await mutex.runExclusive(async () => {
