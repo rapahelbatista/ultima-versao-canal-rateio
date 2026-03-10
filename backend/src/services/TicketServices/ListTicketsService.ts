@@ -217,22 +217,26 @@ const ListTicketsService = async ({
             let ticketsIds = [];
 
             if (!showTicketAllQueues) {
-              ticketsIds = await Ticket.findAll({
-                where: {
-                  userId: { [Op.or]: [user.id, null] },
-                  queueId: { [Op.or]: [queueIds, null] },
-                  status: "pending",
-                  companyId
-                },
-              });
+              const pendingWhere: any = {
+                userId: { [Op.or]: [user.id, null] },
+                queueId: { [Op.or]: [queueIds, null] },
+                status: "pending",
+                companyId
+              };
+              if (userWhatsappIds.length > 0) {
+                pendingWhere.whatsappId = { [Op.in]: userWhatsappIds };
+              }
+              ticketsIds = await Ticket.findAll({ where: pendingWhere });
             } else {
-              ticketsIds = await Ticket.findAll({
-                where: {
-                  userId: { [Op.or]: [user.id, null] },
-                  status: "pending",
-                  companyId
-                },
-              });
+              const pendingWhere: any = {
+                userId: { [Op.or]: [user.id, null] },
+                status: "pending",
+                companyId
+              };
+              if (userWhatsappIds.length > 0) {
+                pendingWhere.whatsappId = { [Op.in]: userWhatsappIds };
+              }
+              ticketsIds = await Ticket.findAll({ where: pendingWhere });
             }
 
             if (ticketsIds) {
