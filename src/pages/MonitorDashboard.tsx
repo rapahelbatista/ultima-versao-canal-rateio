@@ -735,6 +735,68 @@ export default function MonitorDashboard() {
         />
       )}
 
+      {/* ── PASSWORD RESET MODAL ── */}
+      {showPasswordReset && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setShowPasswordReset(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 pointer-events-none">
+            <div className="w-full max-w-md pointer-events-auto animate-slide-up rounded-xl overflow-hidden"
+              style={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", boxShadow: "0 32px 80px hsl(0 0% 0% / 0.5)" }}>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <Key className="w-4 h-4" style={{ color: "hsl(var(--primary))" }} />
+                  <span className="font-semibold text-sm">Alterar Senha</span>
+                </div>
+                <button onClick={() => setShowPasswordReset(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="px-6 py-5 space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Nova Senha</label>
+                  <div className="relative">
+                    <input
+                      type={showNewPass ? "text" : "password"}
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm font-mono pr-10"
+                      style={{ background: "hsl(var(--muted))", border: "1px solid hsl(var(--border))", color: "hsl(var(--foreground))" }}
+                      placeholder="Mínimo 6 caracteres"
+                    />
+                    <button type="button" onClick={() => setShowNewPass(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Confirmar Senha</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg text-sm font-mono"
+                    style={{ background: "hsl(var(--muted))", border: "1px solid hsl(var(--border))", color: "hsl(var(--foreground))" }}
+                    placeholder="Repita a nova senha"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 px-6 py-4 border-t border-border">
+                <button onClick={() => setShowPasswordReset(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-secondary transition-all">
+                  Cancelar
+                </button>
+                <button onClick={handlePasswordReset} disabled={passwordLoading}
+                  className="px-4 py-2 rounded-lg text-xs font-medium text-white transition-all"
+                  style={{ background: "hsl(var(--primary))" }}>
+                  {passwordLoading ? "Salvando..." : "Atualizar Senha"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-30 border-b border-border"
         style={{ background: "hsl(var(--card) / 0.85)", backdropFilter: "blur(16px)" }}>
