@@ -692,7 +692,29 @@ export const syncTemplatesOficial = async (
 
   // A API auxiliar (api_ofic) busca a conexão por token_mult100 = whatsapp.token (token interno do sistema)
   // send_token é o token da Meta, usado apenas para autenticação direta na Meta (createTemplate/deleteTemplate)
-  const multi100Token = whatsapp.token;
+  // Se whatsapp.token contém um token da Meta (começa com EAA), usar tokenMeta ou send_token como fallback
+  let multi100Token = whatsapp.token;
+  
+  // Detectar se o token interno está com o valor do token da Meta por engano
+  if (multi100Token && multi100Token.startsWith("EAA")) {
+    console.warn(`[syncTemplatesOficial] whatsapp.token contém token da Meta. Tentando usar tokenMeta como token_mult100.`);
+    // Nesse caso, o token da Meta foi salvo no campo errado
+    // Tentar usar tokenMeta como token interno, se disponível e não for token Meta
+    if (whatsapp.tokenMeta && !whatsapp.tokenMeta.startsWith("EAA")) {
+      multi100Token = whatsapp.tokenMeta;
+    } else {
+      // Se não há alternativa, usar o send_token se não for Meta
+      if (whatsapp.send_token && !whatsapp.send_token.startsWith("EAA")) {
+        multi100Token = whatsapp.send_token;
+      } else {
+        throw new AppError(
+          "Token interno (token_mult100) não encontrado. O campo 'token' contém um token da Meta. Corrija a configuração da conexão.", 
+          400
+        );
+      }
+    }
+  }
+  
   if (!multi100Token) {
     throw new AppError("Token interno não encontrado para esta conexão.", 400);
   }
