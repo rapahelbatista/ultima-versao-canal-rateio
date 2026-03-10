@@ -158,6 +158,13 @@ const ListTicketsService = async ({
       userId,
       queueId: { [Op.in]: queueIds }
     };
+    // Filtrar por conexões do usuário para status open
+    if (user.profile !== "admin" && userWhatsappIds.length > 0) {
+      whereCondition = {
+        ...whereCondition,
+        whatsappId: { [Op.in]: userWhatsappIds }
+      };
+    }
   } else
     if (status === "group" && user.allowGroup) {
       // Coletar todos os IDs de WhatsApp vinculados ao usuário (via UserWhatsapp + whatsappId direto)
