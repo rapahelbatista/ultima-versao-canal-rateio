@@ -908,13 +908,29 @@ export const deleteTemplate = async (
     throw new AppError("ERR_ONLY_OFICIAL_API", 400);
   }
 
-  const metaTokenDelete = whatsapp.tokenMeta || whatsapp.send_token;
-  if (!metaTokenDelete) {
-    throw new AppError("Token da Meta não configurado para esta conexão.", 400);
+  // A API oficial busca a conexão por token_mult100 = whatsapp.token (token interno)
+  let multi100Token = whatsapp.token;
+  
+  if (multi100Token && multi100Token.startsWith("EAA")) {
+    console.warn(`[deleteTemplate] whatsapp.token contém token da Meta. Tentando fallback.`);
+    if (whatsapp.tokenMeta && !whatsapp.tokenMeta.startsWith("EAA")) {
+      multi100Token = whatsapp.tokenMeta;
+    } else if (whatsapp.send_token && !whatsapp.send_token.startsWith("EAA")) {
+      multi100Token = whatsapp.send_token;
+    } else {
+      throw new AppError(
+        "Token interno (token_mult100) não encontrado. O campo 'token' contém um token da Meta. Corrija a configuração da conexão.",
+        400
+      );
+    }
+  }
+
+  if (!multi100Token) {
+    throw new AppError("Token interno não encontrado para esta conexão.", 400);
   }
 
   try {
-    const result = await deleteTemplateWhatsAppOficial(metaTokenDelete, templateName);
+    const result = await deleteTemplateWhatsAppOficial(multi100Token, templateName);
 
     // Remove from QuickMessage too
     await QuickMessage.destroy({
