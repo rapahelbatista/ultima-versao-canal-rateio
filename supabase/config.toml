@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.register-zapmeow]
 verify_jwt = false
+
+[functions.manage-installations]
+verify_jwt = false
+
+[functions.setup-admin]
+verify_jwt = false
