@@ -577,12 +577,26 @@ export const getAccessTokenFromPage = async (
 
     if (!token) throw new Error("ERR_FETCHING_FB_USER_TOKEN");
 
+    const facebookAppId = process.env.FACEBOOK_APP_ID;
+    const facebookAppSecret = process.env.FACEBOOK_APP_SECRET;
+
+    if (!facebookAppId || !facebookAppSecret) {
+      console.error(
+        "[getAccessTokenFromPage] FACEBOOK_APP_ID ou FACEBOOK_APP_SECRET não configurados nas variáveis de ambiente. " +
+        `FACEBOOK_APP_ID=${facebookAppId ? "OK" : "VAZIO"}, FACEBOOK_APP_SECRET=${facebookAppSecret ? "OK" : "VAZIO"}`
+      );
+      // Se não tem app credentials, retorna o próprio token sem fazer exchange
+      // Isso permite que a conexão funcione mesmo sem as credenciais do app
+      console.warn("[getAccessTokenFromPage] Retornando token original sem exchange (long-lived token não será gerado)");
+      return token;
+    }
+
     const data = await axios.get(
       "https://graph.facebook.com/v20.0/oauth/access_token",
       {
         params: {
-          client_id: process.env.FACEBOOK_APP_ID,
-          client_secret: process.env.FACEBOOK_APP_SECRET,
+          client_id: facebookAppId,
+          client_secret: facebookAppSecret,
           grant_type: "fb_exchange_token",
           fb_exchange_token: token
         }
@@ -591,8 +605,10 @@ export const getAccessTokenFromPage = async (
 
     return data.data.access_token;
   } catch (error) {
-    console.log(error);
-    throw new Error("ERR_FETCHING_FB_USER_TOKEN");
+    console.error("[getAccessTokenFromPage] Erro ao trocar token:", error?.response?.data || error.message);
+    // Fallback: retorna o token original para não bloquear a conexão
+    console.warn("[getAccessTokenFromPage] Fallback: retornando token original");
+    return token;
   }
 };
 
