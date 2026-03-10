@@ -948,6 +948,9 @@ export const handleMessage = async (
         order: [["id", "DESC"]]
       });
 
+      // ✅ CORRIGIDO: Auto-atribuir fila quando a conexão tem apenas 1 fila
+      const autoQueueId = getSession.queues?.length === 1 ? getSession.queues[0].id : 0;
+      
       const mutex = new Mutex();
       const ticket = await mutex.runExclusive(async () => {
         const createTicket = await FindOrCreateTicketService(
@@ -955,7 +958,7 @@ export const handleMessage = async (
           getSession,
           unreadCount,
           companyId,
-          0,
+          autoQueueId,
           0,
           null,
           channel,
@@ -965,6 +968,9 @@ export const handleMessage = async (
         )
         return createTicket;
       });
+      
+      // ✅ CORRIGIDO: Log para debug de fila atribuída
+      console.log(`[${channel.toUpperCase()}] Ticket ${ticket.id} - queueId: ${ticket.queueId}, autoQueueId: ${autoQueueId}, queues da conexão: ${getSession.queues?.length}`);
 
       let bodyRollbackTag = "";
       let bodyNextTag = "";
