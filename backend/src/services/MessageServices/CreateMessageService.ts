@@ -91,7 +91,7 @@ const CreateMessageService = async ({
     });
     if (ticket?.whatsappId) {
       const field = correctedMessageData.fromMe ? 'sentMessages' : 'receivedMessages';
-      const [affectedRows] = await Whatsapp.increment(field, { where: { id: ticket.whatsappId } });
+      await Whatsapp.increment(field, { where: { id: ticket.whatsappId } });
       console.log(`[MSG COUNTER] ${field} incrementado para whatsappId=${ticket.whatsappId}, channel=${ticket.channel}, ticketId=${ticket.id}`);
     } else {
       console.warn(`[MSG COUNTER] Ticket ${correctedMessageData.ticketId} sem whatsappId - contador não incrementado`);
