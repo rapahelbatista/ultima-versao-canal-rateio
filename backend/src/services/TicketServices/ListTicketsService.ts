@@ -79,13 +79,31 @@ const ListTicketsService = async ({
   const showGroups = user.allowGroup === true;
   const showPendingNotification = await FindCompanySettingOneService({ companyId, column: "showNotificationPending" });
   const showNotificationPendingValue = showPendingNotification[0].showNotificationPending;
-    let whereCondition: Filterable["where"];
+
+  // Coletar IDs de conexões (whatsapps) vinculadas ao usuário
+  const userWhatsappIds: number[] = [];
+  if (user.whatsapps && user.whatsapps.length > 0) {
+    user.whatsapps.forEach((w: any) => userWhatsappIds.push(w.id));
+  }
+  if (user.whatsappId && !userWhatsappIds.includes(user.whatsappId)) {
+    userWhatsappIds.push(user.whatsappId);
+  }
+
+  let whereCondition: Filterable["where"];
 
   whereCondition = {
     [Op.or]: [{ userId }, { status: "pending" }],
     queueId: showTicketWithoutQueue ? { [Op.or]: [queueIds, null] } : { [Op.or]: [queueIds] },
     companyId
   };
+
+  // Filtrar por conexões do usuário (não-admin com conexões vinculadas)
+  if (user.profile !== "admin" && userWhatsappIds.length > 0) {
+    whereCondition = {
+      ...whereCondition,
+      whatsappId: { [Op.in]: userWhatsappIds }
+    };
+  }
 
 
   let includeCondition: Includeable[];
