@@ -1563,6 +1563,7 @@ instala_git_base() {
   echo
   {
     sudo su - root <<EOF
+  export DEBIAN_FRONTEND=noninteractive
   apt install -y git
   apt -y autoremove
 EOF
