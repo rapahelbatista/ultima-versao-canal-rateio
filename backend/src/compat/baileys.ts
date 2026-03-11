@@ -40,18 +40,32 @@ const tryRequire = (
   }
 };
 
-const backendRootCandidates = [
-  // Runtime compilado: dist/compat -> backend
-  path.resolve(__dirname, "..", ".."),
-  // Runtime ts-node: src/compat -> backend
-  path.resolve(__dirname, "..", "..", ".."),
-  // PM2 / scripts externos
-  process.cwd(),
-];
+const backendRootCandidates = Array.from(
+  new Set([
+    // Runtime compilado: dist/compat -> backend
+    path.resolve(__dirname, "..", ".."),
+    // Runtime ts-node: src/compat -> backend
+    path.resolve(__dirname, "..", "..", ".."),
+    // PM2 / scripts externos
+    process.cwd(),
+    path.dirname(require?.main?.filename || ""),
+  ].filter(Boolean))
+);
 
 const backendNodeModulesCandidates = Array.from(
   new Set(backendRootCandidates.map((root) => path.join(root, "node_modules")))
 );
+
+const requireContexts: Array<{ label: string; reqFn: (id: string) => any }> = [
+  { label: "native-require", reqFn: require },
+  ...backendRootCandidates
+    .map((root) => ({ root, packageJsonPath: path.join(root, "package.json") }))
+    .filter(({ packageJsonPath }) => fs.existsSync(packageJsonPath))
+    .map(({ root, packageJsonPath }) => ({
+      label: `createRequire(${root})`,
+      reqFn: createRequire(packageJsonPath),
+    })),
+];
 
 const packageCandidates = ["@itsukichan/baileys", "@whiskeysockets/baileys"];
 const entrypointCandidates = [
@@ -78,7 +92,18 @@ const moduleCandidates = Array.from(
   ])
 );
 
-const baileys: any = moduleCandidates.map(tryRequire).find(Boolean);
+let baileys: any;
+
+for (const context of requireContexts) {
+  for (const candidate of moduleCandidates) {
+    const loadedModule = tryRequire(context.reqFn, context.label, candidate);
+    if (loadedModule) {
+      baileys = loadedModule;
+      break;
+    }
+  }
+  if (baileys) break;
+}
 
 if (!baileys) {
   const debugInfo = requireErrors.slice(0, 10).join("\n") || "Sem detalhes de erro capturados.";
