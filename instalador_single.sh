@@ -1308,6 +1308,7 @@ NODEINSTALL
 instala_redis_base() {
   {
     sudo su - root <<EOF
+  export DEBIAN_FRONTEND=noninteractive
   apt install redis-server -y
   systemctl enable redis-server.service
   sed -i 's/# requirepass foobared/requirepass ${senha_deploy}/g' /etc/redis/redis.conf
