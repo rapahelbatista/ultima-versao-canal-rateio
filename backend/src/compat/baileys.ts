@@ -16,25 +16,59 @@ const path: any = require("path");
 // - Se não existir, usamos `@whiskeysockets/baileys` como fallback.
 // - Caminhos absolutos evitam cair no moduleAlias em cenários específicos.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
+const requireErrors: string[] = [];
+
 const tryRequire = (id: string) => {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require(id);
-  } catch {
+  } catch (error: any) {
+    const code = error?.code ?? "ERR";
+    const message = String(error?.message ?? error);
+    requireErrors.push(`${id} -> ${code}: ${message}`);
     return undefined;
   }
 };
 
-const backendRoot = path.resolve(__dirname, "..", "..", "..");
-const backendNodeModules = path.join(backendRoot, "node_modules");
+const backendRootCandidates = [
+  // Runtime compilado: dist/compat -> backend
+  path.resolve(__dirname, "..", ".."),
+  // Runtime ts-node: src/compat -> backend
+  path.resolve(__dirname, "..", "..", ".."),
+  // PM2 / scripts externos
+  process.cwd(),
+];
 
-const baileys: any =
-  tryRequire("@itsukichan/baileys") ??
-  tryRequire(path.join(process.cwd(), "node_modules", "@itsukichan", "baileys")) ??
-  tryRequire(path.join(backendNodeModules, "@itsukichan", "baileys")) ??
-  tryRequire("@whiskeysockets/baileys") ??
-  tryRequire(path.join(process.cwd(), "node_modules", "@whiskeysockets", "baileys")) ??
-  tryRequire(path.join(backendNodeModules, "@whiskeysockets", "baileys"));
+const backendNodeModulesCandidates = Array.from(
+  new Set(backendRootCandidates.map((root) => path.join(root, "node_modules")))
+);
+
+const packageCandidates = ["@itsukichan/baileys", "@whiskeysockets/baileys"];
+const entrypointCandidates = [
+  "lib/index.cjs",
+  "dist/index.cjs",
+  "lib/index.js",
+  "dist/index.js",
+];
+
+const moduleCandidates = Array.from(
+  new Set([
+    ...packageCandidates,
+    ...packageCandidates.flatMap((pkg) =>
+      backendNodeModulesCandidates.map((nm) => path.join(nm, ...pkg.split("/")))
+    ),
+    ...packageCandidates.flatMap((pkg) =>
+      entrypointCandidates.map((entry) => `${pkg}/${entry}`)
+    ),
+    ...packageCandidates.flatMap((pkg) =>
+      backendNodeModulesCandidates.flatMap((nm) =>
+        entrypointCandidates.map((entry) => path.join(nm, ...pkg.split("/"), entry))
+      )
+    ),
+  ])
+);
+
+const baileys: any = moduleCandidates.map(tryRequire).find(Boolean);
 
 if (!baileys) {
   throw new Error(
