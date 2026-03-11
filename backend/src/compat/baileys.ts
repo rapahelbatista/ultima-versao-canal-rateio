@@ -116,34 +116,48 @@ if (!baileys) {
 const defaultExport: any = baileys?.default ?? baileys;
 export default defaultExport;
 
-// Helper: resolve uma função a partir do módulo principal OU de sub-módulos conhecidos
-const _resolve = (name: string, ...subModulePaths: string[]): any => {
-  // 1. Tenta direto no módulo carregado
-  if (typeof baileys[name] === "function" || (baileys[name] != null && typeof baileys[name] === "object")) {
-    return baileys[name];
-  }
-  // 2. Tenta no default export
-  if (typeof defaultExport?.[name] === "function" || (defaultExport?.[name] != null && typeof defaultExport?.[name] === "object")) {
-    return defaultExport[name];
-  }
-  // 3. Tenta em sub-módulos
+// Helper: resolve símbolos no módulo principal OU em sub-módulos conhecidos
+const _pickFromModule = (mod: any, name: string): any => {
+  if (!mod) return undefined;
+  if (mod[name] !== undefined) return mod[name];
+  if (mod?.default?.[name] !== undefined) return mod.default[name];
+  return undefined;
+};
+
+const _unwrapFn = (value: any): any => {
+  if (typeof value === "function") return value;
+  if (typeof value?.default === "function") return value.default;
+  return undefined;
+};
+
+const _resolveAny = (name: string, ...subModulePaths: string[]): any => {
+  const direct = _pickFromModule(baileys, name);
+  if (direct !== undefined) return direct;
+
+  const fromDefault = _pickFromModule(defaultExport, name);
+  if (fromDefault !== undefined) return fromDefault;
+
   for (const subPath of subModulePaths) {
     for (const pkg of packageCandidates) {
       for (const context of requireContexts) {
         const mod = tryRequire(context.reqFn, `${context.label}::${name}`, `${pkg}/${subPath}`, false);
-        if (mod?.[name]) return mod[name];
-        if (mod?.default?.[name]) return mod.default[name];
+        const fromMod = _pickFromModule(mod, name);
+        if (fromMod !== undefined) return fromMod;
       }
     }
   }
+
   return undefined;
 };
 
+const _resolveFn = (name: string, ...subModulePaths: string[]): any =>
+  _unwrapFn(_resolveAny(name, ...subModulePaths));
+
 // --- Core runtime exports ---
-export const makeWASocket: any = _resolve("makeWASocket") ?? defaultExport;
+export const makeWASocket: any = _resolveFn("makeWASocket") ?? _unwrapFn(defaultExport) ?? defaultExport;
 
 // proto needs to work both as a value AND as a namespace (proto.IWebMessageInfo etc.)
-export const proto: any = _resolve("proto");
+export const proto: any = _resolveAny("proto");
 // Declare proto as a namespace so `proto.X` type references compile
 export declare namespace proto {
   type IWebMessageInfo = any;
@@ -155,26 +169,44 @@ export declare namespace proto {
   }
 }
 
-export const initAuthCreds: any = _resolve("initAuthCreds", "lib/Utils/auth-utils", "lib/Utils/auth-utils.js");
-export const makeCacheableSignalKeyStore: any = _resolve("makeCacheableSignalKeyStore", "lib/Utils/signal", "lib/Utils/signal.js", "lib/Utils/auth-utils", "lib/Utils/auth-utils.js");
+export const initAuthCreds: any = _resolveFn(
+  "initAuthCreds",
+  "lib/Utils/auth-utils",
+  "lib/Utils/auth-utils.js",
+  "lib/Utils/auth-utils.cjs",
+  "dist/Utils/auth-utils",
+  "dist/Utils/auth-utils.js"
+);
 
-export const delay: any = _resolve("delay", "lib/Utils/generics", "lib/Utils/generics.js");
-export const generateWAMessageFromContent: any = _resolve("generateWAMessageFromContent", "lib/Utils/messages", "lib/Utils/messages.js");
-export const downloadMediaMessage: any = _resolve("downloadMediaMessage", "lib/Utils/messages-media", "lib/Utils/messages-media.js");
-export const extractMessageContent: any = _resolve("extractMessageContent", "lib/Utils/messages", "lib/Utils/messages.js");
-export const getContentType: any = _resolve("getContentType", "lib/Utils/messages", "lib/Utils/messages.js");
+export const makeCacheableSignalKeyStore: any = _resolveFn(
+  "makeCacheableSignalKeyStore",
+  "lib/Utils/signal",
+  "lib/Utils/signal.js",
+  "lib/Utils/signal.cjs",
+  "lib/Utils/auth-utils",
+  "lib/Utils/auth-utils.js",
+  "dist/Utils/signal",
+  "dist/Utils/signal.js"
+);
 
-export const jidNormalizedUser: any = _resolve("jidNormalizedUser", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
-export const isJidBroadcast: any = _resolve("isJidBroadcast", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
-export const isJidGroup: any = _resolve("isJidGroup", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
-export const isJidStatusBroadcast: any = _resolve("isJidStatusBroadcast", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
+export const delay: any = _resolveFn("delay", "lib/Utils/generics", "lib/Utils/generics.js");
+export const generateWAMessageFromContent: any = _resolveFn("generateWAMessageFromContent", "lib/Utils/messages", "lib/Utils/messages.js");
+export const downloadMediaMessage: any = _resolveFn("downloadMediaMessage", "lib/Utils/messages-media", "lib/Utils/messages-media.js");
+export const extractMessageContent: any = _resolveFn("extractMessageContent", "lib/Utils/messages", "lib/Utils/messages.js");
+export const getContentType: any = _resolveFn("getContentType", "lib/Utils/messages", "lib/Utils/messages.js");
 
-export const Browsers: any = _resolve("Browsers", "lib/Utils/generics", "lib/Utils/generics.js");
-export const DisconnectReason: any = _resolve("DisconnectReason", "lib/Types", "lib/Types/index.js");
+export const jidNormalizedUser: any = _resolveFn("jidNormalizedUser", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
+export const isJidBroadcast: any = _resolveFn("isJidBroadcast", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
+export const isJidGroup: any = _resolveFn("isJidGroup", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
+export const isJidStatusBroadcast: any = _resolveFn("isJidStatusBroadcast", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
+
+export const Browsers: any = _resolveAny("Browsers", "lib/Utils/generics", "lib/Utils/generics.js");
+export const DisconnectReason: any = _resolveAny("DisconnectReason", "lib/Types", "lib/Types/index.js");
 
 // Some forks expose this with different naming
 export const isJidNewsletter: any =
-  _resolve("isJidNewsletter", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js") ?? baileys.isJidNewsLetter;
+  _resolveFn("isJidNewsletter", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js") ??
+  _resolveFn("isJidNewsLetter", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
 
 // BufferJSON helper (used to serialize sessions)
 export const BufferJSON = {
