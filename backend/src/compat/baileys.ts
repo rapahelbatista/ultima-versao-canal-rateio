@@ -25,13 +25,16 @@ const tryRequire = (id: string) => {
   }
 };
 
+const backendRoot = path.resolve(__dirname, "..", "..", "..");
+const backendNodeModules = path.join(backendRoot, "node_modules");
+
 const baileys: any =
   tryRequire("@itsukichan/baileys") ??
   tryRequire(path.join(process.cwd(), "node_modules", "@itsukichan", "baileys")) ??
-  tryRequire(path.join(__dirname, "..", "..", "node_modules", "@itsukichan", "baileys")) ??
+  tryRequire(path.join(backendNodeModules, "@itsukichan", "baileys")) ??
   tryRequire("@whiskeysockets/baileys") ??
   tryRequire(path.join(process.cwd(), "node_modules", "@whiskeysockets", "baileys")) ??
-  tryRequire(path.join(__dirname, "..", "..", "node_modules", "@whiskeysockets", "baileys"));
+  tryRequire(path.join(backendNodeModules, "@whiskeysockets", "baileys"));
 
 if (!baileys) {
   throw new Error(
