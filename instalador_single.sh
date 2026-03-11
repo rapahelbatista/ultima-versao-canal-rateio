@@ -1408,6 +1408,7 @@ EOF
     sleep 2
 
     sudo su - root <<EOF
+  export DEBIAN_FRONTEND=noninteractive
   apt install -y snapd
   snap install core
   snap refresh core
