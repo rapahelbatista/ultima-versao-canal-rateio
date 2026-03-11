@@ -1388,6 +1388,7 @@ instala_nginx_base() {
   echo
   {
     sudo su - root <<EOF
+    export DEBIAN_FRONTEND=noninteractive
     apt install -y nginx
     rm -f /etc/nginx/sites-enabled/default
 EOF
