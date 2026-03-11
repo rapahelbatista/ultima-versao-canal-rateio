@@ -10,6 +10,10 @@
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const path: any = require("path");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const fs: any = require("fs");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { createRequire }: any = require("module");
 
 // Tenta carregar o Baileys de formas diferentes dependendo do ambiente.
 // - Preferimos o fork `@itsukichan/baileys` (compatível com interactiveButtons/nativeFlow usados no projeto)
@@ -18,30 +22,50 @@ const path: any = require("path");
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const requireErrors: string[] = [];
 
-const tryRequire = (id: string) => {
+const tryRequire = (
+  reqFn: (id: string) => any,
+  contextLabel: string,
+  id: string,
+  collectError = true
+) => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require(id);
+    return reqFn(id);
   } catch (error: any) {
-    const code = error?.code ?? "ERR";
-    const message = String(error?.message ?? error);
-    requireErrors.push(`${id} -> ${code}: ${message}`);
+    if (collectError) {
+      const code = error?.code ?? "ERR";
+      const message = String(error?.message ?? error);
+      requireErrors.push(`[${contextLabel}] ${id} -> ${code}: ${message}`);
+    }
     return undefined;
   }
 };
 
-const backendRootCandidates = [
-  // Runtime compilado: dist/compat -> backend
-  path.resolve(__dirname, "..", ".."),
-  // Runtime ts-node: src/compat -> backend
-  path.resolve(__dirname, "..", "..", ".."),
-  // PM2 / scripts externos
-  process.cwd(),
-];
+const backendRootCandidates = Array.from(
+  new Set([
+    // Runtime compilado: dist/compat -> backend
+    path.resolve(__dirname, "..", ".."),
+    // Runtime ts-node: src/compat -> backend
+    path.resolve(__dirname, "..", "..", ".."),
+    // PM2 / scripts externos
+    process.cwd(),
+    path.dirname(require?.main?.filename || ""),
+  ].filter(Boolean))
+);
 
 const backendNodeModulesCandidates = Array.from(
   new Set(backendRootCandidates.map((root) => path.join(root, "node_modules")))
 );
+
+const requireContexts: Array<{ label: string; reqFn: (id: string) => any }> = [
+  { label: "native-require", reqFn: require },
+  ...backendRootCandidates
+    .map((root) => ({ root, packageJsonPath: path.join(root, "package.json") }))
+    .filter(({ packageJsonPath }) => fs.existsSync(packageJsonPath))
+    .map(({ root, packageJsonPath }) => ({
+      label: `createRequire(${root})`,
+      reqFn: createRequire(packageJsonPath),
+    })),
+];
 
 const packageCandidates = ["@itsukichan/baileys", "@whiskeysockets/baileys"];
 const entrypointCandidates = [
@@ -68,7 +92,18 @@ const moduleCandidates = Array.from(
   ])
 );
 
-const baileys: any = moduleCandidates.map(tryRequire).find(Boolean);
+let baileys: any;
+
+for (const context of requireContexts) {
+  for (const candidate of moduleCandidates) {
+    const loadedModule = tryRequire(context.reqFn, context.label, candidate);
+    if (loadedModule) {
+      baileys = loadedModule;
+      break;
+    }
+  }
+  if (baileys) break;
+}
 
 if (!baileys) {
   const debugInfo = requireErrors.slice(0, 10).join("\n") || "Sem detalhes de erro capturados.";
@@ -147,22 +182,26 @@ const _resolveInMemoryStore = (): any => {
     "Store/make-in-memory-store",
   ];
   const packages = ["@itsukichan/baileys", "@whiskeysockets/baileys"];
-  for (const pkg of packages) {
-    for (const sub of subPaths) {
-      try {
-        const mod = require(`${pkg}/${sub}`);
+  for (const context of requireContexts) {
+    for (const pkg of packages) {
+      for (const sub of subPaths) {
+        const mod = tryRequire(context.reqFn, `${context.label}::store`, `${pkg}/${sub}`, false);
         const fn = mod?.default ?? mod?.makeInMemoryStore ?? mod;
         if (typeof fn === "function") return fn;
-      } catch {}
-    }
-    // Also try absolute paths from common runtime roots (dist/src/PM2 cwd)
-    for (const nm of backendNodeModulesCandidates) {
-      for (const sub of subPaths) {
-        try {
-          const mod = require(path.join(nm, ...pkg.split("/"), sub));
+      }
+
+      // Também tenta caminhos absolutos a partir dos node_modules candidatos
+      for (const nm of backendNodeModulesCandidates) {
+        for (const sub of subPaths) {
+          const mod = tryRequire(
+            context.reqFn,
+            `${context.label}::store-abs`,
+            path.join(nm, ...pkg.split("/"), sub),
+            false
+          );
           const fn = mod?.default ?? mod?.makeInMemoryStore ?? mod;
           if (typeof fn === "function") return fn;
-        } catch {}
+        }
       }
     }
   }
