@@ -40,6 +40,11 @@ import { getGroupMetadataCache } from "../utils/RedisGroupCache";
 
 const loggerBaileys = pino({ level: "error" });
 
+const makeCacheableSignalKeyStoreSafe: any =
+  typeof importedMakeCacheableSignalKeyStore === "function"
+    ? importedMakeCacheableSignalKeyStore
+    : (keys: any) => keys;
+
 export type Session = WASocket & {
   id?: number;
   myJid?: string;
