@@ -1100,6 +1100,7 @@ instala_puppeteer_base() {
   echo
   {
     sudo su - root <<EOF
+export DEBIAN_FRONTEND=noninteractive
 apt-get install -y libaom-dev libass-dev libfreetype6-dev libfribidi-dev \
                    libharfbuzz-dev libgme-dev libgsm1-dev libmp3lame-dev \
                    libopencore-amrnb-dev libopencore-amrwb-dev libopenmpt-dev \
