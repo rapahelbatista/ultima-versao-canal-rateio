@@ -25,13 +25,16 @@ const tryRequire = (id: string) => {
   }
 };
 
+const backendRoot = path.resolve(__dirname, "..", "..", "..");
+const backendNodeModules = path.join(backendRoot, "node_modules");
+
 const baileys: any =
   tryRequire("@itsukichan/baileys") ??
   tryRequire(path.join(process.cwd(), "node_modules", "@itsukichan", "baileys")) ??
-  tryRequire(path.join(__dirname, "..", "..", "node_modules", "@itsukichan", "baileys")) ??
+  tryRequire(path.join(backendNodeModules, "@itsukichan", "baileys")) ??
   tryRequire("@whiskeysockets/baileys") ??
   tryRequire(path.join(process.cwd(), "node_modules", "@whiskeysockets", "baileys")) ??
-  tryRequire(path.join(__dirname, "..", "..", "node_modules", "@whiskeysockets", "baileys"));
+  tryRequire(path.join(backendNodeModules, "@whiskeysockets", "baileys"));
 
 if (!baileys) {
   throw new Error(
@@ -117,10 +120,10 @@ const _resolveInMemoryStore = (): any => {
         if (typeof fn === "function") return fn;
       } catch {}
     }
-    // Also try absolute path
+    // Also try absolute path (resolve from backend root, independent from PM2 cwd)
     for (const sub of subPaths) {
       try {
-        const mod = require(path.join(process.cwd(), "node_modules", ...pkg.split("/"), sub));
+        const mod = require(path.join(backendNodeModules, ...pkg.split("/"), sub));
         const fn = mod?.default ?? mod?.makeInMemoryStore ?? mod;
         if (typeof fn === "function") return fn;
       } catch {}
