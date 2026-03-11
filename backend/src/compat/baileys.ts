@@ -182,22 +182,26 @@ const _resolveInMemoryStore = (): any => {
     "Store/make-in-memory-store",
   ];
   const packages = ["@itsukichan/baileys", "@whiskeysockets/baileys"];
-  for (const pkg of packages) {
-    for (const sub of subPaths) {
-      try {
-        const mod = require(`${pkg}/${sub}`);
+  for (const context of requireContexts) {
+    for (const pkg of packages) {
+      for (const sub of subPaths) {
+        const mod = tryRequire(context.reqFn, `${context.label}::store`, `${pkg}/${sub}`, false);
         const fn = mod?.default ?? mod?.makeInMemoryStore ?? mod;
         if (typeof fn === "function") return fn;
-      } catch {}
-    }
-    // Also try absolute paths from common runtime roots (dist/src/PM2 cwd)
-    for (const nm of backendNodeModulesCandidates) {
-      for (const sub of subPaths) {
-        try {
-          const mod = require(path.join(nm, ...pkg.split("/"), sub));
+      }
+
+      // Também tenta caminhos absolutos a partir dos node_modules candidatos
+      for (const nm of backendNodeModulesCandidates) {
+        for (const sub of subPaths) {
+          const mod = tryRequire(
+            context.reqFn,
+            `${context.label}::store-abs`,
+            path.join(nm, ...pkg.split("/"), sub),
+            false
+          );
           const fn = mod?.default ?? mod?.makeInMemoryStore ?? mod;
           if (typeof fn === "function") return fn;
-        } catch {}
+        }
       }
     }
   }
