@@ -1100,6 +1100,7 @@ instala_puppeteer_base() {
   echo
   {
     sudo su - root <<EOF
+export DEBIAN_FRONTEND=noninteractive
 apt-get install -y libaom-dev libass-dev libfreetype6-dev libfribidi-dev \
                    libharfbuzz-dev libgme-dev libgsm1-dev libmp3lame-dev \
                    libopencore-amrnb-dev libopencore-amrwb-dev libopenmpt-dev \
@@ -1191,6 +1192,7 @@ instala_postgres_base() {
   echo
   {
     sudo su - root <<EOF
+  export DEBIAN_FRONTEND=noninteractive
   sudo apt-get install gnupg -y
   sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt \$(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
   wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
@@ -1306,6 +1308,7 @@ NODEINSTALL
 instala_redis_base() {
   {
     sudo su - root <<EOF
+  export DEBIAN_FRONTEND=noninteractive
   apt install redis-server -y
   systemctl enable redis-server.service
   sed -i 's/# requirepass foobared/requirepass ${senha_deploy}/g' /etc/redis/redis.conf
@@ -1385,6 +1388,7 @@ instala_nginx_base() {
   echo
   {
     sudo su - root <<EOF
+    export DEBIAN_FRONTEND=noninteractive
     apt install -y nginx
     rm -f /etc/nginx/sites-enabled/default
 EOF
@@ -1404,6 +1408,7 @@ EOF
     sleep 2
 
     sudo su - root <<EOF
+  export DEBIAN_FRONTEND=noninteractive
   apt install -y snapd
   snap install core
   snap refresh core
@@ -1558,6 +1563,7 @@ instala_git_base() {
   echo
   {
     sudo su - root <<EOF
+  export DEBIAN_FRONTEND=noninteractive
   apt install -y git
   apt -y autoremove
 EOF
