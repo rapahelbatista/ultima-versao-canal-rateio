@@ -71,8 +71,9 @@ const moduleCandidates = Array.from(
 const baileys: any = moduleCandidates.map(tryRequire).find(Boolean);
 
 if (!baileys) {
+  const debugInfo = requireErrors.slice(0, 10).join("\n") || "Sem detalhes de erro capturados.";
   throw new Error(
-    "Baileys não encontrado. Instale @itsukichan/baileys (recomendado) ou @whiskeysockets/baileys no backend."
+    `Baileys não encontrado. Instale @itsukichan/baileys (recomendado) ou @whiskeysockets/baileys no backend.\nTentativas:\n${debugInfo}`
   );
 }
 
