@@ -155,13 +155,15 @@ const _resolveInMemoryStore = (): any => {
         if (typeof fn === "function") return fn;
       } catch {}
     }
-    // Also try absolute path (resolve from backend root, independent from PM2 cwd)
-    for (const sub of subPaths) {
-      try {
-        const mod = require(path.join(backendNodeModules, ...pkg.split("/"), sub));
-        const fn = mod?.default ?? mod?.makeInMemoryStore ?? mod;
-        if (typeof fn === "function") return fn;
-      } catch {}
+    // Also try absolute paths from common runtime roots (dist/src/PM2 cwd)
+    for (const nm of backendNodeModulesCandidates) {
+      for (const sub of subPaths) {
+        try {
+          const mod = require(path.join(nm, ...pkg.split("/"), sub));
+          const fn = mod?.default ?? mod?.makeInMemoryStore ?? mod;
+          if (typeof fn === "function") return fn;
+        } catch {}
+      }
     }
   }
 
