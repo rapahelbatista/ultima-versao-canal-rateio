@@ -13,7 +13,7 @@ import makeWASocket, {
   isJidNewsletter,
   isJidStatusBroadcast,
   jidNormalizedUser,
-  makeCacheableSignalKeyStore,
+  makeCacheableSignalKeyStore as importedMakeCacheableSignalKeyStore,
   proto,
 } from "@whiskeysockets/baileys";
 import { makeInMemoryStore } from "@whiskeysockets/baileys";
