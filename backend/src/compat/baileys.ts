@@ -158,23 +158,23 @@ export declare namespace proto {
 export const initAuthCreds: any = _resolve("initAuthCreds", "lib/Utils/auth-utils", "lib/Utils/auth-utils.js");
 export const makeCacheableSignalKeyStore: any = _resolve("makeCacheableSignalKeyStore", "lib/Utils/signal", "lib/Utils/signal.js", "lib/Utils/auth-utils", "lib/Utils/auth-utils.js");
 
-export const delay: any = baileys.delay;
-export const generateWAMessageFromContent: any = baileys.generateWAMessageFromContent;
-export const downloadMediaMessage: any = baileys.downloadMediaMessage;
-export const extractMessageContent: any = baileys.extractMessageContent;
-export const getContentType: any = baileys.getContentType;
+export const delay: any = _resolve("delay", "lib/Utils/generics", "lib/Utils/generics.js");
+export const generateWAMessageFromContent: any = _resolve("generateWAMessageFromContent", "lib/Utils/messages", "lib/Utils/messages.js");
+export const downloadMediaMessage: any = _resolve("downloadMediaMessage", "lib/Utils/messages-media", "lib/Utils/messages-media.js");
+export const extractMessageContent: any = _resolve("extractMessageContent", "lib/Utils/messages", "lib/Utils/messages.js");
+export const getContentType: any = _resolve("getContentType", "lib/Utils/messages", "lib/Utils/messages.js");
 
-export const jidNormalizedUser: any = baileys.jidNormalizedUser;
-export const isJidBroadcast: any = baileys.isJidBroadcast;
-export const isJidGroup: any = baileys.isJidGroup;
-export const isJidStatusBroadcast: any = baileys.isJidStatusBroadcast;
+export const jidNormalizedUser: any = _resolve("jidNormalizedUser", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
+export const isJidBroadcast: any = _resolve("isJidBroadcast", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
+export const isJidGroup: any = _resolve("isJidGroup", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
+export const isJidStatusBroadcast: any = _resolve("isJidStatusBroadcast", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
 
-export const Browsers: any = baileys.Browsers;
-export const DisconnectReason: any = baileys.DisconnectReason;
+export const Browsers: any = _resolve("Browsers", "lib/Utils/generics", "lib/Utils/generics.js");
+export const DisconnectReason: any = _resolve("DisconnectReason", "lib/Types", "lib/Types/index.js");
 
 // Some forks expose this with different naming
 export const isJidNewsletter: any =
-  baileys.isJidNewsletter ?? baileys.isJidNewsLetter ?? baileys.isJidNewsLetter;
+  _resolve("isJidNewsletter", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js") ?? baileys.isJidNewsLetter;
 
 // BufferJSON helper (used to serialize sessions)
 export const BufferJSON = {
