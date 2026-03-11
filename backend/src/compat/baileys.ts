@@ -10,6 +10,10 @@
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const path: any = require("path");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const fs: any = require("fs");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { createRequire }: any = require("module");
 
 // Tenta carregar o Baileys de formas diferentes dependendo do ambiente.
 // - Preferimos o fork `@itsukichan/baileys` (compatível com interactiveButtons/nativeFlow usados no projeto)
@@ -18,14 +22,20 @@ const path: any = require("path");
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const requireErrors: string[] = [];
 
-const tryRequire = (id: string) => {
+const tryRequire = (
+  reqFn: (id: string) => any,
+  contextLabel: string,
+  id: string,
+  collectError = true
+) => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require(id);
+    return reqFn(id);
   } catch (error: any) {
-    const code = error?.code ?? "ERR";
-    const message = String(error?.message ?? error);
-    requireErrors.push(`${id} -> ${code}: ${message}`);
+    if (collectError) {
+      const code = error?.code ?? "ERR";
+      const message = String(error?.message ?? error);
+      requireErrors.push(`[${contextLabel}] ${id} -> ${code}: ${message}`);
+    }
     return undefined;
   }
 };
