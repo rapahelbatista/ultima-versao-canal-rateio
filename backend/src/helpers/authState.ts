@@ -3,8 +3,9 @@ import type {
   AuthenticationState,
   SignalDataTypeMap
 } from "@whiskeysockets/baileys";
-import { BufferJSON, initAuthCreds as importedInitAuthCreds, proto } from "@whiskeysockets/baileys";
+import { BufferJSON, proto } from "@whiskeysockets/baileys";
 import Whatsapp from "../models/Whatsapp";
+import { getInitAuthCreds } from "./baileysRuntime";
 
 const KEY_MAP: Record<string, string> = {
   "pre-key": "preKeys",
@@ -18,41 +19,7 @@ const KEY_MAP: Record<string, string> = {
   "tctoken": "tctoken"
 };
 
-const resolveInitAuthCreds = (): (() => AuthenticationCreds) => {
-  if (typeof importedInitAuthCreds === "function") {
-    return importedInitAuthCreds as () => AuthenticationCreds;
-  }
-
-  const packageCandidates = ["@itsukichan/baileys", "@whiskeysockets/baileys"];
-  const subPathCandidates = [
-    "lib/Utils/auth-utils",
-    "lib/Utils/auth-utils.js",
-    "lib/Utils/auth-utils.cjs",
-    "dist/Utils/auth-utils",
-    "dist/Utils/auth-utils.js"
-  ];
-
-  for (const pkg of packageCandidates) {
-    for (const subPath of subPathCandidates) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const mod = require(`${pkg}/${subPath}`);
-        const fn = mod?.initAuthCreds ?? mod?.default?.initAuthCreds ?? (typeof mod === "function" ? mod : undefined);
-        if (typeof fn === "function") {
-          return fn as () => AuthenticationCreds;
-        }
-      } catch {
-        // tenta próximo candidato
-      }
-    }
-  }
-
-  return () => {
-    throw new Error("[BAILEYS] initAuthCreds indisponível no módulo carregado.");
-  };
-};
-
-const initAuthCredsSafe = resolveInitAuthCreds();
+const initAuthCredsSafe = getInitAuthCreds() as () => AuthenticationCreds;
 
 const authState = async (
   whatsapp: Whatsapp
@@ -69,8 +36,6 @@ const authState = async (
       console.log(error);
     }
   };
-
-  // const getSessionDatabase = await whatsappById(whatsapp.id);
 
   if (whatsapp.session && whatsapp.session !== null) {
     const result = JSON.parse(whatsapp.session, BufferJSON.reviver);
@@ -98,16 +63,15 @@ const authState = async (
             return dict;
           }, {});
         },
-          set: (data: any) => {
-            // eslint-disable-next-line no-restricted-syntax, guard-for-in
-            for (const i in data) {
-              const key = KEY_MAP[i as string];
-              if (!key) continue;
-              keys[key] = keys[key] || {};
-              Object.assign(keys[key], data[i]);
-            }
-            saveState();
+        set: (data: any) => {
+          for (const i in data) {
+            const key = KEY_MAP[i as string];
+            if (!key) continue;
+            keys[key] = keys[key] || {};
+            Object.assign(keys[key], data[i]);
           }
+          saveState();
+        }
       }
     },
     saveState

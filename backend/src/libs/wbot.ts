@@ -13,7 +13,6 @@ import makeWASocket, {
   isJidNewsletter,
   isJidStatusBroadcast,
   jidNormalizedUser,
-  makeCacheableSignalKeyStore as importedMakeCacheableSignalKeyStore,
   proto,
 } from "@whiskeysockets/baileys";
 import { makeInMemoryStore } from "@whiskeysockets/baileys";
@@ -37,12 +36,14 @@ import Message from "../models/Message";
 import { getVersionByIndexFromUrl } from "../utils/versionHelper";
 import path from "path";
 import { getGroupMetadataCache } from "../utils/RedisGroupCache";
+import { getMakeCacheableSignalKeyStore } from "../helpers/baileysRuntime";
 
 const loggerBaileys = pino({ level: "error" });
 
+const resolvedMakeCacheableSignalKeyStore = getMakeCacheableSignalKeyStore();
 const makeCacheableSignalKeyStoreSafe: any =
-  typeof importedMakeCacheableSignalKeyStore === "function"
-    ? importedMakeCacheableSignalKeyStore
+  typeof resolvedMakeCacheableSignalKeyStore === "function"
+    ? resolvedMakeCacheableSignalKeyStore
     : (keys: any) => keys;
 
 export type Session = WASocket & {
