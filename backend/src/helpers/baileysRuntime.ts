@@ -97,7 +97,11 @@ const tryLoad = (id: string): any => {
 const pickFn = (mod: any, name: string): AnyFn | undefined => {
   if (typeof mod?.[name] === "function") return mod[name];
   if (typeof mod?.default?.[name] === "function") return mod.default[name];
-  if (typeof mod?.default === "function" && name === "makeWASocket") return mod.default;
+  if (name === "makeWASocket") {
+    if (typeof mod?.default === "function") return mod.default;
+    if (typeof mod?.default?.default === "function") return mod.default.default;
+    if (typeof mod?.makeWASocket?.default === "function") return mod.makeWASocket.default;
+  }
   return undefined;
 };
 
