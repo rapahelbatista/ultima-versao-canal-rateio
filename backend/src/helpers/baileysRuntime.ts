@@ -105,7 +105,7 @@ const pickFn = (mod: any, name: string): AnyFn | undefined => {
   return undefined;
 };
 
-const resolveBaileysFn = (name: "initAuthCreds" | "makeCacheableSignalKeyStore"): AnyFn | undefined => {
+const resolveBaileysFn = (name: "makeWASocket" | "initAuthCreds" | "makeCacheableSignalKeyStore"): AnyFn | undefined => {
   // 1) pacote raiz
   for (const pkg of packageCandidates) {
     const rootMod = tryLoad(pkg);
