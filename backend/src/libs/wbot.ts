@@ -16,6 +16,7 @@ import {
   proto,
   makeInMemoryStore
 } from "@whiskeysockets/baileys";
+import * as baileysModule from "@whiskeysockets/baileys";
 import { FindOptions } from "sequelize/types";
 import Whatsapp from "../models/Whatsapp";
 import logger from "../utils/logger";
@@ -31,19 +32,59 @@ import { add } from "date-fns";
 import moment from "moment";
 import { getTypeMessage, isValidMsg } from "../services/WbotServices/wbotMessageListener";
 import { addLogs } from "../helpers/addLogs";
-import NodeCache from 'node-cache';
+import NodeCache from "node-cache";
 import Message from "../models/Message";
 import { getVersionByIndexFromUrl } from "../utils/versionHelper";
 import path from "path";
 import { getGroupMetadataCache } from "../utils/RedisGroupCache";
-import { getMakeCacheableSignalKeyStore } from "../helpers/baileysRuntime";
-import { makeWASocket as compatMakeWASocket } from "../compat/baileys";
+import { getMakeCacheableSignalKeyStore, getMakeWASocket } from "../helpers/baileysRuntime";
+import * as compatBaileys from "../compat/baileys";
+
+type RuntimeFn = (...args: any[]) => any;
 
 const loggerBaileys = pino({ level: "error" });
 
-const makeWASocketSafe: any = typeof compatMakeWASocket === "function"
-  ? compatMakeWASocket
-  : undefined;
+const asFn = (value: any): RuntimeFn | undefined => {
+  if (typeof value === "function") return value;
+  if (typeof value?.default === "function") return value.default;
+  return undefined;
+};
+
+const firstFn = (...values: any[]): RuntimeFn | undefined => {
+  for (const value of values) {
+    const fn = asFn(value);
+    if (fn) return fn;
+  }
+  return undefined;
+};
+
+const makeWASocketSafe: RuntimeFn | undefined = firstFn(
+  (baileysModule as any)?.makeWASocket,
+  (baileysModule as any)?.makeWaSocket,
+  (baileysModule as any)?.default?.makeWASocket,
+  (baileysModule as any)?.default?.makeWaSocket,
+  (baileysModule as any)?.default,
+  (compatBaileys as any)?.makeWASocket,
+  (compatBaileys as any)?.default?.makeWASocket,
+  (compatBaileys as any)?.default?.makeWaSocket,
+  (compatBaileys as any)?.default,
+  getMakeWASocket()
+);
+
+const resolveMakeWASocket = (): RuntimeFn | undefined =>
+  firstFn(
+    makeWASocketSafe,
+    getMakeWASocket(),
+    (baileysModule as any)?.makeWASocket,
+    (baileysModule as any)?.makeWaSocket,
+    (baileysModule as any)?.default?.makeWASocket,
+    (baileysModule as any)?.default?.makeWaSocket,
+    (baileysModule as any)?.default,
+    (compatBaileys as any)?.makeWASocket,
+    (compatBaileys as any)?.default?.makeWASocket,
+    (compatBaileys as any)?.default?.makeWaSocket,
+    (compatBaileys as any)?.default
+  );
 
 const resolvedMakeCacheableSignalKeyStore = getMakeCacheableSignalKeyStore();
 const makeCacheableSignalKeyStoreSafe: any =
@@ -637,11 +678,14 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
 
         const { state, saveCreds } = await useMultiFileAuthState(whatsapp);
 
-        if (typeof makeWASocketSafe !== "function") {
-          throw new Error("[BAILEYS] makeWASocket não encontrado no módulo carregado.");
+        const runtimeMakeWASocket = resolveMakeWASocket();
+        if (typeof runtimeMakeWASocket !== "function") {
+          const baileysKeys = Object.keys((baileysModule as any) || {});
+          const compatKeys = Object.keys((compatBaileys as any) || {});
+          throw new Error(`[BAILEYS] makeWASocket não encontrado no módulo carregado. baileysKeys=${baileysKeys.join(",")} compatKeys=${compatKeys.join(",")}`);
         }
 
-        wsocket = makeWASocketSafe({
+        wsocket = runtimeMakeWASocket({
           version: versionWA || [2, 3000, 1024710243],
           logger: loggerBaileys,
           printQRInTerminal: false,
