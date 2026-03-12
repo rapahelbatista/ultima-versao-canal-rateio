@@ -3,11 +3,47 @@ import {
   AuthenticationCreds,
   AuthenticationState,
   SignalDataTypeMap,
-  initAuthCreds,
+  initAuthCreds as importedInitAuthCreds,
   BufferJSON
 } from "@whiskeysockets/baileys";
 import cacheLayer from "../libs/cache";
 import Whatsapp from "../models/Whatsapp";
+
+const resolveInitAuthCreds = (): (() => AuthenticationCreds) => {
+  if (typeof importedInitAuthCreds === "function") {
+    return importedInitAuthCreds as () => AuthenticationCreds;
+  }
+
+  const packageCandidates = ["@itsukichan/baileys", "@whiskeysockets/baileys"];
+  const subPathCandidates = [
+    "lib/Utils/auth-utils",
+    "lib/Utils/auth-utils.js",
+    "lib/Utils/auth-utils.cjs",
+    "dist/Utils/auth-utils",
+    "dist/Utils/auth-utils.js"
+  ];
+
+  for (const pkg of packageCandidates) {
+    for (const subPath of subPathCandidates) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const mod = require(`${pkg}/${subPath}`);
+        const fn = mod?.initAuthCreds ?? mod?.default?.initAuthCreds ?? (typeof mod === "function" ? mod : undefined);
+        if (typeof fn === "function") {
+          return fn as () => AuthenticationCreds;
+        }
+      } catch {
+        // tenta próximo candidato
+      }
+    }
+  }
+
+  return () => {
+    throw new Error("[BAILEYS] initAuthCreds indisponível no módulo carregado.");
+  };
+};
+
+const initAuthCredsSafe = resolveInitAuthCreds();
 
 export const useMultiFileAuthState = async (
   whatsapp: Whatsapp
@@ -39,8 +75,18 @@ export const useMultiFileAuthState = async (
     } catch {}
   };
 
+  const legacyCreds = (() => {
+    try {
+      if (!whatsapp?.session) return null;
+      const parsed = JSON.parse(whatsapp.session, BufferJSON.reviver);
+      return parsed?.creds ?? null;
+    } catch {
+      return null;
+    }
+  })();
+
   const creds: AuthenticationCreds =
-    (await readData("creds")) || initAuthCreds();
+    (await readData("creds")) || legacyCreds || initAuthCredsSafe();
 
   return {
     state: {

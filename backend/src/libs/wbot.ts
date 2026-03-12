@@ -13,7 +13,7 @@ import makeWASocket, {
   isJidNewsletter,
   isJidStatusBroadcast,
   jidNormalizedUser,
-  makeCacheableSignalKeyStore,
+  makeCacheableSignalKeyStore as importedMakeCacheableSignalKeyStore,
   proto,
 } from "@whiskeysockets/baileys";
 import { makeInMemoryStore } from "@whiskeysockets/baileys";
@@ -39,6 +39,11 @@ import path from "path";
 import { getGroupMetadataCache } from "../utils/RedisGroupCache";
 
 const loggerBaileys = pino({ level: "error" });
+
+const makeCacheableSignalKeyStoreSafe: any =
+  typeof importedMakeCacheableSignalKeyStore === "function"
+    ? importedMakeCacheableSignalKeyStore
+    : (keys: any) => keys;
 
 export type Session = WASocket & {
   id?: number;
@@ -633,7 +638,7 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
           auth: {
             creds: state.creds,
             /** ✅ Baileys v7: cache em memória para Signal keys — reduz I/O no Redis */
-            keys: makeCacheableSignalKeyStore(state.keys, loggerBaileys),
+            keys: makeCacheableSignalKeyStoreSafe(state.keys, loggerBaileys),
           },
           syncFullHistory: false,
           transactionOpts: { maxCommitRetries: 1, delayBetweenTriesMs: 10 },
