@@ -74,9 +74,28 @@ const entrypointCandidates = [
   "lib/index.js",
   "dist/index.js",
   "lib/Socket/index.js",
+  "lib/Socket/index.cjs",
   "lib/Socket/socket.js",
+  "lib/Socket/socket.cjs",
   "dist/Socket/index.js",
-  "dist/Socket/socket.js"
+  "dist/Socket/index.cjs",
+  "dist/Socket/socket.js",
+  "dist/Socket/socket.cjs"
+];
+
+const socketFileCandidates = [
+  "lib/Socket/socket.js",
+  "lib/Socket/socket.cjs",
+  "lib/Socket/index.js",
+  "lib/Socket/index.cjs",
+  "dist/Socket/socket.js",
+  "dist/Socket/socket.cjs",
+  "dist/Socket/index.js",
+  "dist/Socket/index.cjs",
+  "lib/index.js",
+  "lib/index.cjs",
+  "dist/index.js",
+  "dist/index.cjs"
 ];
 
 const moduleCandidates = Array.from(
