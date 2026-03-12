@@ -97,13 +97,32 @@ const tryLoad = (id: string): any => {
 const pickFn = (mod: any, name: string): AnyFn | undefined => {
   if (typeof mod?.[name] === "function") return mod[name];
   if (typeof mod?.default?.[name] === "function") return mod.default[name];
+  if (typeof mod?.default?.default?.[name] === "function") return mod.default.default[name];
+
   if (name === "makeWASocket") {
-    if (typeof mod === "function") return mod;
-    if (typeof mod?.makeWaSocket === "function") return mod.makeWaSocket;
-    if (typeof mod?.default === "function") return mod.default;
-    if (typeof mod?.default?.default === "function") return mod.default.default;
-    if (typeof mod?.makeWASocket?.default === "function") return mod.makeWASocket.default;
+    const queue: Array<{ value: any; depth: number }> = [{ value: mod, depth: 0 }];
+    const visited = new Set<any>();
+    const MAX_DEPTH = 8;
+
+    while (queue.length > 0) {
+      const { value, depth } = queue.shift()!;
+      if (!value || depth > MAX_DEPTH || visited.has(value)) continue;
+      visited.add(value);
+
+      if (typeof value === "function") return value;
+      if (typeof value !== "object") continue;
+
+      if (typeof value.makeWASocket === "function") return value.makeWASocket;
+      if (typeof value.makeWaSocket === "function") return value.makeWaSocket;
+
+      queue.push(
+        { value: value.makeWASocket, depth: depth + 1 },
+        { value: value.makeWaSocket, depth: depth + 1 },
+        { value: value.default, depth: depth + 1 }
+      );
+    }
   }
+
   return undefined;
 };
 

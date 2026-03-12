@@ -693,8 +693,11 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
         if (!resolved) {
           const mkType = typeof (baileysModule as any)?.makeWASocket;
           const mkDefaultType = typeof (baileysModule as any)?.default;
+          const mkDefaultDefaultType = typeof (baileysModule as any)?.default?.default;
           const compatMkType = typeof (compatBaileys as any)?.makeWASocket;
-          throw new Error(`[BAILEYS] makeWASocket não resolvido (mkType=${mkType}, mkDefaultType=${mkDefaultType}, compatMkType=${compatMkType}).`);
+          const compatDefaultType = typeof (compatBaileys as any)?.default;
+          const compatDefaultDefaultType = typeof (compatBaileys as any)?.default?.default;
+          throw new Error(`[BAILEYS] makeWASocket não resolvido (mkType=${mkType}, mkDefaultType=${mkDefaultType}, mkDefaultDefaultType=${mkDefaultDefaultType}, compatMkType=${compatMkType}, compatDefaultType=${compatDefaultType}, compatDefaultDefaultType=${compatDefaultDefaultType}).`);
         }
         logger.info(`[WBOT] makeWASocket resolvido via: ${resolved.source}`);
 
