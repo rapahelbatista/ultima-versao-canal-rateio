@@ -1,6 +1,7 @@
 import fs from "fs/promises"
 import * as Sentry from "@sentry/node";
-import makeWASocket, {
+import {
+  makeWASocket,
   Browsers,
   DisconnectReason,
   WAMessage,
@@ -14,8 +15,8 @@ import makeWASocket, {
   isJidStatusBroadcast,
   jidNormalizedUser,
   proto,
+  makeInMemoryStore
 } from "@whiskeysockets/baileys";
-import { makeInMemoryStore } from "@whiskeysockets/baileys";
 import { FindOptions } from "sequelize/types";
 import Whatsapp from "../models/Whatsapp";
 import logger from "../utils/logger";
@@ -39,6 +40,13 @@ import { getGroupMetadataCache } from "../utils/RedisGroupCache";
 import { getMakeCacheableSignalKeyStore } from "../helpers/baileysRuntime";
 
 const loggerBaileys = pino({ level: "error" });
+
+const makeWASocketSafe: any =
+  typeof makeWASocket === "function"
+    ? makeWASocket
+    : typeof (makeWASocket as any)?.default === "function"
+      ? (makeWASocket as any).default
+      : undefined;
 
 const resolvedMakeCacheableSignalKeyStore = getMakeCacheableSignalKeyStore();
 const makeCacheableSignalKeyStoreSafe: any =
@@ -632,7 +640,11 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
 
         const { state, saveCreds } = await useMultiFileAuthState(whatsapp);
 
-        wsocket = makeWASocket({
+        if (typeof makeWASocketSafe !== "function") {
+          throw new Error("[BAILEYS] makeWASocket não encontrado no módulo carregado.");
+        }
+
+        wsocket = makeWASocketSafe({
           version: versionWA || [2, 3000, 1024710243],
           logger: loggerBaileys,
           printQRInTerminal: false,
