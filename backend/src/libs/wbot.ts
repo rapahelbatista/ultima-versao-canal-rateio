@@ -44,11 +44,6 @@ type RuntimeFn = (...args: any[]) => any;
 
 const loggerBaileys = pino({ level: "error" });
 
-const asFn = (value: any): RuntimeFn | undefined => {
-  if (typeof value === "function") return value;
-  if (typeof value?.default === "function") return value.default;
-  return undefined;
-};
 
 const extractMakeWASocket = (value: any, depth = 0): RuntimeFn | undefined => {
   if (!value || depth > 6) return undefined;
