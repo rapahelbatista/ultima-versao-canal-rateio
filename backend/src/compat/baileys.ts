@@ -67,12 +67,16 @@ const requireContexts: Array<{ label: string; reqFn: (id: string) => any }> = [
     })),
 ];
 
-const packageCandidates = ["@itsukichan/baileys", "@whiskeysockets/baileys"];
+const packageCandidates = ["@whiskeysockets/baileys", "@itsukichan/baileys", "@itsliaaa/baileys"];
 const entrypointCandidates = [
   "lib/index.cjs",
   "dist/index.cjs",
   "lib/index.js",
   "dist/index.js",
+  "lib/Socket/index.js",
+  "lib/Socket/socket.js",
+  "dist/Socket/index.js",
+  "dist/Socket/socket.js"
 ];
 
 const moduleCandidates = Array.from(
