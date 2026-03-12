@@ -47,35 +47,52 @@ const loggerBaileys = pino({ level: "error" });
 
 /**
  * Resolução DETERMINÍSTICA de makeWASocket.
- * Tenta caminhos explícitos em ordem de prioridade, sem deep-search genérico.
+ * Percorre apenas caminhos explícitos conhecidos (default/makeWASocket/makeWaSocket).
  */
 const pickFactory = (candidate: any): RuntimeFn | undefined => {
-  if (!candidate) return undefined;
-  // Caminho direto: candidate.makeWASocket (named export)
-  if (typeof candidate.makeWASocket === "function") return candidate.makeWASocket;
-  if (typeof candidate.makeWaSocket === "function") return candidate.makeWaSocket;
-  // Via default: candidate.default.makeWASocket
-  if (typeof candidate.default?.makeWASocket === "function") return candidate.default.makeWASocket;
-  if (typeof candidate.default?.makeWaSocket === "function") return candidate.default.makeWaSocket;
-  // Default IS the factory
-  if (typeof candidate.default === "function") return candidate.default;
-  // Candidate itself is the factory
-  if (typeof candidate === "function") return candidate;
+  const queue: Array<{ value: any; depth: number }> = [{ value: candidate, depth: 0 }];
+  const visited = new Set<any>();
+  const MAX_DEPTH = 8;
+
+  while (queue.length > 0) {
+    const { value, depth } = queue.shift()!;
+    if (!value || depth > MAX_DEPTH || visited.has(value)) continue;
+    visited.add(value);
+
+    if (typeof value === "function") return value;
+    if (typeof value !== "object") continue;
+
+    if (typeof value.makeWASocket === "function") return value.makeWASocket;
+    if (typeof value.makeWaSocket === "function") return value.makeWaSocket;
+
+    queue.push(
+      { value: value.makeWASocket, depth: depth + 1 },
+      { value: value.makeWaSocket, depth: depth + 1 },
+      { value: value.default, depth: depth + 1 }
+    );
+  }
+
   return undefined;
 };
 
 const resolveMakeWASocket = (): { fn: RuntimeFn; source: string } | undefined => {
   // 1) Runtime helper (baileysRuntime.ts)
-  const fromRuntime = getMakeWASocket();
-  if (typeof fromRuntime === "function") return { fn: fromRuntime, source: "baileysRuntime" };
+  const fromRuntime = pickFactory(getMakeWASocket());
+  if (fromRuntime) return { fn: fromRuntime, source: "baileysRuntime" };
 
-  // 2) Compat shim (já faz resolução robusta)
+  // 2) Compat shim (namespace e default)
   const fromCompat = pickFactory(compatBaileys);
-  if (fromCompat) return { fn: fromCompat, source: "compat/baileys" };
+  if (fromCompat) return { fn: fromCompat, source: "compat/baileys(namespace)" };
 
-  // 3) Módulo importado diretamente
+  const fromCompatDefault = pickFactory((compatBaileys as any)?.default);
+  if (fromCompatDefault) return { fn: fromCompatDefault, source: "compat/baileys(default)" };
+
+  // 3) Módulo importado diretamente (namespace e default)
   const fromModule = pickFactory(baileysModule);
-  if (fromModule) return { fn: fromModule, source: "baileysModule" };
+  if (fromModule) return { fn: fromModule, source: "baileysModule(namespace)" };
+
+  const fromModuleDefault = pickFactory((baileysModule as any)?.default);
+  if (fromModuleDefault) return { fn: fromModuleDefault, source: "baileysModule(default)" };
 
   return undefined;
 };
