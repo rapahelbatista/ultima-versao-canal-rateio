@@ -159,7 +159,12 @@ const _resolveFn = (name: string, ...subModulePaths: string[]): any =>
   _unwrapFn(_resolveAny(name, ...subModulePaths));
 
 // --- Core runtime exports ---
-export const makeWASocket: any = _resolveFn("makeWASocket") ?? _unwrapFn(defaultExport) ?? defaultExport;
+export const makeWASocket: any =
+  _resolveFn("makeWASocket") ??
+  _resolveFn("makeWaSocket") ??
+  _unwrapFn(baileys) ??
+  _unwrapFn(defaultExport) ??
+  defaultExport;
 
 // proto needs to work both as a value AND as a namespace (proto.IWebMessageInfo etc.)
 export const proto: any = _resolveAny("proto");

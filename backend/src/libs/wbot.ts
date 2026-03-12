@@ -45,15 +45,31 @@ type RuntimeFn = (...args: any[]) => any;
 const loggerBaileys = pino({ level: "error" });
 
 
-const extractMakeWASocket = (value: any, depth = 0): RuntimeFn | undefined => {
-  if (!value || depth > 6) return undefined;
-  if (typeof value === "function") return value;
+const extractMakeWASocket = (root: any): RuntimeFn | undefined => {
+  const queue: any[] = [root];
+  const seen = new Set<any>();
+  let safety = 0;
 
-  return (
-    extractMakeWASocket(value.makeWASocket, depth + 1) ??
-    extractMakeWASocket(value.makeWaSocket, depth + 1) ??
-    extractMakeWASocket(value.default, depth + 1)
-  );
+  while (queue.length && safety < 200) {
+    safety += 1;
+    const current = queue.shift();
+
+    if (!current || seen.has(current)) continue;
+    seen.add(current);
+
+    if (typeof current === "function") return current;
+
+    queue.push(
+      current?.makeWASocket,
+      current?.makeWaSocket,
+      current?.default,
+      current?.default?.makeWASocket,
+      current?.default?.makeWaSocket,
+      current?.default?.default
+    );
+  }
+
+  return undefined;
 };
 
 const resolveMakeWASocket = (): RuntimeFn | undefined => {
