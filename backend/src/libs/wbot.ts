@@ -45,28 +45,30 @@ type RuntimeFn = (...args: any[]) => any;
 const loggerBaileys = pino({ level: "error" });
 
 
-const extractMakeWASocket = (root: any): RuntimeFn | undefined => {
-  const queue: any[] = [root];
+const extractMakeWASocket = (seed: any): RuntimeFn | undefined => {
+  if (!seed) return undefined;
+
+  const stack: any[] = [seed];
   const seen = new Set<any>();
   let safety = 0;
 
-  while (queue.length && safety < 200) {
+  while (stack.length && safety < 1500) {
     safety += 1;
-    const current = queue.shift();
+    const current = stack.pop();
 
     if (!current || seen.has(current)) continue;
     seen.add(current);
 
     if (typeof current === "function") return current;
+    if (typeof current !== "object") continue;
 
-    queue.push(
-      current?.makeWASocket,
-      current?.makeWaSocket,
-      current?.default,
-      current?.default?.makeWASocket,
-      current?.default?.makeWaSocket,
-      current?.default?.default
-    );
+    const entries = Object.entries(current as Record<string, any>);
+    const prioritized = entries.filter(([key]) => /makewa|default/i.test(key));
+    const others = entries.filter(([key]) => !/makewa|default/i.test(key));
+
+    for (const [, value] of [...prioritized, ...others]) {
+      stack.push(value);
+    }
   }
 
   return undefined;
@@ -95,7 +97,12 @@ const resolveMakeWASocket = (): RuntimeFn | undefined => {
   ];
 
   for (const candidate of runtimeCandidates) {
-    const fn = extractMakeWASocket(candidate);
+    const fn =
+      extractMakeWASocket((candidate as any)?.makeWASocket) ??
+      extractMakeWASocket((candidate as any)?.makeWaSocket) ??
+      extractMakeWASocket((candidate as any)?.default) ??
+      extractMakeWASocket(candidate);
+
     if (typeof fn === "function") return fn;
   }
 
