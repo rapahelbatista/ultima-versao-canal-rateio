@@ -44,47 +44,35 @@ type RuntimeFn = (...args: any[]) => any;
 
 const loggerBaileys = pino({ level: "error" });
 
-const asFn = (value: any): RuntimeFn | undefined => {
+
+const extractMakeWASocket = (value: any, depth = 0): RuntimeFn | undefined => {
+  if (!value || depth > 6) return undefined;
   if (typeof value === "function") return value;
-  if (typeof value?.default === "function") return value.default;
-  return undefined;
-};
 
-const firstFn = (...values: any[]): RuntimeFn | undefined => {
-  for (const value of values) {
-    const fn = asFn(value);
-    if (fn) return fn;
-  }
-  return undefined;
-};
-
-const makeWASocketSafe: RuntimeFn | undefined = firstFn(
-  (baileysModule as any)?.makeWASocket,
-  (baileysModule as any)?.makeWaSocket,
-  (baileysModule as any)?.default?.makeWASocket,
-  (baileysModule as any)?.default?.makeWaSocket,
-  (baileysModule as any)?.default,
-  (compatBaileys as any)?.makeWASocket,
-  (compatBaileys as any)?.default?.makeWASocket,
-  (compatBaileys as any)?.default?.makeWaSocket,
-  (compatBaileys as any)?.default,
-  getMakeWASocket()
-);
-
-const resolveMakeWASocket = (): RuntimeFn | undefined =>
-  firstFn(
-    makeWASocketSafe,
-    getMakeWASocket(),
-    (baileysModule as any)?.makeWASocket,
-    (baileysModule as any)?.makeWaSocket,
-    (baileysModule as any)?.default?.makeWASocket,
-    (baileysModule as any)?.default?.makeWaSocket,
-    (baileysModule as any)?.default,
-    (compatBaileys as any)?.makeWASocket,
-    (compatBaileys as any)?.default?.makeWASocket,
-    (compatBaileys as any)?.default?.makeWaSocket,
-    (compatBaileys as any)?.default
+  return (
+    extractMakeWASocket(value.makeWASocket, depth + 1) ??
+    extractMakeWASocket(value.makeWaSocket, depth + 1) ??
+    extractMakeWASocket(value.default, depth + 1)
   );
+};
+
+const resolveMakeWASocket = (): RuntimeFn | undefined => {
+  let runtimeBaileys: any;
+  try {
+    // Resolve no momento do uso para evitar problemas de inicialização/ciclo de módulos no PM2
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    runtimeBaileys = require("@whiskeysockets/baileys");
+  } catch {
+    runtimeBaileys = undefined;
+  }
+
+  return (
+    extractMakeWASocket(runtimeBaileys) ??
+    extractMakeWASocket(baileysModule) ??
+    extractMakeWASocket(compatBaileys) ??
+    extractMakeWASocket(getMakeWASocket())
+  );
+};
 
 const resolvedMakeCacheableSignalKeyStore = getMakeCacheableSignalKeyStore();
 const makeCacheableSignalKeyStoreSafe: any =
