@@ -713,6 +713,13 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
           getMessage
         });
 
+        // ✅ Validar estrutura mínima do socket antes de registrar listeners
+        if (!wsocket || typeof wsocket !== "object" || !wsocket.ev || typeof wsocket.ev.on !== "function") {
+          const shape = wsocket ? Object.keys(wsocket).slice(0, 15).join(",") : "null";
+          const evType = wsocket?.ev ? typeof wsocket.ev : "missing";
+          throw new Error(`[BAILEYS] Socket criado mas inválido (ev=${evType}, keys=${shape}). Factory source: ${resolved.source}`);
+        }
+
         wsocket.id = whatsapp.id;
 
         wsocket.store = (msg: proto.IWebMessageInfo): void => {
