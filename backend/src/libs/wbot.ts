@@ -71,6 +71,21 @@ const makeWASocketSafe: RuntimeFn | undefined = firstFn(
   getMakeWASocket()
 );
 
+const resolveMakeWASocket = (): RuntimeFn | undefined =>
+  firstFn(
+    makeWASocketSafe,
+    getMakeWASocket(),
+    (baileysModule as any)?.makeWASocket,
+    (baileysModule as any)?.makeWaSocket,
+    (baileysModule as any)?.default?.makeWASocket,
+    (baileysModule as any)?.default?.makeWaSocket,
+    (baileysModule as any)?.default,
+    (compatBaileys as any)?.makeWASocket,
+    (compatBaileys as any)?.default?.makeWASocket,
+    (compatBaileys as any)?.default?.makeWaSocket,
+    (compatBaileys as any)?.default
+  );
+
 const resolvedMakeCacheableSignalKeyStore = getMakeCacheableSignalKeyStore();
 const makeCacheableSignalKeyStoreSafe: any =
   typeof resolvedMakeCacheableSignalKeyStore === "function"
