@@ -215,6 +215,14 @@ const resolveSocketFactoryFromPackageFiles = (pkg: string): AnyFn | undefined =>
 };
 
 const resolveBaileysFn = (name: "makeWASocket" | "initAuthCreds" | "makeCacheableSignalKeyStore"): AnyFn | undefined => {
+  // 0) makeWASocket direto por arquivos físicos (ignora problemas de exports/CJS/ESM)
+  if (name === "makeWASocket") {
+    for (const pkg of packageCandidates) {
+      const directFn = resolveSocketFactoryFromPackageFiles(pkg);
+      if (directFn) return directFn;
+    }
+  }
+
   // 1) pacote raiz
   for (const pkg of packageCandidates) {
     const rootMod = tryLoad(pkg);
