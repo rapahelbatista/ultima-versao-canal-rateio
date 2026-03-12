@@ -40,12 +40,11 @@ import { getMakeCacheableSignalKeyStore, getMakeWASocket } from "../helpers/bail
 
 const loggerBaileys = pino({ level: "error" });
 
+const resolvedMakeWASocket = getMakeWASocket();
 const makeWASocketSafe: any =
-  typeof makeWASocket === "function"
-    ? makeWASocket
-    : typeof (makeWASocket as any)?.default === "function"
-      ? (makeWASocket as any).default
-      : undefined;
+  typeof resolvedMakeWASocket === "function"
+    ? resolvedMakeWASocket
+    : undefined;
 
 const resolvedMakeCacheableSignalKeyStore = getMakeCacheableSignalKeyStore();
 const makeCacheableSignalKeyStoreSafe: any =

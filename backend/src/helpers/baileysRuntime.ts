@@ -218,6 +218,9 @@ const synthInitAuthCreds = () => {
   };
 };
 
+export const getMakeWASocket = (): AnyFn | undefined =>
+  resolveBaileysFn("makeWASocket");
+
 export const getInitAuthCreds = (): AnyFn =>
   resolveBaileysFn("initAuthCreds") ?? synthInitAuthCreds;
 
