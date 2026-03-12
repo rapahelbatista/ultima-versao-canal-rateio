@@ -647,7 +647,7 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
           linkPreviewImageThumbnailWidth: 200,
           emitOwnEvents: true, // ✅ Necessário para que mensagens enviadas apareçam no painel
           // Usa o nome da conexão como identificador visível no celular
-          browser: Browsers.macOS(name || "Chrome"),
+          browser: Browsers?.macOS?.(name || "Chrome") ?? ["macOS", name || "Chrome", "10.15.7"],
           defaultQueryTimeoutMs: 60000,
           connectTimeoutMs: 60000,
           keepAliveIntervalMs: 30000, // 30s — mantém conexão ativa (60s causava desconexões frequentes)
