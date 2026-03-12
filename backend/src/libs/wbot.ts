@@ -46,30 +46,70 @@ const loggerBaileys = pino({ level: "error" });
 
 
 /**
- * Resolução DETERMINÍSTICA de makeWASocket.
- * Percorre apenas caminhos explícitos conhecidos (default/makeWASocket/makeWaSocket).
+ * Resolução ULTRA-AGRESSIVA de makeWASocket.
+ * Varre TODAS as propriedades do módulo recursivamente procurando uma função
+ * que pareça ser a factory do socket (aceita objeto com auth/logger).
  */
 const pickFactory = (candidate: any): RuntimeFn | undefined => {
-  const queue: Array<{ value: any; depth: number }> = [{ value: candidate, depth: 0 }];
+  if (!candidate) return undefined;
+
   const visited = new Set<any>();
-  const MAX_DEPTH = 8;
+  const MAX_DEPTH = 6;
+
+  // Primeiro: checagens rápidas nos caminhos mais comuns
+  const quickPaths = [
+    candidate,
+    candidate?.default,
+    candidate?.default?.default,
+    candidate?.default?.default?.default,
+    candidate?.makeWASocket,
+    candidate?.makeWaSocket,
+    candidate?.default?.makeWASocket,
+    candidate?.default?.makeWaSocket,
+    candidate?.default?.default?.makeWASocket,
+    candidate?.default?.default?.makeWaSocket,
+  ];
+
+  for (const v of quickPaths) {
+    if (typeof v === "function") return v;
+  }
+
+  // BFS completo varrendo TODAS as chaves
+  const queue: Array<{ value: any; depth: number }> = [{ value: candidate, depth: 0 }];
 
   while (queue.length > 0) {
     const { value, depth } = queue.shift()!;
     if (!value || depth > MAX_DEPTH || visited.has(value)) continue;
+    if (typeof value !== "object" && typeof value !== "function") continue;
     visited.add(value);
 
     if (typeof value === "function") return value;
-    if (typeof value !== "object") continue;
 
-    if (typeof value.makeWASocket === "function") return value.makeWASocket;
-    if (typeof value.makeWaSocket === "function") return value.makeWaSocket;
+    // Priorizar chaves conhecidas
+    for (const key of ["makeWASocket", "makeWaSocket", "default"]) {
+      const child = value[key];
+      if (typeof child === "function") return child;
+      if (child && typeof child === "object" && !visited.has(child)) {
+        queue.unshift({ value: child, depth: depth + 1 });
+      }
+    }
 
-    queue.push(
-      { value: value.makeWASocket, depth: depth + 1 },
-      { value: value.makeWaSocket, depth: depth + 1 },
-      { value: value.default, depth: depth + 1 }
-    );
+    // Varrer TODAS as outras chaves procurando funções
+    try {
+      const keys = Object.keys(value);
+      for (const key of keys) {
+        if (key === "makeWASocket" || key === "makeWaSocket" || key === "default") continue;
+        try {
+          const child = value[key];
+          if (typeof child === "function" && /socket|wa|connect/i.test(key)) {
+            return child;
+          }
+          if (child && typeof child === "object" && depth < MAX_DEPTH - 1 && !visited.has(child)) {
+            queue.push({ value: child, depth: depth + 1 });
+          }
+        } catch { /* getter pode lançar */ }
+      }
+    } catch { /* Object.keys pode falhar em proxies */ }
   }
 
   return undefined;
@@ -691,13 +731,31 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
 
         const resolved = resolveMakeWASocket();
         if (!resolved) {
-          const mkType = typeof (baileysModule as any)?.makeWASocket;
-          const mkDefaultType = typeof (baileysModule as any)?.default;
-          const mkDefaultDefaultType = typeof (baileysModule as any)?.default?.default;
-          const compatMkType = typeof (compatBaileys as any)?.makeWASocket;
-          const compatDefaultType = typeof (compatBaileys as any)?.default;
-          const compatDefaultDefaultType = typeof (compatBaileys as any)?.default?.default;
-          throw new Error(`[BAILEYS] makeWASocket não resolvido (mkType=${mkType}, mkDefaultType=${mkDefaultType}, mkDefaultDefaultType=${mkDefaultDefaultType}, compatMkType=${compatMkType}, compatDefaultType=${compatDefaultType}, compatDefaultDefaultType=${compatDefaultDefaultType}).`);
+          // Diagnóstico profundo: mostrar estrutura real do módulo
+          const dumpKeys = (obj: any, label: string, depth = 0): string => {
+            if (!obj || depth > 3) return "";
+            const t = typeof obj;
+            if (t === "function") return `${label}=FUNCTION`;
+            if (t !== "object") return `${label}=${t}`;
+            try {
+              const keys = Object.keys(obj).slice(0, 20);
+              const fns = keys.filter(k => { try { return typeof obj[k] === "function"; } catch { return false; } });
+              const objs = keys.filter(k => { try { return typeof obj[k] === "object" && obj[k]; } catch { return false; } });
+              let info = `${label}={keys:[${keys.join(",")}], fns:[${fns.join(",")}]}`;
+              if (depth < 2) {
+                for (const k of ["default", "makeWASocket", "makeWaSocket", ...fns.slice(0, 3)]) {
+                  if (obj[k]) info += " | " + dumpKeys(obj[k], `${label}.${k}`, depth + 1);
+                }
+              }
+              return info;
+            } catch { return `${label}=error`; }
+          };
+          const diag = [
+            dumpKeys(baileysModule, "baileysModule"),
+            dumpKeys(compatBaileys, "compatBaileys"),
+          ].filter(Boolean).join("\n");
+          logger.error(`[BAILEYS-DIAG] Estrutura do módulo:\n${diag}`);
+          throw new Error(`[BAILEYS] makeWASocket não resolvido. Veja BAILEYS-DIAG acima.`);
         }
         logger.info(`[WBOT] makeWASocket resolvido via: ${resolved.source}`);
 
