@@ -72,22 +72,34 @@ const extractMakeWASocket = (root: any): RuntimeFn | undefined => {
   return undefined;
 };
 
-const resolveMakeWASocket = (): RuntimeFn | undefined => {
-  let runtimeBaileys: any;
+const tryRequire = (id: string): any => {
   try {
-    // Resolve no momento do uso para evitar problemas de inicialização/ciclo de módulos no PM2
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    runtimeBaileys = require("@whiskeysockets/baileys");
+    return require(id);
   } catch {
-    runtimeBaileys = undefined;
+    return undefined;
+  }
+};
+
+const resolveMakeWASocket = (): RuntimeFn | undefined => {
+  const runtimeCandidates = [
+    tryRequire("@itsukichan/baileys"),
+    tryRequire("@itsukichan/baileys/lib/index.js"),
+    tryRequire("@itsukichan/baileys/lib/index.cjs"),
+    tryRequire("@whiskeysockets/baileys"),
+    tryRequire("@whiskeysockets/baileys/lib/index.js"),
+    tryRequire("@whiskeysockets/baileys/lib/index.cjs"),
+    baileysModule,
+    compatBaileys,
+    getMakeWASocket()
+  ];
+
+  for (const candidate of runtimeCandidates) {
+    const fn = extractMakeWASocket(candidate);
+    if (typeof fn === "function") return fn;
   }
 
-  return (
-    extractMakeWASocket(runtimeBaileys) ??
-    extractMakeWASocket(baileysModule) ??
-    extractMakeWASocket(compatBaileys) ??
-    extractMakeWASocket(getMakeWASocket())
-  );
+  return undefined;
 };
 
 const resolvedMakeCacheableSignalKeyStore = getMakeCacheableSignalKeyStore();
