@@ -24,12 +24,16 @@ const subPathCandidates = {
     "dist/index.mjs",
     "lib/Socket/index",
     "lib/Socket/index.js",
+    "lib/Socket/index.cjs",
     "lib/Socket/socket",
     "lib/Socket/socket.js",
+    "lib/Socket/socket.cjs",
     "dist/Socket/index",
     "dist/Socket/index.js",
+    "dist/Socket/index.cjs",
     "dist/Socket/socket",
-    "dist/Socket/socket.js"
+    "dist/Socket/socket.js",
+    "dist/Socket/socket.cjs"
   ],
   initAuthCreds: [
     "lib/Utils/auth-utils",
@@ -70,6 +74,21 @@ const subPathCandidates = {
     "dist/Utils/generics.mjs"
   ]
 } as const;
+
+const socketFileCandidates = [
+  "lib/Socket/socket.js",
+  "lib/Socket/socket.cjs",
+  "lib/Socket/index.js",
+  "lib/Socket/index.cjs",
+  "dist/Socket/socket.js",
+  "dist/Socket/socket.cjs",
+  "dist/Socket/index.js",
+  "dist/Socket/index.cjs",
+  "lib/index.js",
+  "lib/index.cjs",
+  "dist/index.js",
+  "dist/index.cjs"
+];
 
 const rootCandidates = Array.from(
   new Set([
@@ -112,6 +131,10 @@ const pickFn = (mod: any, name: string): AnyFn | undefined => {
   if (typeof mod?.default?.default?.[name] === "function") return mod.default.default[name];
 
   if (name === "makeWASocket") {
+    if (typeof mod === "function") return mod;
+    if (typeof mod?.default === "function") return mod.default;
+    if (typeof mod?.default?.default === "function") return mod.default.default;
+
     const queue: Array<{ value: any; depth: number }> = [{ value: mod, depth: 0 }];
     const visited = new Set<any>();
     const MAX_DEPTH = 8;
@@ -132,13 +155,74 @@ const pickFn = (mod: any, name: string): AnyFn | undefined => {
         { value: value.makeWaSocket, depth: depth + 1 },
         { value: value.default, depth: depth + 1 }
       );
+
+      try {
+        for (const key of Object.getOwnPropertyNames(value)) {
+          if (key === "makeWASocket" || key === "makeWaSocket" || key === "default") continue;
+          const child = (value as any)[key];
+          if (typeof child === "function" && /socket|wa|connect/i.test(key)) return child;
+          if (child && (typeof child === "object" || typeof child === "function") && !visited.has(child)) {
+            queue.push({ value: child, depth: depth + 1 });
+          }
+        }
+      } catch {
+        // noop
+      }
     }
   }
 
   return undefined;
 };
 
+const resolveSocketFactoryFromPackageFiles = (pkg: string): AnyFn | undefined => {
+  let packageJsonPath: string | undefined;
+
+  for (const ctx of requireContexts) {
+    try {
+      const resolved = (ctx.req as any).resolve?.(`${pkg}/package.json`);
+      if (resolved) {
+        packageJsonPath = resolved;
+        break;
+      }
+    } catch {
+      // próximo contexto
+    }
+  }
+
+  if (!packageJsonPath) {
+    for (const nm of nodeModulesCandidates) {
+      const candidate = path.join(nm, ...pkg.split("/"), "package.json");
+      if (fs.existsSync(candidate)) {
+        packageJsonPath = candidate;
+        break;
+      }
+    }
+  }
+
+  if (!packageJsonPath) return undefined;
+
+  const packageDir = path.dirname(packageJsonPath);
+  for (const relPath of socketFileCandidates) {
+    const absPath = path.join(packageDir, relPath);
+    if (!fs.existsSync(absPath)) continue;
+
+    const mod = tryLoad(absPath);
+    const fn = pickFn(mod, "makeWASocket");
+    if (fn) return fn;
+  }
+
+  return undefined;
+};
+
 const resolveBaileysFn = (name: "makeWASocket" | "initAuthCreds" | "makeCacheableSignalKeyStore"): AnyFn | undefined => {
+  // 0) makeWASocket direto por arquivos físicos (ignora problemas de exports/CJS/ESM)
+  if (name === "makeWASocket") {
+    for (const pkg of packageCandidates) {
+      const directFn = resolveSocketFactoryFromPackageFiles(pkg);
+      if (directFn) return directFn;
+    }
+  }
+
   // 1) pacote raiz
   for (const pkg of packageCandidates) {
     const rootMod = tryLoad(pkg);

@@ -74,9 +74,28 @@ const entrypointCandidates = [
   "lib/index.js",
   "dist/index.js",
   "lib/Socket/index.js",
+  "lib/Socket/index.cjs",
   "lib/Socket/socket.js",
+  "lib/Socket/socket.cjs",
   "dist/Socket/index.js",
-  "dist/Socket/socket.js"
+  "dist/Socket/index.cjs",
+  "dist/Socket/socket.js",
+  "dist/Socket/socket.cjs"
+];
+
+const socketFileCandidates = [
+  "lib/Socket/socket.js",
+  "lib/Socket/socket.cjs",
+  "lib/Socket/index.js",
+  "lib/Socket/index.cjs",
+  "dist/Socket/socket.js",
+  "dist/Socket/socket.cjs",
+  "dist/Socket/index.js",
+  "dist/Socket/index.cjs",
+  "lib/index.js",
+  "lib/index.cjs",
+  "dist/index.js",
+  "dist/index.cjs"
 ];
 
 const moduleCandidates = Array.from(
@@ -179,6 +198,13 @@ const _pickFromModule = (mod: any, name: string): any => {
   if (!mod) return undefined;
   if (mod[name] !== undefined) return mod[name];
   if (mod?.default?.[name] !== undefined) return mod.default[name];
+
+  if (name === "makeWASocket" || name === "makeWaSocket") {
+    if (typeof mod === "function") return mod;
+    if (typeof mod?.default === "function") return mod.default;
+    if (typeof mod?.default?.default === "function") return mod.default.default;
+  }
+
   return undefined;
 };
 
@@ -201,7 +227,7 @@ const _unwrapFn = (value: any, depth = 0, visited = new Set<any>()): any => {
     // Varrer todas as chaves como último recurso
     (() => {
       try {
-        for (const key of Object.keys(value)) {
+        for (const key of Object.getOwnPropertyNames(value)) {
           if (key === "makeWASocket" || key === "makeWaSocket" || key === "default") continue;
           const child = value[key];
           if (typeof child === "function" && /socket|wa|connect/i.test(key)) return child;
@@ -212,6 +238,50 @@ const _unwrapFn = (value: any, depth = 0, visited = new Set<any>()): any => {
       return undefined;
     })()
   );
+};
+
+const _resolveSocketFromPackageFiles = (): any => {
+  for (const pkg of packageCandidates) {
+    let packageJsonPath: string | undefined;
+
+    for (const context of requireContexts) {
+      try {
+        const resolved = (context.reqFn as any).resolve?.(`${pkg}/package.json`);
+        if (resolved) {
+          packageJsonPath = resolved;
+          break;
+        }
+      } catch {
+        // próximo contexto
+      }
+    }
+
+    if (!packageJsonPath) {
+      for (const nm of backendNodeModulesCandidates) {
+        const candidate = path.join(nm, ...pkg.split("/"), "package.json");
+        if (fs.existsSync(candidate)) {
+          packageJsonPath = candidate;
+          break;
+        }
+      }
+    }
+
+    if (!packageJsonPath) continue;
+
+    const packageDir = path.dirname(packageJsonPath);
+    for (const relPath of socketFileCandidates) {
+      const absPath = path.join(packageDir, relPath);
+      if (!fs.existsSync(absPath)) continue;
+
+      for (const context of requireContexts) {
+        const mod = tryRequire(context.reqFn, `${context.label}::socket-file`, absPath, false);
+        const fn = _unwrapFn(_pickFromModule(mod, "makeWASocket") ?? mod);
+        if (typeof fn === "function") return fn;
+      }
+    }
+  }
+
+  return undefined;
 };
 
 const _resolveAny = (name: string, ...subModulePaths: string[]): any => {
@@ -239,6 +309,7 @@ const _resolveFn = (name: string, ...subModulePaths: string[]): any =>
 
 // --- Core runtime exports ---
 const _resolvedFactory: any =
+  _resolveSocketFromPackageFiles() ??
   _resolveFn(
     "makeWASocket",
     "lib/Socket/index",
