@@ -72,22 +72,34 @@ const extractMakeWASocket = (root: any): RuntimeFn | undefined => {
   return undefined;
 };
 
-const resolveMakeWASocket = (): RuntimeFn | undefined => {
-  let runtimeBaileys: any;
+const tryRequire = (id: string): any => {
   try {
-    // Resolve no momento do uso para evitar problemas de inicialização/ciclo de módulos no PM2
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    runtimeBaileys = require("@whiskeysockets/baileys");
+    return require(id);
   } catch {
-    runtimeBaileys = undefined;
+    return undefined;
+  }
+};
+
+const resolveMakeWASocket = (): RuntimeFn | undefined => {
+  const runtimeCandidates = [
+    tryRequire("@itsukichan/baileys"),
+    tryRequire("@itsukichan/baileys/lib/index.js"),
+    tryRequire("@itsukichan/baileys/lib/index.cjs"),
+    tryRequire("@whiskeysockets/baileys"),
+    tryRequire("@whiskeysockets/baileys/lib/index.js"),
+    tryRequire("@whiskeysockets/baileys/lib/index.cjs"),
+    baileysModule,
+    compatBaileys,
+    getMakeWASocket()
+  ];
+
+  for (const candidate of runtimeCandidates) {
+    const fn = extractMakeWASocket(candidate);
+    if (typeof fn === "function") return fn;
   }
 
-  return (
-    extractMakeWASocket(runtimeBaileys) ??
-    extractMakeWASocket(baileysModule) ??
-    extractMakeWASocket(compatBaileys) ??
-    extractMakeWASocket(getMakeWASocket())
-  );
+  return undefined;
 };
 
 const resolvedMakeCacheableSignalKeyStore = getMakeCacheableSignalKeyStore();
@@ -684,9 +696,10 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
 
         const runtimeMakeWASocket = resolveMakeWASocket();
         if (typeof runtimeMakeWASocket !== "function") {
-          const baileysKeys = Object.keys((baileysModule as any) || {});
-          const compatKeys = Object.keys((compatBaileys as any) || {});
-          throw new Error(`[BAILEYS] makeWASocket não encontrado no módulo carregado. baileysKeys=${baileysKeys.join(",")} compatKeys=${compatKeys.join(",")}`);
+          const mkType = typeof (baileysModule as any)?.makeWASocket;
+          const mkDefaultType = typeof (baileysModule as any)?.default;
+          const compatMkType = typeof (compatBaileys as any)?.makeWASocket;
+          throw new Error(`[BAILEYS] makeWASocket inválido (mkType=${mkType}, mkDefaultType=${mkDefaultType}, compatMkType=${compatMkType}).`);
         }
 
         wsocket = runtimeMakeWASocket({
