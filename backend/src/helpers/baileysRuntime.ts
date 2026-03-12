@@ -24,12 +24,16 @@ const subPathCandidates = {
     "dist/index.mjs",
     "lib/Socket/index",
     "lib/Socket/index.js",
+    "lib/Socket/index.cjs",
     "lib/Socket/socket",
     "lib/Socket/socket.js",
+    "lib/Socket/socket.cjs",
     "dist/Socket/index",
     "dist/Socket/index.js",
+    "dist/Socket/index.cjs",
     "dist/Socket/socket",
-    "dist/Socket/socket.js"
+    "dist/Socket/socket.js",
+    "dist/Socket/socket.cjs"
   ],
   initAuthCreds: [
     "lib/Utils/auth-utils",
@@ -70,6 +74,21 @@ const subPathCandidates = {
     "dist/Utils/generics.mjs"
   ]
 } as const;
+
+const socketFileCandidates = [
+  "lib/Socket/socket.js",
+  "lib/Socket/socket.cjs",
+  "lib/Socket/index.js",
+  "lib/Socket/index.cjs",
+  "dist/Socket/socket.js",
+  "dist/Socket/socket.cjs",
+  "dist/Socket/index.js",
+  "dist/Socket/index.cjs",
+  "lib/index.js",
+  "lib/index.cjs",
+  "dist/index.js",
+  "dist/index.cjs"
+];
 
 const rootCandidates = Array.from(
   new Set([
