@@ -185,6 +185,32 @@ const _resolveFn = (name: string, ...subModulePaths: string[]): any =>
 
 // --- Core runtime exports ---
 const _resolvedFactory: any =
+  _resolveFn(
+    "makeWASocket",
+    "lib/Socket/index",
+    "lib/Socket/index.js",
+    "lib/Socket/socket",
+    "lib/Socket/socket.js",
+    "dist/Socket/index",
+    "dist/Socket/index.js",
+    "dist/Socket/socket",
+    "dist/Socket/socket.js",
+    "src/Socket/index",
+    "src/Socket/socket"
+  ) ??
+  _resolveFn(
+    "makeWaSocket",
+    "lib/Socket/index",
+    "lib/Socket/index.js",
+    "lib/Socket/socket",
+    "lib/Socket/socket.js",
+    "dist/Socket/index",
+    "dist/Socket/index.js",
+    "dist/Socket/socket",
+    "dist/Socket/socket.js",
+    "src/Socket/index",
+    "src/Socket/socket"
+  ) ??
   _resolveFn("makeWASocket") ??
   _resolveFn("makeWaSocket") ??
   _unwrapFn(baileys) ??
