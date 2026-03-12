@@ -640,7 +640,11 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
 
         const { state, saveCreds } = await useMultiFileAuthState(whatsapp);
 
-        wsocket = makeWASocket({
+        if (typeof makeWASocketSafe !== "function") {
+          throw new Error("[BAILEYS] makeWASocket não encontrado no módulo carregado.");
+        }
+
+        wsocket = makeWASocketSafe({
           version: versionWA || [2, 3000, 1024710243],
           logger: loggerBaileys,
           printQRInTerminal: false,
