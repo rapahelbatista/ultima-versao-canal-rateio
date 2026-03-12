@@ -1,6 +1,7 @@
 import fs from "fs/promises"
 import * as Sentry from "@sentry/node";
-import makeWASocket, {
+import {
+  makeWASocket,
   Browsers,
   DisconnectReason,
   WAMessage,
@@ -14,8 +15,8 @@ import makeWASocket, {
   isJidStatusBroadcast,
   jidNormalizedUser,
   proto,
+  makeInMemoryStore
 } from "@whiskeysockets/baileys";
-import { makeInMemoryStore } from "@whiskeysockets/baileys";
 import { FindOptions } from "sequelize/types";
 import Whatsapp from "../models/Whatsapp";
 import logger from "../utils/logger";
