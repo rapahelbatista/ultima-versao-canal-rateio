@@ -309,6 +309,7 @@ const _resolveFn = (name: string, ...subModulePaths: string[]): any =>
 
 // --- Core runtime exports ---
 const _resolvedFactory: any =
+  _resolveSocketFromPackageFiles() ??
   _resolveFn(
     "makeWASocket",
     "lib/Socket/index",
