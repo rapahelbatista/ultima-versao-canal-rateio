@@ -246,7 +246,7 @@ const _resolveSocketFromPackageFiles = (): any => {
 
     for (const context of requireContexts) {
       try {
-        const resolved = context.reqFn.resolve?.(`${pkg}/package.json`);
+        const resolved = (context.reqFn as any).resolve?.(`${pkg}/package.json`);
         if (resolved) {
           packageJsonPath = resolved;
           break;

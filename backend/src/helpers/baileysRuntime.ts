@@ -179,7 +179,7 @@ const resolveSocketFactoryFromPackageFiles = (pkg: string): AnyFn | undefined =>
 
   for (const ctx of requireContexts) {
     try {
-      const resolved = ctx.req.resolve?.(`${pkg}/package.json`);
+      const resolved = (ctx.req as any).resolve?.(`${pkg}/package.json`);
       if (resolved) {
         packageJsonPath = resolved;
         break;
