@@ -124,14 +124,35 @@ const _pickFromModule = (mod: any, name: string): any => {
   return undefined;
 };
 
-const _unwrapFn = (value: any, depth = 0): any => {
-  if (depth > 8 || !value) return undefined;
+const _unwrapFn = (value: any, depth = 0, visited = new Set<any>()): any => {
+  if (depth > 8 || !value || visited.has(value)) return undefined;
+  visited.add(value);
   if (typeof value === "function") return value;
+  if (typeof value !== "object") return undefined;
 
+  // Checagens rápidas
+  for (const key of ["makeWASocket", "makeWaSocket", "default"]) {
+    if (typeof value[key] === "function") return value[key];
+  }
+
+  // Recursão nos caminhos prioritários
   return (
-    _unwrapFn(value?.makeWASocket, depth + 1) ??
-    _unwrapFn(value?.makeWaSocket, depth + 1) ??
-    _unwrapFn(value?.default, depth + 1)
+    _unwrapFn(value?.makeWASocket, depth + 1, visited) ??
+    _unwrapFn(value?.makeWaSocket, depth + 1, visited) ??
+    _unwrapFn(value?.default, depth + 1, visited) ??
+    // Varrer todas as chaves como último recurso
+    (() => {
+      try {
+        for (const key of Object.keys(value)) {
+          if (key === "makeWASocket" || key === "makeWaSocket" || key === "default") continue;
+          const child = value[key];
+          if (typeof child === "function" && /socket|wa|connect/i.test(key)) return child;
+          const found = _unwrapFn(child, depth + 2, visited);
+          if (found) return found;
+        }
+      } catch {}
+      return undefined;
+    })()
   );
 };
 
