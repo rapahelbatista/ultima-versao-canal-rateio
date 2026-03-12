@@ -3,47 +3,13 @@ import {
   AuthenticationCreds,
   AuthenticationState,
   SignalDataTypeMap,
-  initAuthCreds as importedInitAuthCreds,
   BufferJSON
 } from "@whiskeysockets/baileys";
 import cacheLayer from "../libs/cache";
 import Whatsapp from "../models/Whatsapp";
+import { getInitAuthCreds } from "./baileysRuntime";
 
-const resolveInitAuthCreds = (): (() => AuthenticationCreds) => {
-  if (typeof importedInitAuthCreds === "function") {
-    return importedInitAuthCreds as () => AuthenticationCreds;
-  }
-
-  const packageCandidates = ["@itsukichan/baileys", "@whiskeysockets/baileys"];
-  const subPathCandidates = [
-    "lib/Utils/auth-utils",
-    "lib/Utils/auth-utils.js",
-    "lib/Utils/auth-utils.cjs",
-    "dist/Utils/auth-utils",
-    "dist/Utils/auth-utils.js"
-  ];
-
-  for (const pkg of packageCandidates) {
-    for (const subPath of subPathCandidates) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const mod = require(`${pkg}/${subPath}`);
-        const fn = mod?.initAuthCreds ?? mod?.default?.initAuthCreds ?? (typeof mod === "function" ? mod : undefined);
-        if (typeof fn === "function") {
-          return fn as () => AuthenticationCreds;
-        }
-      } catch {
-        // tenta próximo candidato
-      }
-    }
-  }
-
-  return () => {
-    throw new Error("[BAILEYS] initAuthCreds indisponível no módulo carregado.");
-  };
-};
-
-const initAuthCredsSafe = resolveInitAuthCreds();
+const initAuthCredsSafe = getInitAuthCreds() as () => AuthenticationCreds;
 
 export const useMultiFileAuthState = async (
   whatsapp: Whatsapp
@@ -64,7 +30,7 @@ export const useMultiFileAuthState = async (
     try {
       const data = await cacheLayer.get(`sessions:${whatsapp.id}:${file}`);
       return JSON.parse(data, BufferJSON.reviver);
-    } catch (error) {
+    } catch {
       return null;
     }
   };
@@ -100,11 +66,9 @@ export const useMultiFileAuthState = async (
               if (type === "app-state-sync-key" && value) {
                 value = proto.Message.AppStateSyncKeyData.create(value);
               }
-
               data[id] = value;
             })
           );
-
           return data;
         },
         set: async data => {
@@ -116,13 +80,10 @@ export const useMultiFileAuthState = async (
               tasks.push(value ? writeData(value, file) : removeData(file));
             }
           }
-
           await Promise.all(tasks);
         }
       }
     },
-    saveCreds: () => {
-      return writeData(creds, "creds");
-    }
+    saveCreds: () => writeData(creds, "creds")
   };
 };
