@@ -672,15 +672,16 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
 
         const { state, saveCreds } = await useMultiFileAuthState(whatsapp);
 
-        const runtimeMakeWASocket = resolveMakeWASocket();
-        if (typeof runtimeMakeWASocket !== "function") {
+        const resolved = resolveMakeWASocket();
+        if (!resolved) {
           const mkType = typeof (baileysModule as any)?.makeWASocket;
           const mkDefaultType = typeof (baileysModule as any)?.default;
           const compatMkType = typeof (compatBaileys as any)?.makeWASocket;
-          throw new Error(`[BAILEYS] makeWASocket inválido (mkType=${mkType}, mkDefaultType=${mkDefaultType}, compatMkType=${compatMkType}).`);
+          throw new Error(`[BAILEYS] makeWASocket não resolvido (mkType=${mkType}, mkDefaultType=${mkDefaultType}, compatMkType=${compatMkType}).`);
         }
+        logger.info(`[WBOT] makeWASocket resolvido via: ${resolved.source}`);
 
-        wsocket = runtimeMakeWASocket({
+        wsocket = resolved.fn({
           version: versionWA || [2, 3000, 1024710243],
           logger: loggerBaileys,
           printQRInTerminal: false,
