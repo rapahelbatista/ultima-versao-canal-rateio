@@ -572,7 +572,7 @@ export const requestPairingCode = async (whatsappId: number, phoneNumber: string
 export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
   return new Promise(async (resolve, reject) => {
     try {
-      (async () => {
+      await (async () => {
 
         const io = getIO();
 
