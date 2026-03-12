@@ -45,66 +45,37 @@ type RuntimeFn = (...args: any[]) => any;
 const loggerBaileys = pino({ level: "error" });
 
 
-const extractMakeWASocket = (seed: any): RuntimeFn | undefined => {
-  if (!seed) return undefined;
-
-  const stack: any[] = [seed];
-  const seen = new Set<any>();
-  let safety = 0;
-
-  while (stack.length && safety < 1500) {
-    safety += 1;
-    const current = stack.pop();
-
-    if (!current || seen.has(current)) continue;
-    seen.add(current);
-
-    if (typeof current === "function") return current;
-    if (typeof current !== "object") continue;
-
-    const entries = Object.entries(current as Record<string, any>);
-    const prioritized = entries.filter(([key]) => /makewa|default/i.test(key));
-    const others = entries.filter(([key]) => !/makewa|default/i.test(key));
-
-    for (const [, value] of [...prioritized, ...others]) {
-      stack.push(value);
-    }
-  }
-
+/**
+ * Resolução DETERMINÍSTICA de makeWASocket.
+ * Tenta caminhos explícitos em ordem de prioridade, sem deep-search genérico.
+ */
+const pickFactory = (candidate: any): RuntimeFn | undefined => {
+  if (!candidate) return undefined;
+  // Caminho direto: candidate.makeWASocket (named export)
+  if (typeof candidate.makeWASocket === "function") return candidate.makeWASocket;
+  if (typeof candidate.makeWaSocket === "function") return candidate.makeWaSocket;
+  // Via default: candidate.default.makeWASocket
+  if (typeof candidate.default?.makeWASocket === "function") return candidate.default.makeWASocket;
+  if (typeof candidate.default?.makeWaSocket === "function") return candidate.default.makeWaSocket;
+  // Default IS the factory
+  if (typeof candidate.default === "function") return candidate.default;
+  // Candidate itself is the factory
+  if (typeof candidate === "function") return candidate;
   return undefined;
 };
 
-const tryRequire = (id: string): any => {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require(id);
-  } catch {
-    return undefined;
-  }
-};
+const resolveMakeWASocket = (): { fn: RuntimeFn; source: string } | undefined => {
+  // 1) Runtime helper (baileysRuntime.ts)
+  const fromRuntime = getMakeWASocket();
+  if (typeof fromRuntime === "function") return { fn: fromRuntime, source: "baileysRuntime" };
 
-const resolveMakeWASocket = (): RuntimeFn | undefined => {
-  const runtimeCandidates = [
-    tryRequire("@itsukichan/baileys"),
-    tryRequire("@itsukichan/baileys/lib/index.js"),
-    tryRequire("@itsukichan/baileys/lib/index.cjs"),
-    tryRequire("@whiskeysockets/baileys"),
-    tryRequire("@whiskeysockets/baileys/lib/index.js"),
-    tryRequire("@whiskeysockets/baileys/lib/index.cjs"),
-    baileysModule,
-    compatBaileys,
-    getMakeWASocket()
-  ];
+  // 2) Compat shim (já faz resolução robusta)
+  const fromCompat = pickFactory(compatBaileys);
+  if (fromCompat) return { fn: fromCompat, source: "compat/baileys" };
 
-  for (const candidate of runtimeCandidates) {
-    const fn =
-      extractMakeWASocket((candidate as any)?.makeWASocket) ??
-      extractMakeWASocket((candidate as any)?.makeWaSocket) ??
-      extractMakeWASocket((candidate as any)?.default) ??
-      extractMakeWASocket(candidate);
-
-    if (typeof fn === "function") return fn;
-  }
+  // 3) Módulo importado diretamente
+  const fromModule = pickFactory(baileysModule);
+  if (fromModule) return { fn: fromModule, source: "baileysModule" };
 
   return undefined;
 };
