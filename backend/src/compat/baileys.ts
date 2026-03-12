@@ -124,10 +124,15 @@ const _pickFromModule = (mod: any, name: string): any => {
   return undefined;
 };
 
-const _unwrapFn = (value: any): any => {
+const _unwrapFn = (value: any, depth = 0): any => {
+  if (depth > 8 || !value) return undefined;
   if (typeof value === "function") return value;
-  if (typeof value?.default === "function") return value.default;
-  return undefined;
+
+  return (
+    _unwrapFn(value?.makeWASocket, depth + 1) ??
+    _unwrapFn(value?.makeWaSocket, depth + 1) ??
+    _unwrapFn(value?.default, depth + 1)
+  );
 };
 
 const _resolveAny = (name: string, ...subModulePaths: string[]): any => {
