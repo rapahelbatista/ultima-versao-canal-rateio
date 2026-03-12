@@ -96,7 +96,7 @@ const pickFactory = (candidate: any): RuntimeFn | undefined => {
 
     // Varrer TODAS as outras chaves procurando funções
     try {
-      const keys = Object.keys(value);
+      const keys = Object.getOwnPropertyNames(value).slice(0, 50);
       for (const key of keys) {
         if (key === "makeWASocket" || key === "makeWaSocket" || key === "default") continue;
         try {
@@ -104,12 +104,12 @@ const pickFactory = (candidate: any): RuntimeFn | undefined => {
           if (typeof child === "function" && /socket|wa|connect/i.test(key)) {
             return child;
           }
-          if (child && typeof child === "object" && depth < MAX_DEPTH - 1 && !visited.has(child)) {
+          if (child && (typeof child === "object" || typeof child === "function") && depth < MAX_DEPTH - 1 && !visited.has(child)) {
             queue.push({ value: child, depth: depth + 1 });
           }
         } catch { /* getter pode lançar */ }
       }
-    } catch { /* Object.keys pode falhar em proxies */ }
+    } catch { /* introspecção pode falhar */ }
   }
 
   return undefined;
