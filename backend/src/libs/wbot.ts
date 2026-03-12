@@ -731,13 +731,31 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
 
         const resolved = resolveMakeWASocket();
         if (!resolved) {
-          const mkType = typeof (baileysModule as any)?.makeWASocket;
-          const mkDefaultType = typeof (baileysModule as any)?.default;
-          const mkDefaultDefaultType = typeof (baileysModule as any)?.default?.default;
-          const compatMkType = typeof (compatBaileys as any)?.makeWASocket;
-          const compatDefaultType = typeof (compatBaileys as any)?.default;
-          const compatDefaultDefaultType = typeof (compatBaileys as any)?.default?.default;
-          throw new Error(`[BAILEYS] makeWASocket não resolvido (mkType=${mkType}, mkDefaultType=${mkDefaultType}, mkDefaultDefaultType=${mkDefaultDefaultType}, compatMkType=${compatMkType}, compatDefaultType=${compatDefaultType}, compatDefaultDefaultType=${compatDefaultDefaultType}).`);
+          // Diagnóstico profundo: mostrar estrutura real do módulo
+          const dumpKeys = (obj: any, label: string, depth = 0): string => {
+            if (!obj || depth > 3) return "";
+            const t = typeof obj;
+            if (t === "function") return `${label}=FUNCTION`;
+            if (t !== "object") return `${label}=${t}`;
+            try {
+              const keys = Object.keys(obj).slice(0, 20);
+              const fns = keys.filter(k => { try { return typeof obj[k] === "function"; } catch { return false; } });
+              const objs = keys.filter(k => { try { return typeof obj[k] === "object" && obj[k]; } catch { return false; } });
+              let info = `${label}={keys:[${keys.join(",")}], fns:[${fns.join(",")}]}`;
+              if (depth < 2) {
+                for (const k of ["default", "makeWASocket", "makeWaSocket", ...fns.slice(0, 3)]) {
+                  if (obj[k]) info += " | " + dumpKeys(obj[k], `${label}.${k}`, depth + 1);
+                }
+              }
+              return info;
+            } catch { return `${label}=error`; }
+          };
+          const diag = [
+            dumpKeys(baileysModule, "baileysModule"),
+            dumpKeys(compatBaileys, "compatBaileys"),
+          ].filter(Boolean).join("\n");
+          logger.error(`[BAILEYS-DIAG] Estrutura do módulo:\n${diag}`);
+          throw new Error(`[BAILEYS] makeWASocket não resolvido. Veja BAILEYS-DIAG acima.`);
         }
         logger.info(`[WBOT] makeWASocket resolvido via: ${resolved.source}`);
 
