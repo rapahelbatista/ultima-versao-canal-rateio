@@ -227,7 +227,7 @@ const _unwrapFn = (value: any, depth = 0, visited = new Set<any>()): any => {
     // Varrer todas as chaves como último recurso
     (() => {
       try {
-        for (const key of Object.keys(value)) {
+        for (const key of Object.getOwnPropertyNames(value)) {
           if (key === "makeWASocket" || key === "makeWaSocket" || key === "default") continue;
           const child = value[key];
           if (typeof child === "function" && /socket|wa|connect/i.test(key)) return child;
@@ -238,6 +238,50 @@ const _unwrapFn = (value: any, depth = 0, visited = new Set<any>()): any => {
       return undefined;
     })()
   );
+};
+
+const _resolveSocketFromPackageFiles = (): any => {
+  for (const pkg of packageCandidates) {
+    let packageJsonPath: string | undefined;
+
+    for (const context of requireContexts) {
+      try {
+        const resolved = context.reqFn.resolve?.(`${pkg}/package.json`);
+        if (resolved) {
+          packageJsonPath = resolved;
+          break;
+        }
+      } catch {
+        // próximo contexto
+      }
+    }
+
+    if (!packageJsonPath) {
+      for (const nm of backendNodeModulesCandidates) {
+        const candidate = path.join(nm, ...pkg.split("/"), "package.json");
+        if (fs.existsSync(candidate)) {
+          packageJsonPath = candidate;
+          break;
+        }
+      }
+    }
+
+    if (!packageJsonPath) continue;
+
+    const packageDir = path.dirname(packageJsonPath);
+    for (const relPath of socketFileCandidates) {
+      const absPath = path.join(packageDir, relPath);
+      if (!fs.existsSync(absPath)) continue;
+
+      for (const context of requireContexts) {
+        const mod = tryRequire(context.reqFn, `${context.label}::socket-file`, absPath, false);
+        const fn = _unwrapFn(_pickFromModule(mod, "makeWASocket") ?? mod);
+        if (typeof fn === "function") return fn;
+      }
+    }
+  }
+
+  return undefined;
 };
 
 const _resolveAny = (name: string, ...subModulePaths: string[]): any => {
