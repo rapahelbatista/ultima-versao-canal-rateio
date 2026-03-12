@@ -36,15 +36,14 @@ import Message from "../models/Message";
 import { getVersionByIndexFromUrl } from "../utils/versionHelper";
 import path from "path";
 import { getGroupMetadataCache } from "../utils/RedisGroupCache";
-import { getMakeCacheableSignalKeyStore, getMakeWASocket } from "../helpers/baileysRuntime";
+import { getMakeCacheableSignalKeyStore } from "../helpers/baileysRuntime";
+import { makeWASocket as compatMakeWASocket } from "../compat/baileys";
 
 const loggerBaileys = pino({ level: "error" });
 
-const resolvedMakeWASocket = getMakeWASocket();
-const makeWASocketSafe: any =
-  typeof resolvedMakeWASocket === "function"
-    ? resolvedMakeWASocket
-    : undefined;
+const makeWASocketSafe: any = typeof compatMakeWASocket === "function"
+  ? compatMakeWASocket
+  : undefined;
 
 const resolvedMakeCacheableSignalKeyStore = getMakeCacheableSignalKeyStore();
 const makeCacheableSignalKeyStoreSafe: any =
