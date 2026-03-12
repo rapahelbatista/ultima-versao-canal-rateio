@@ -67,12 +67,16 @@ const requireContexts: Array<{ label: string; reqFn: (id: string) => any }> = [
     })),
 ];
 
-const packageCandidates = ["@itsukichan/baileys", "@whiskeysockets/baileys"];
+const packageCandidates = ["@whiskeysockets/baileys", "@itsukichan/baileys", "@itsliaaa/baileys"];
 const entrypointCandidates = [
   "lib/index.cjs",
   "dist/index.cjs",
   "lib/index.js",
   "dist/index.js",
+  "lib/Socket/index.js",
+  "lib/Socket/socket.js",
+  "dist/Socket/index.js",
+  "dist/Socket/socket.js"
 ];
 
 const moduleCandidates = Array.from(
@@ -92,23 +96,77 @@ const moduleCandidates = Array.from(
   ])
 );
 
+const hasSocketFactory = (root: any): boolean => {
+  const queue: Array<{ value: any; depth: number }> = [{ value: root, depth: 0 }];
+  const visited = new Set<any>();
+
+  while (queue.length > 0) {
+    const { value, depth } = queue.shift()!;
+    if (!value || depth > 8 || visited.has(value)) continue;
+
+    const valueType = typeof value;
+    if (valueType === "function") return true;
+    if (valueType !== "object") continue;
+
+    visited.add(value);
+
+    for (const key of ["makeWASocket", "makeWaSocket", "default"]) {
+      const child = (value as any)[key];
+      if (typeof child === "function") return true;
+      if (child && (typeof child === "object" || typeof child === "function") && !visited.has(child)) {
+        queue.push({ value: child, depth: depth + 1 });
+      }
+    }
+
+    try {
+      for (const key of Object.getOwnPropertyNames(value)) {
+        if (key === "makeWASocket" || key === "makeWaSocket" || key === "default") continue;
+        const child = (value as any)[key];
+        if (typeof child === "function" && /socket|wa|connect/i.test(key)) return true;
+        if (child && (typeof child === "object" || typeof child === "function") && !visited.has(child)) {
+          queue.push({ value: child, depth: depth + 1 });
+        }
+      }
+    } catch {
+      // noop
+    }
+  }
+
+  return false;
+};
+
 let baileys: any;
+let firstLoadedModule: any;
 
 for (const context of requireContexts) {
   for (const candidate of moduleCandidates) {
     const loadedModule = tryRequire(context.reqFn, context.label, candidate);
-    if (loadedModule) {
+    if (!loadedModule) continue;
+
+    if (!firstLoadedModule) {
+      firstLoadedModule = loadedModule;
+    }
+
+    if (hasSocketFactory(loadedModule) || hasSocketFactory(loadedModule?.default)) {
       baileys = loadedModule;
       break;
     }
+
+    requireErrors.push(`[${context.label}] ${candidate} -> módulo carregou, mas sem makeWASocket detectável`);
   }
+
   if (baileys) break;
 }
 
+if (!baileys && firstLoadedModule) {
+  baileys = firstLoadedModule;
+  requireErrors.push("[compat] fallback para primeiro módulo carregado (sem factory validada)");
+}
+
 if (!baileys) {
-  const debugInfo = requireErrors.slice(0, 10).join("\n") || "Sem detalhes de erro capturados.";
+  const debugInfo = requireErrors.slice(0, 12).join("\n") || "Sem detalhes de erro capturados.";
   throw new Error(
-    `Baileys não encontrado. Instale @itsukichan/baileys (recomendado) ou @whiskeysockets/baileys no backend.\nTentativas:\n${debugInfo}`
+    `Baileys não encontrado. Instale @whiskeysockets/baileys (recomendado) ou @itsukichan/baileys no backend.\nTentativas:\n${debugInfo}`
   );
 }
 
@@ -181,6 +239,32 @@ const _resolveFn = (name: string, ...subModulePaths: string[]): any =>
 
 // --- Core runtime exports ---
 const _resolvedFactory: any =
+  _resolveFn(
+    "makeWASocket",
+    "lib/Socket/index",
+    "lib/Socket/index.js",
+    "lib/Socket/socket",
+    "lib/Socket/socket.js",
+    "dist/Socket/index",
+    "dist/Socket/index.js",
+    "dist/Socket/socket",
+    "dist/Socket/socket.js",
+    "src/Socket/index",
+    "src/Socket/socket"
+  ) ??
+  _resolveFn(
+    "makeWaSocket",
+    "lib/Socket/index",
+    "lib/Socket/index.js",
+    "lib/Socket/socket",
+    "lib/Socket/socket.js",
+    "dist/Socket/index",
+    "dist/Socket/index.js",
+    "dist/Socket/socket",
+    "dist/Socket/socket.js",
+    "src/Socket/index",
+    "src/Socket/socket"
+  ) ??
   _resolveFn("makeWASocket") ??
   _resolveFn("makeWaSocket") ??
   _unwrapFn(baileys) ??

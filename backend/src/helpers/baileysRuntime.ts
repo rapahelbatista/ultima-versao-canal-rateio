@@ -7,7 +7,11 @@ const { createRequire }: any = require("module");
 
 type AnyFn = (...args: any[]) => any;
 
-const packageCandidates = ["@itsukichan/baileys", "@whiskeysockets/baileys"];
+const packageCandidates = [
+  "@whiskeysockets/baileys",
+  "@itsukichan/baileys",
+  "@itsliaaa/baileys"
+];
 const subPathCandidates = {
   makeWASocket: [
     "lib/index",
@@ -17,7 +21,15 @@ const subPathCandidates = {
     "dist/index",
     "dist/index.js",
     "dist/index.cjs",
-    "dist/index.mjs"
+    "dist/index.mjs",
+    "lib/Socket/index",
+    "lib/Socket/index.js",
+    "lib/Socket/socket",
+    "lib/Socket/socket.js",
+    "dist/Socket/index",
+    "dist/Socket/index.js",
+    "dist/Socket/socket",
+    "dist/Socket/socket.js"
   ],
   initAuthCreds: [
     "lib/Utils/auth-utils",
