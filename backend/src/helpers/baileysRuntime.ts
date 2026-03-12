@@ -9,6 +9,16 @@ type AnyFn = (...args: any[]) => any;
 
 const packageCandidates = ["@itsukichan/baileys", "@whiskeysockets/baileys"];
 const subPathCandidates = {
+  makeWASocket: [
+    "lib/index",
+    "lib/index.js",
+    "lib/index.cjs",
+    "lib/index.mjs",
+    "dist/index",
+    "dist/index.js",
+    "dist/index.cjs",
+    "dist/index.mjs"
+  ],
   initAuthCreds: [
     "lib/Utils/auth-utils",
     "lib/Utils/auth-utils.js",

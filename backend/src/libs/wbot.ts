@@ -1,7 +1,6 @@
 import fs from "fs/promises"
 import * as Sentry from "@sentry/node";
 import {
-  makeWASocket,
   Browsers,
   DisconnectReason,
   WAMessage,
