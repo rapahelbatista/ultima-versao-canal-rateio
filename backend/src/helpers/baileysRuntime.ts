@@ -1,5 +1,6 @@
 import path from "path";
 import fs from "fs";
+import { randomBytes, randomUUID } from "crypto";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { createRequire }: any = require("module");
@@ -12,8 +13,10 @@ const subPathCandidates = {
     "lib/Utils/auth-utils",
     "lib/Utils/auth-utils.js",
     "lib/Utils/auth-utils.cjs",
+    "lib/Utils/auth-utils.mjs",
     "dist/Utils/auth-utils",
-    "dist/Utils/auth-utils.js"
+    "dist/Utils/auth-utils.js",
+    "dist/Utils/auth-utils.mjs"
   ],
   makeCacheableSignalKeyStore: [
     "lib/Utils/auth-utils",
@@ -21,8 +24,28 @@ const subPathCandidates = {
     "lib/Utils/signal",
     "lib/Utils/signal.js",
     "lib/Utils/signal.cjs",
+    "lib/Utils/signal.mjs",
     "dist/Utils/signal",
-    "dist/Utils/signal.js"
+    "dist/Utils/signal.js",
+    "dist/Utils/signal.mjs"
+  ],
+  cryptoUtils: [
+    "lib/Utils/crypto",
+    "lib/Utils/crypto.js",
+    "lib/Utils/crypto.cjs",
+    "lib/Utils/crypto.mjs",
+    "dist/Utils/crypto",
+    "dist/Utils/crypto.js",
+    "dist/Utils/crypto.mjs"
+  ],
+  genericsUtils: [
+    "lib/Utils/generics",
+    "lib/Utils/generics.js",
+    "lib/Utils/generics.cjs",
+    "lib/Utils/generics.mjs",
+    "dist/Utils/generics",
+    "dist/Utils/generics.js",
+    "dist/Utils/generics.mjs"
   ]
 } as const;
 
@@ -68,7 +91,7 @@ const pickFn = (mod: any, name: string): AnyFn | undefined => {
   return undefined;
 };
 
-const resolveBaileysFn = (name: keyof typeof subPathCandidates): AnyFn | undefined => {
+const resolveBaileysFn = (name: "initAuthCreds" | "makeCacheableSignalKeyStore"): AnyFn | undefined => {
   // 1) pacote raiz
   for (const pkg of packageCandidates) {
     const rootMod = tryLoad(pkg);
@@ -104,13 +127,85 @@ const resolveBaileysFn = (name: keyof typeof subPathCandidates): AnyFn | undefin
   return undefined;
 };
 
-export const getInitAuthCreds = (): AnyFn => {
-  const fn = resolveBaileysFn("initAuthCreds");
-  if (!fn) {
-    throw new Error("[BAILEYS] initAuthCreds não encontrado em nenhum módulo conhecido.");
+const resolveUtilityModule = (kind: "cryptoUtils" | "genericsUtils"): any => {
+  for (const pkg of packageCandidates) {
+    for (const sub of subPathCandidates[kind]) {
+      const mod = tryLoad(`${pkg}/${sub}`);
+      if (mod) return mod;
+    }
   }
-  return fn;
+
+  for (const pkg of packageCandidates) {
+    const pkgParts = pkg.split("/");
+    for (const nm of nodeModulesCandidates) {
+      for (const sub of subPathCandidates[kind]) {
+        const mod = tryLoad(path.join(nm, ...pkgParts, sub));
+        if (mod) return mod;
+      }
+    }
+  }
+
+  return undefined;
 };
+
+const synthInitAuthCreds = () => {
+  const cryptoUtils = resolveUtilityModule("cryptoUtils");
+  const genericsUtils = resolveUtilityModule("genericsUtils");
+
+  const Curve = cryptoUtils?.Curve;
+  const signedKeyPair = cryptoUtils?.signedKeyPair;
+  const generateRegistrationId = genericsUtils?.generateRegistrationId;
+
+  const createCurvePair = () => {
+    if (typeof Curve?.generateKeyPair === "function") {
+      return Curve.generateKeyPair();
+    }
+
+    return {
+      private: randomBytes(32),
+      public: randomBytes(32)
+    };
+  };
+
+  const identityKey = createCurvePair();
+  const signedPreKey = typeof signedKeyPair === "function"
+    ? signedKeyPair(identityKey, 1)
+    : {
+      keyPair: createCurvePair(),
+      signature: randomBytes(64),
+      keyId: 1
+    };
+
+  const registrationId = typeof generateRegistrationId === "function"
+    ? generateRegistrationId()
+    : Math.floor(Math.random() * 16380) + 1;
+
+  return {
+    noiseKey: createCurvePair(),
+    pairingEphemeralKeyPair: createCurvePair(),
+    signedIdentityKey: identityKey,
+    signedPreKey,
+    registrationId,
+    advSecretKey: randomBytes(32).toString("base64"),
+    processedHistoryMessages: [],
+    nextPreKeyId: 1,
+    firstUnuploadedPreKeyId: 1,
+    accountSyncCounter: 0,
+    accountSettings: { unarchiveChats: false },
+    deviceId: Buffer.from(randomUUID().replace(/-/g, ""), "hex").toString("base64url"),
+    phoneId: randomUUID(),
+    identityId: randomBytes(20),
+    registered: false,
+    backupToken: randomBytes(20),
+    registration: {},
+    pairingCode: undefined,
+    lastPropHash: undefined,
+    routingInfo: undefined
+  };
+};
+
+export const getInitAuthCreds = (): AnyFn =>
+  resolveBaileysFn("initAuthCreds") ?? synthInitAuthCreds;
 
 export const getMakeCacheableSignalKeyStore = (): AnyFn | undefined =>
   resolveBaileysFn("makeCacheableSignalKeyStore");

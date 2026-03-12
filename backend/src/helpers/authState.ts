@@ -19,7 +19,8 @@ const KEY_MAP: Record<string, string> = {
   "tctoken": "tctoken"
 };
 
-const initAuthCredsSafe = getInitAuthCreds() as () => AuthenticationCreds;
+const initAuthCredsSafe = (): AuthenticationCreds =>
+  (getInitAuthCreds() as () => AuthenticationCreds)();
 
 const authState = async (
   whatsapp: Whatsapp
