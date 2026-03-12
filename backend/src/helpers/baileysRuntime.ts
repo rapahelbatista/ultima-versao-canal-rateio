@@ -131,6 +131,10 @@ const pickFn = (mod: any, name: string): AnyFn | undefined => {
   if (typeof mod?.default?.default?.[name] === "function") return mod.default.default[name];
 
   if (name === "makeWASocket") {
+    if (typeof mod === "function") return mod;
+    if (typeof mod?.default === "function") return mod.default;
+    if (typeof mod?.default?.default === "function") return mod.default.default;
+
     const queue: Array<{ value: any; depth: number }> = [{ value: mod, depth: 0 }];
     const visited = new Set<any>();
     const MAX_DEPTH = 8;
@@ -151,7 +155,60 @@ const pickFn = (mod: any, name: string): AnyFn | undefined => {
         { value: value.makeWaSocket, depth: depth + 1 },
         { value: value.default, depth: depth + 1 }
       );
+
+      try {
+        for (const key of Object.getOwnPropertyNames(value)) {
+          if (key === "makeWASocket" || key === "makeWaSocket" || key === "default") continue;
+          const child = (value as any)[key];
+          if (typeof child === "function" && /socket|wa|connect/i.test(key)) return child;
+          if (child && (typeof child === "object" || typeof child === "function") && !visited.has(child)) {
+            queue.push({ value: child, depth: depth + 1 });
+          }
+        }
+      } catch {
+        // noop
+      }
     }
+  }
+
+  return undefined;
+};
+
+const resolveSocketFactoryFromPackageFiles = (pkg: string): AnyFn | undefined => {
+  let packageJsonPath: string | undefined;
+
+  for (const ctx of requireContexts) {
+    try {
+      const resolved = ctx.req.resolve?.(`${pkg}/package.json`);
+      if (resolved) {
+        packageJsonPath = resolved;
+        break;
+      }
+    } catch {
+      // próximo contexto
+    }
+  }
+
+  if (!packageJsonPath) {
+    for (const nm of nodeModulesCandidates) {
+      const candidate = path.join(nm, ...pkg.split("/"), "package.json");
+      if (fs.existsSync(candidate)) {
+        packageJsonPath = candidate;
+        break;
+      }
+    }
+  }
+
+  if (!packageJsonPath) return undefined;
+
+  const packageDir = path.dirname(packageJsonPath);
+  for (const relPath of socketFileCandidates) {
+    const absPath = path.join(packageDir, relPath);
+    if (!fs.existsSync(absPath)) continue;
+
+    const mod = tryLoad(absPath);
+    const fn = pickFn(mod, "makeWASocket");
+    if (fn) return fn;
   }
 
   return undefined;
