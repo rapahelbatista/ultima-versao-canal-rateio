@@ -36,7 +36,7 @@ import Message from "../models/Message";
 import { getVersionByIndexFromUrl } from "../utils/versionHelper";
 import path from "path";
 import { getGroupMetadataCache } from "../utils/RedisGroupCache";
-import { getMakeCacheableSignalKeyStore } from "../helpers/baileysRuntime";
+import { getMakeCacheableSignalKeyStore, getMakeWASocket } from "../helpers/baileysRuntime";
 
 const loggerBaileys = pino({ level: "error" });
 
