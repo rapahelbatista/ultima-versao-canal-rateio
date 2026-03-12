@@ -1,7 +1,6 @@
 import fs from "fs/promises"
 import * as Sentry from "@sentry/node";
 import {
-  makeWASocket,
   Browsers,
   DisconnectReason,
   WAMessage,
@@ -37,16 +36,15 @@ import Message from "../models/Message";
 import { getVersionByIndexFromUrl } from "../utils/versionHelper";
 import path from "path";
 import { getGroupMetadataCache } from "../utils/RedisGroupCache";
-import { getMakeCacheableSignalKeyStore } from "../helpers/baileysRuntime";
+import { getMakeCacheableSignalKeyStore, getMakeWASocket } from "../helpers/baileysRuntime";
 
 const loggerBaileys = pino({ level: "error" });
 
+const resolvedMakeWASocket = getMakeWASocket();
 const makeWASocketSafe: any =
-  typeof makeWASocket === "function"
-    ? makeWASocket
-    : typeof (makeWASocket as any)?.default === "function"
-      ? (makeWASocket as any).default
-      : undefined;
+  typeof resolvedMakeWASocket === "function"
+    ? resolvedMakeWASocket
+    : undefined;
 
 const resolvedMakeCacheableSignalKeyStore = getMakeCacheableSignalKeyStore();
 const makeCacheableSignalKeyStoreSafe: any =

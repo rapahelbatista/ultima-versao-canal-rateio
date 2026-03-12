@@ -9,6 +9,16 @@ type AnyFn = (...args: any[]) => any;
 
 const packageCandidates = ["@itsukichan/baileys", "@whiskeysockets/baileys"];
 const subPathCandidates = {
+  makeWASocket: [
+    "lib/index",
+    "lib/index.js",
+    "lib/index.cjs",
+    "lib/index.mjs",
+    "dist/index",
+    "dist/index.js",
+    "dist/index.cjs",
+    "dist/index.mjs"
+  ],
   initAuthCreds: [
     "lib/Utils/auth-utils",
     "lib/Utils/auth-utils.js",
@@ -87,11 +97,17 @@ const tryLoad = (id: string): any => {
 const pickFn = (mod: any, name: string): AnyFn | undefined => {
   if (typeof mod?.[name] === "function") return mod[name];
   if (typeof mod?.default?.[name] === "function") return mod.default[name];
-  if (typeof mod?.default === "function" && name === "makeWASocket") return mod.default;
+  if (name === "makeWASocket") {
+    if (typeof mod === "function") return mod;
+    if (typeof mod?.makeWaSocket === "function") return mod.makeWaSocket;
+    if (typeof mod?.default === "function") return mod.default;
+    if (typeof mod?.default?.default === "function") return mod.default.default;
+    if (typeof mod?.makeWASocket?.default === "function") return mod.makeWASocket.default;
+  }
   return undefined;
 };
 
-const resolveBaileysFn = (name: "initAuthCreds" | "makeCacheableSignalKeyStore"): AnyFn | undefined => {
+const resolveBaileysFn = (name: "makeWASocket" | "initAuthCreds" | "makeCacheableSignalKeyStore"): AnyFn | undefined => {
   // 1) pacote raiz
   for (const pkg of packageCandidates) {
     const rootMod = tryLoad(pkg);
@@ -203,6 +219,9 @@ const synthInitAuthCreds = () => {
     routingInfo: undefined
   };
 };
+
+export const getMakeWASocket = (): AnyFn | undefined =>
+  resolveBaileysFn("makeWASocket");
 
 export const getInitAuthCreds = (): AnyFn =>
   resolveBaileysFn("initAuthCreds") ?? synthInitAuthCreds;
