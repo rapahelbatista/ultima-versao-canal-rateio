@@ -41,6 +41,13 @@ import { getMakeCacheableSignalKeyStore } from "../helpers/baileysRuntime";
 
 const loggerBaileys = pino({ level: "error" });
 
+const makeWASocketSafe: any =
+  typeof makeWASocket === "function"
+    ? makeWASocket
+    : typeof (makeWASocket as any)?.default === "function"
+      ? (makeWASocket as any).default
+      : undefined;
+
 const resolvedMakeCacheableSignalKeyStore = getMakeCacheableSignalKeyStore();
 const makeCacheableSignalKeyStoreSafe: any =
   typeof resolvedMakeCacheableSignalKeyStore === "function"
