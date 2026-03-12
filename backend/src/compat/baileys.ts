@@ -198,6 +198,13 @@ const _pickFromModule = (mod: any, name: string): any => {
   if (!mod) return undefined;
   if (mod[name] !== undefined) return mod[name];
   if (mod?.default?.[name] !== undefined) return mod.default[name];
+
+  if (name === "makeWASocket" || name === "makeWaSocket") {
+    if (typeof mod === "function") return mod;
+    if (typeof mod?.default === "function") return mod.default;
+    if (typeof mod?.default?.default === "function") return mod.default.default;
+  }
+
   return undefined;
 };
 
