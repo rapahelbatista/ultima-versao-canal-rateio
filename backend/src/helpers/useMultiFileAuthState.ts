@@ -9,7 +9,8 @@ import cacheLayer from "../libs/cache";
 import Whatsapp from "../models/Whatsapp";
 import { getInitAuthCreds } from "./baileysRuntime";
 
-const initAuthCredsSafe = getInitAuthCreds() as () => AuthenticationCreds;
+const initAuthCredsSafe = (): AuthenticationCreds =>
+  (getInitAuthCreds() as () => AuthenticationCreds)();
 
 export const useMultiFileAuthState = async (
   whatsapp: Whatsapp
