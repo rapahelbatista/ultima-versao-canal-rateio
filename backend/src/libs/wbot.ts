@@ -696,9 +696,10 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
 
         const runtimeMakeWASocket = resolveMakeWASocket();
         if (typeof runtimeMakeWASocket !== "function") {
-          const baileysKeys = Object.keys((baileysModule as any) || {});
-          const compatKeys = Object.keys((compatBaileys as any) || {});
-          throw new Error(`[BAILEYS] makeWASocket não encontrado no módulo carregado. baileysKeys=${baileysKeys.join(",")} compatKeys=${compatKeys.join(",")}`);
+          const mkType = typeof (baileysModule as any)?.makeWASocket;
+          const mkDefaultType = typeof (baileysModule as any)?.default;
+          const compatMkType = typeof (compatBaileys as any)?.makeWASocket;
+          throw new Error(`[BAILEYS] makeWASocket inválido (mkType=${mkType}, mkDefaultType=${mkDefaultType}, compatMkType=${compatMkType}).`);
         }
 
         wsocket = runtimeMakeWASocket({
