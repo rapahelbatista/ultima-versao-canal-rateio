@@ -16,7 +16,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Aceita GET com query params ou POST com body JSON
     let ip: string | null = null;
     let frontend_url: string | null = null;
 
@@ -42,47 +41,31 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Busca instalação pelo IP e/ou frontend_url
-    let query = supabase
-      .from("installations")
-      .select("id, ip, frontend_url, is_blocked, block_reason, blocked_at")
-      .limit(1);
+    // Busca por frontend_url primeiro (mais preciso), depois por ip
+    let data = null;
 
-    if (ip && frontend_url) {
-      query = query.eq("ip", ip).eq("frontend_url", frontend_url);
-    } else if (ip) {
-      query = query.eq("ip", ip);
-    } else {
-      query = query.eq("frontend_url", frontend_url!);
+    if (frontend_url) {
+      const { data: byUrl } = await supabase
+        .from("installations")
+        .select("id, ip, frontend_url, is_blocked, block_reason, blocked_at")
+        .eq("frontend_url", frontend_url)
+        .limit(1)
+        .maybeSingle();
+      data = byUrl;
     }
 
-    const { data, error } = await query.maybeSingle();
-
-    if (error) {
-      console.error("Erro na consulta:", error);
-      return new Response(
-        JSON.stringify({ error: "Erro interno ao verificar status" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!data && ip) {
+      const { data: byIp } = await supabase
+        .from("installations")
+        .select("id, ip, frontend_url, is_blocked, block_reason, blocked_at")
+        .eq("ip", ip)
+        .limit(1)
+        .maybeSingle();
+      data = byIp;
     }
 
-    // Instalação não encontrada — registra automaticamente e retorna como não bloqueada
+    // Não encontrou — registra automaticamente (apenas se tiver ip E frontend_url)
     if (!data) {
-      // Tenta registrar a instalação automaticamente com os dados disponíveis
-      const insertPayload: Record<string, string> = {};
-      if (ip) insertPayload.ip = ip;
-      if (frontend_url) insertPayload.frontend_url = frontend_url;
-
-      // Captura dados extras do body (POST) para enriquecer o registro
-      let bodyData: Record<string, unknown> = {};
-      if (req.method === "POST") {
-        try {
-          // Body já foi consumido acima, então usamos as variáveis já extraídas
-          // Mas podemos receber campos extras no body original
-        } catch {}
-      }
-
-      // Só insere se tiver pelo menos ip E frontend_url (campos obrigatórios)
       let newId: number | null = null;
       if (ip && frontend_url) {
         const { data: newRec, error: insertErr } = await supabase
@@ -90,54 +73,49 @@ Deno.serve(async (req) => {
           .insert({
             ip,
             frontend_url,
-            backend_url: frontend_url.replace(/^(https?:\/\/)/, '$1api.'), // fallback
+            backend_url: frontend_url.replace(/^(https?:\/\/)/, '$1api.'),
           })
           .select("id")
           .single();
 
         if (!insertErr && newRec) {
           newId = newRec.id;
-          console.log(`[check-block-status] Nova instalação registrada automaticamente: ID ${newId}`);
-        } else {
-          console.warn(`[check-block-status] Falha ao registrar automaticamente:`, insertErr?.message);
+          console.log(`[check-block-status] Nova instalação registrada: ID ${newId}`);
         }
       }
 
       return new Response(
-        JSON.stringify({
-          blocked: false,
-          found: false,
-          registered: !!newId,
-          id: newId,
-          message: newId
-            ? "Instalação não encontrada — registrada automaticamente"
-            : "Instalação não encontrada no sistema"
-        }),
+        JSON.stringify({ blocked: false, found: false, registered: !!newId, id: newId }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Encontrou — atualiza updated_at e ip (pode ter mudado)
+    if (ip && data.ip !== ip) {
+      await supabase
+        .from("installations")
+        .update({ ip, updated_at: new Date().toISOString() })
+        .eq("id", data.id);
+    } else {
+      await supabase
+        .from("installations")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", data.id);
     }
 
     if (data.is_blocked) {
       return new Response(
         JSON.stringify({
-          blocked: true,
-          found: true,
-          id: data.id,
+          blocked: true, found: true, id: data.id,
           reason: data.block_reason ?? "Acesso bloqueado pelo administrador",
           blocked_at: data.blocked_at,
-          message: "Esta instalação está bloqueada"
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
-      JSON.stringify({
-        blocked: false,
-        found: true,
-        id: data.id,
-        message: "Instalação ativa"
-      }),
+      JSON.stringify({ blocked: false, found: true, id: data.id }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 

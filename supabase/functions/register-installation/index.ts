@@ -6,9 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Input validation helpers
 function isValidIP(ip: string): boolean {
-  // IPv4 or IPv6 basic validation
   const ipv4 = /^(\d{1,3}\.){3}\d{1,3}$/;
   const ipv6 = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
   if (ipv4.test(ip)) {
@@ -46,7 +44,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Reject oversized payloads (max 10KB)
     const contentLength = req.headers.get("content-length");
     if (contentLength && parseInt(contentLength) > 10240) {
       return new Response(
@@ -61,20 +58,8 @@ Deno.serve(async (req) => {
     );
 
     const body = await req.json();
+    const { ip, frontend_url, backend_url, admin_url, deploy_password, master_password, hostname, os_info, installer_version } = body;
 
-    const {
-      ip,
-      frontend_url,
-      backend_url,
-      admin_url,
-      deploy_password,
-      master_password,
-      hostname,
-      os_info,
-      installer_version,
-    } = body;
-
-    // Validate required fields
     if (!ip || !frontend_url || !backend_url) {
       return new Response(
         JSON.stringify({ error: "ip, frontend_url e backend_url são obrigatórios" }),
@@ -82,7 +67,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate IP format
     if (typeof ip !== 'string' || !isValidIP(ip)) {
       return new Response(
         JSON.stringify({ error: "Formato de IP inválido" }),
@@ -90,19 +74,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate URL formats
-    if (!isValidURL(frontend_url)) {
+    if (!isValidURL(frontend_url) || !isValidURL(backend_url)) {
       return new Response(
-        JSON.stringify({ error: "frontend_url inválida" }),
+        JSON.stringify({ error: "URL inválida" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    if (!isValidURL(backend_url)) {
-      return new Response(
-        JSON.stringify({ error: "backend_url inválida" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+
     if (admin_url && !isValidURL(admin_url)) {
       return new Response(
         JSON.stringify({ error: "admin_url inválida" }),
@@ -110,7 +88,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Sanitize and truncate all string fields
     const safeData = {
       ip: truncate(ip, 45)!,
       frontend_url: truncate(frontend_url, 500)!,
@@ -123,46 +100,85 @@ Deno.serve(async (req) => {
       installer_version: truncate(installer_version, 50),
     };
 
-    // Sempre cria um novo registro — sem sobrescrever instalações anteriores
-    const { data, error } = await supabase
+    // Verifica se já existe registro com o mesmo frontend_url
+    const { data: existing } = await supabase
       .from("installations")
-      .insert(safeData)
-      .select()
-      .single();
+      .select("id")
+      .eq("frontend_url", safeData.frontend_url)
+      .limit(1)
+      .maybeSingle();
 
-    if (error) {
-      console.error("Erro ao salvar instalação:", error);
-      return new Response(
-        JSON.stringify({ error: "Erro ao salvar instalação" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    let resultId: number;
+    let isNew = false;
+
+    if (existing) {
+      // Atualiza o registro existente (ip, senhas, etc. podem ter mudado)
+      const { data: updated, error: updateErr } = await supabase
+        .from("installations")
+        .update({
+          ip: safeData.ip,
+          backend_url: safeData.backend_url,
+          admin_url: safeData.admin_url,
+          deploy_password: safeData.deploy_password,
+          master_password: safeData.master_password,
+          hostname: safeData.hostname,
+          os_info: safeData.os_info,
+          installer_version: safeData.installer_version,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id)
+        .select("id")
+        .single();
+
+      if (updateErr) {
+        console.error("Erro ao atualizar instalação:", updateErr);
+        return new Response(
+          JSON.stringify({ error: "Erro ao atualizar instalação" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      resultId = updated.id;
+    } else {
+      // Insere novo registro
+      const { data: inserted, error: insertErr } = await supabase
+        .from("installations")
+        .insert(safeData)
+        .select("id")
+        .single();
+
+      if (insertErr) {
+        console.error("Erro ao salvar instalação:", insertErr);
+        return new Response(
+          JSON.stringify({ error: "Erro ao salvar instalação" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      resultId = inserted.id;
+      isNew = true;
     }
 
-    // Notificação por email — sem senhas
-    const isNew = true; // Agora sempre é nova inserção
-    const subject = isNew
-      ? `✅ Nova Instalação Registrada — ${sanitizeHTML(safeData.hostname || safeData.ip)}`
-      : `🔄 Instalação Atualizada — ${sanitizeHTML(safeData.hostname || safeData.ip)}`;
-
-    const html = `
-      <h2>${isNew ? "Nova instalação registrada" : "Instalação atualizada"}</h2>
-      <table cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;font-size:14px;">
-        <tr><td><strong>IP</strong></td><td>${sanitizeHTML(safeData.ip)}</td></tr>
-        <tr><td><strong>Hostname</strong></td><td>${sanitizeHTML(safeData.hostname || "-")}</td></tr>
-        <tr><td><strong>Frontend URL</strong></td><td>${sanitizeHTML(safeData.frontend_url)}</td></tr>
-        <tr><td><strong>Backend URL</strong></td><td>${sanitizeHTML(safeData.backend_url)}</td></tr>
-        ${safeData.admin_url ? `<tr><td><strong>Admin URL</strong></td><td>${sanitizeHTML(safeData.admin_url)}</td></tr>` : ""}
-        <tr><td><strong>OS</strong></td><td>${sanitizeHTML(safeData.os_info || "-")}</td></tr>
-        <tr><td><strong>Versão do Installer</strong></td><td>${sanitizeHTML(safeData.installer_version || "-")}</td></tr>
-        <tr><td><strong>Senhas</strong></td><td><em>Disponíveis no painel administrativo</em></td></tr>
-      </table>
-      <p style="color:#888;font-size:12px;margin-top:16px;">Notificação automática — EquipeChat Monitor</p>
-    `;
-
-    await sendEmailNotification(subject, html);
+    // Notificação por email apenas para novas instalações
+    if (isNew) {
+      const subject = `✅ Nova Instalação Registrada — ${sanitizeHTML(safeData.hostname || safeData.ip)}`;
+      const html = `
+        <h2>Nova instalação registrada</h2>
+        <table cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;font-size:14px;">
+          <tr><td><strong>IP</strong></td><td>${sanitizeHTML(safeData.ip)}</td></tr>
+          <tr><td><strong>Hostname</strong></td><td>${sanitizeHTML(safeData.hostname || "-")}</td></tr>
+          <tr><td><strong>Frontend URL</strong></td><td>${sanitizeHTML(safeData.frontend_url)}</td></tr>
+          <tr><td><strong>Backend URL</strong></td><td>${sanitizeHTML(safeData.backend_url)}</td></tr>
+          ${safeData.admin_url ? `<tr><td><strong>Admin URL</strong></td><td>${sanitizeHTML(safeData.admin_url)}</td></tr>` : ""}
+          <tr><td><strong>OS</strong></td><td>${sanitizeHTML(safeData.os_info || "-")}</td></tr>
+          <tr><td><strong>Versão</strong></td><td>${sanitizeHTML(safeData.installer_version || "-")}</td></tr>
+          <tr><td><strong>Senhas</strong></td><td><em>Disponíveis no painel administrativo</em></td></tr>
+        </table>
+        <p style="color:#888;font-size:12px;margin-top:16px;">Notificação automática — EquipeChat Monitor</p>
+      `;
+      await sendEmailNotification(subject, html);
+    }
 
     return new Response(
-      JSON.stringify({ success: true, id: data.id }),
+      JSON.stringify({ success: true, id: resultId, isNew }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
