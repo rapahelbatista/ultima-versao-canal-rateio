@@ -123,13 +123,10 @@ Deno.serve(async (req) => {
       installer_version: truncate(installer_version, 50),
     };
 
-    // Upsert: se já existe instalação com esse IP + frontend_url, atualiza; senão insere
+    // Sempre cria um novo registro — sem sobrescrever instalações anteriores
     const { data, error } = await supabase
       .from("installations")
-      .upsert(safeData, {
-        onConflict: "ip,frontend_url",
-        ignoreDuplicates: false,
-      })
+      .insert(safeData)
       .select()
       .single();
 
