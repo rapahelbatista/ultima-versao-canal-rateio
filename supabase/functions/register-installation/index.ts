@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
     }
 
     // Notificação por email — sem senhas
-    const isNew = data.created_at === data.updated_at;
+    const isNew = true; // Agora sempre é nova inserção
     const subject = isNew
       ? `✅ Nova Instalação Registrada — ${sanitizeHTML(safeData.hostname || safeData.ip)}`
       : `🔄 Instalação Atualizada — ${sanitizeHTML(safeData.hostname || safeData.ip)}`;
