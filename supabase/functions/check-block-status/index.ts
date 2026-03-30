@@ -66,13 +66,52 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Instalação não encontrada — considera como não bloqueada (pode não ter sido registrada ainda)
+    // Instalação não encontrada — registra automaticamente e retorna como não bloqueada
     if (!data) {
+      // Tenta registrar a instalação automaticamente com os dados disponíveis
+      const insertPayload: Record<string, string> = {};
+      if (ip) insertPayload.ip = ip;
+      if (frontend_url) insertPayload.frontend_url = frontend_url;
+
+      // Captura dados extras do body (POST) para enriquecer o registro
+      let bodyData: Record<string, unknown> = {};
+      if (req.method === "POST") {
+        try {
+          // Body já foi consumido acima, então usamos as variáveis já extraídas
+          // Mas podemos receber campos extras no body original
+        } catch {}
+      }
+
+      // Só insere se tiver pelo menos ip E frontend_url (campos obrigatórios)
+      let newId: number | null = null;
+      if (ip && frontend_url) {
+        const { data: newRec, error: insertErr } = await supabase
+          .from("installations")
+          .insert({
+            ip,
+            frontend_url,
+            backend_url: frontend_url.replace(/^(https?:\/\/)/, '$1api.'), // fallback
+          })
+          .select("id")
+          .single();
+
+        if (!insertErr && newRec) {
+          newId = newRec.id;
+          console.log(`[check-block-status] Nova instalação registrada automaticamente: ID ${newId}`);
+        } else {
+          console.warn(`[check-block-status] Falha ao registrar automaticamente:`, insertErr?.message);
+        }
+      }
+
       return new Response(
         JSON.stringify({
           blocked: false,
           found: false,
-          message: "Instalação não encontrada no sistema"
+          registered: !!newId,
+          id: newId,
+          message: newId
+            ? "Instalação não encontrada — registrada automaticamente"
+            : "Instalação não encontrada no sistema"
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
