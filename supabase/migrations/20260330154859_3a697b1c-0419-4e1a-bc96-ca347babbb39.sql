@@ -1,0 +1,1 @@
+ALTER TABLE public.installations DROP CONSTRAINT installations_ip_frontend_url_key;
