@@ -3165,9 +3165,7 @@ NGINXZAP
 
     jwt_token=$(echo "$login_response" | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4)
 
-    if [ -z "$jwt_token" ]; then
-      printf "${YELLOW}   ⚠️  Registro: não foi possível autenticar na API — registre o ZapMeow manualmente no painel${WHITE}\n"
-    else
+    if [ -n "$jwt_token" ]; then
       # Registrar no banco via API com token JWT
       reg_response=$(curl -s -w "\n%{http_code}" -X POST "http://localhost:3200/api/register-zapmeow" \
         -H "Content-Type: application/json" \
@@ -3182,7 +3180,42 @@ NGINXZAP
         touch /home/deploy/monitor/.zapmeow-registered
         printf "${GREEN}   ✅ Registro: ZapMeow registrado com sucesso no painel${WHITE}\n"
       else
-        printf "${YELLOW}   ⚠️  Registro: falhou (HTTP ${reg_http_code}) — tente manualmente no painel${WHITE}\n"
+        printf "${YELLOW}   ⚠️  Registro via API falhou (HTTP ${reg_http_code}) — tentando fallback via psql...${WHITE}\n"
+      fi
+    else
+      printf "${YELLOW}   ⚠️  Login JWT falhou — tentando fallback via psql...${WHITE}\n"
+    fi
+
+    # Fallback: registrar diretamente no banco via psql se a API falhou
+    if [ "$registro_ok" != true ]; then
+      printf "${YELLOW}   🔄 Fallback: inserindo registro do ZapMeow diretamente no banco...${WHITE}\n"
+      psql_result=$(sudo -u postgres psql -d monitor_db -t -A -c "
+        SELECT id FROM whatsapp_config WHERE is_active = true LIMIT 1;
+      " 2>/dev/null)
+
+      if [ -n "$psql_result" ]; then
+        # Atualizar registro existente
+        sudo -u postgres psql -d monitor_db -c "
+          UPDATE whatsapp_config
+          SET zapmeow_url = 'http://localhost:${zapmeow_port}/api',
+              instance_id = 'equipechat',
+              updated_at = now()
+          WHERE id = '${psql_result}';
+        " >/dev/null 2>&1
+      else
+        # Inserir novo registro
+        sudo -u postgres psql -d monitor_db -c "
+          INSERT INTO whatsapp_config (zapmeow_url, instance_id)
+          VALUES ('http://localhost:${zapmeow_port}/api', 'equipechat');
+        " >/dev/null 2>&1
+      fi
+
+      if [ $? -eq 0 ]; then
+        registro_ok=true
+        touch /home/deploy/monitor/.zapmeow-registered
+        printf "${GREEN}   ✅ Fallback: ZapMeow registrado com sucesso via psql${WHITE}\n"
+      else
+        printf "${YELLOW}   ⚠️  Fallback psql também falhou — registre manualmente no painel${WHITE}\n"
       fi
     fi
   else
