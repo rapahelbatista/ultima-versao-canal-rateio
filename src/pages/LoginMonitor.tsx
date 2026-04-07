@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Shield, Eye, EyeOff, Lock, AlertTriangle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { login } from "@/lib/api";
 
-export default function LoginMonitor() {
+export default function LoginMonitor({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -16,18 +16,15 @@ export default function LoginMonitor() {
     setLoading(true);
     setError("");
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password: pass,
-    });
-
-    if (authError) {
-      setError("E-mail ou senha inválidos.");
+    try {
+      await login(email.trim(), pass);
+      onLogin();
+      navigate("/");
+    } catch (err: any) {
+      setError(err.message || "E-mail ou senha inválidos.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    navigate("/");
   };
 
   return (

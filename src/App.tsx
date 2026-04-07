@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { isAuthenticated, setToken } from "@/lib/api";
 import LoginMonitor from "./pages/LoginMonitor";
 import MonitorDashboard from "./pages/MonitorDashboard";
 import BlockedPage from "./pages/BlockedPage";
@@ -9,32 +8,28 @@ import PurchaseForm from "./pages/PurchaseForm";
 import ClientFormsDashboard from "./pages/ClientFormsDashboard";
 import WhatsAppPanel from "./pages/WhatsAppPanel";
 
-function RequireAuth({ children, session }: { children: React.ReactNode; session: Session | null }) {
-  if (!session) {
+function RequireAuth({ children, authed }: { children: React.ReactNode; authed: boolean }) {
+  if (!authed) {
     return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
 }
 
 export default function App() {
-  const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [authed, setAuthed] = useState<boolean | undefined>(undefined);
 
   useEffect(() => {
-    // Pega sessão atual
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-    });
-
-    // Ouve mudanças de autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
+    setAuthed(isAuthenticated());
   }, []);
 
-  // Aguarda verificação de sessão antes de renderizar
-  if (session === undefined) {
+  // Listen for storage changes (logout from another tab)
+  useEffect(() => {
+    const handler = () => setAuthed(isAuthenticated());
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
+
+  if (authed === undefined) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex items-center gap-3 text-muted-foreground text-sm">
@@ -55,29 +50,29 @@ export default function App() {
         <Route path="/comprar/:token" element={<PurchaseForm />} />
         <Route
           path="/login"
-          element={session ? <Navigate to="/" replace /> : <LoginMonitor />}
+          element={authed ? <Navigate to="/" replace /> : <LoginMonitor onLogin={() => setAuthed(true)} />}
         />
         <Route
           path="/"
           element={
-            <RequireAuth session={session}>
-              <MonitorDashboard />
+            <RequireAuth authed={authed}>
+              <MonitorDashboard onLogout={() => setAuthed(false)} />
             </RequireAuth>
           }
         />
         <Route
           path="/formularios"
           element={
-            <RequireAuth session={session}>
-              <ClientFormsDashboard />
+            <RequireAuth authed={authed}>
+              <ClientFormsDashboard onLogout={() => setAuthed(false)} />
             </RequireAuth>
           }
         />
         <Route
           path="/whatsapp"
           element={
-            <RequireAuth session={session}>
-              <WhatsAppPanel />
+            <RequireAuth authed={authed}>
+              <WhatsAppPanel onLogout={() => setAuthed(false)} />
             </RequireAuth>
           }
         />

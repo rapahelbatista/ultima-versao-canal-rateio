@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+// API calls use fetch directly (public endpoints, no auth needed)
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -96,19 +96,17 @@ export default function PurchaseForm() {
     }
 
     const loadLink = async () => {
+      const API_URL = import.meta.env.VITE_API_URL || "";
       try {
-        const { data, error: dbErr } = await supabase
-          .from("purchase_links")
-          .select("id, token, client_label, status")
-          .eq("token", token)
-          .maybeSingle();
+        const res = await fetch(`${API_URL}/api/purchase/link/${token}`);
+        const result = await res.json();
 
-        if (dbErr || !data) {
+        if (!res.ok || !result.data) {
           setLinkError("Link não encontrado ou inválido.");
-        } else if (data.status === "completed") {
+        } else if (result.data.status === "completed") {
           setLinkError("Este formulário já foi preenchido.");
         } else {
-          setLinkData(data as LinkData);
+          setLinkData(result.data as LinkData);
         }
       } catch {
         setLinkError("Erro ao carregar formulário.");
@@ -125,10 +123,11 @@ export default function PurchaseForm() {
     setSubmitting(true);
     setError("");
     try {
-      // Insert the purchase request
-      const { error: insertErr } = await supabase
-        .from("purchase_requests")
-        .insert({
+      const API_URL = import.meta.env.VITE_API_URL || "";
+      const res = await fetch(`${API_URL}/api/purchase/requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           company_name: data.company_name.trim(),
           document_type: data.document_type,
           document_number: data.document_number.trim(),
@@ -140,20 +139,14 @@ export default function PurchaseForm() {
           agreed_anti_piracy: data.agreed_anti_piracy,
           notes: data.notes?.trim() || null,
           link_id: linkData.id,
-        });
+        }),
+      });
 
-      if (insertErr) throw insertErr;
-
-      // Mark the link as completed
-      await supabase
-        .from("purchase_links")
-        .update({ status: "completed" })
-        .eq("id", linkData.id);
+      if (!res.ok) throw new Error("Erro ao salvar");
 
       // Send WhatsApp welcome message (fire-and-forget)
       if (data.contact_phone) {
-        const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-        fetch(`https://${PROJECT_ID}.supabase.co/functions/v1/whatsapp-welcome`, {
+        fetch(`${API_URL}/api/whatsapp-welcome`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -162,7 +155,7 @@ export default function PurchaseForm() {
             company_name: data.company_name,
             link_id: linkData.id,
           }),
-        }).catch(() => {}); // silently ignore errors
+        }).catch(() => {});
       }
 
       setSubmitted(true);
