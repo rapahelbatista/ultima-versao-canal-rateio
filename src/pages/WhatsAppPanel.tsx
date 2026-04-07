@@ -81,11 +81,10 @@ export default function WhatsAppPanel({ onLogout }: { onLogout?: () => void }) {
   }, []);
 
   const loadTemplates = useCallback(async () => {
-    const { data } = await supabase
-      .from("whatsapp_templates")
-      .select("*")
-      .order("template_key");
-    if (data) setTemplates(data as Template[]);
+    try {
+      const result = await apiFetch("/api/templates");
+      if (result.data) setTemplates(result.data as Template[]);
+    } catch {}
   }, []);
 
   useEffect(() => { checkStatus(); loadTemplates(); }, [checkStatus, loadTemplates]);
