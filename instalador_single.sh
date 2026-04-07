@@ -3104,21 +3104,96 @@ NGINXZAP
   echo
 
   # ============================================================
-  # ETAPA 11/11: Registrar ZapMeow + CLI
+  # ETAPA 11/11: Health Check + Registro Automático do ZapMeow
   # ============================================================
-  printf "${BLUE} >> [11/11] Registrando ZapMeow e criando CLI...${WHITE}\n"
+  printf "${BLUE} >> [11/11] Verificando serviços e registrando ZapMeow...${WHITE}\n"
   echo
 
-  # Criar instância padrão no ZapMeow
-  sleep 3
-  curl -s -X POST "http://localhost:${zapmeow_port}/api/equipechat/qrcode" >/dev/null 2>&1 || true
+  zapmeow_ok=false
+  api_ok=false
+  registro_ok=false
 
-  # Registrar ZapMeow automaticamente na API do Monitor
-  curl -s -X POST "http://localhost:3200/api/register-zapmeow" \
-    -H "Content-Type: application/json" \
-    -d "{\"zapmeow_url\":\"http://localhost:${zapmeow_port}/api\",\"instance_id\":\"equipechat\"}" >/dev/null 2>&1
+  # --- Health check: ZapMeow (até 60s) ---
+  printf "${YELLOW}   ⏳ Aguardando ZapMeow iniciar (porta ${zapmeow_port})...${WHITE}\n"
+  for i in $(seq 1 20); do
+    if curl -sf --max-time 5 "http://localhost:${zapmeow_port}/api" >/dev/null 2>&1; then
+      zapmeow_ok=true
+      break
+    fi
+    sleep 3
+  done
 
-  printf "${GREEN}✅ ZapMeow registrado automaticamente no painel.${WHITE}\n"
+  if [ "$zapmeow_ok" = true ]; then
+    printf "${GREEN}   ✅ ZapMeow: rodando (porta ${zapmeow_port})${WHITE}\n"
+  else
+    printf "${YELLOW}   ⚠️  ZapMeow: não acessível após 60s — verifique com 'monitor-cli zapmeow-logs'${WHITE}\n"
+  fi
+
+  # --- Health check: API Monitor (até 30s) ---
+  printf "${YELLOW}   ⏳ Aguardando API Monitor iniciar (porta 3200)...${WHITE}\n"
+  for i in $(seq 1 10); do
+    if curl -sf --max-time 5 "http://localhost:3200/api/health" >/dev/null 2>&1; then
+      api_ok=true
+      break
+    fi
+    sleep 3
+  done
+
+  if [ "$api_ok" = true ]; then
+    printf "${GREEN}   ✅ API Monitor: rodando (porta 3200)${WHITE}\n"
+  else
+    printf "${YELLOW}   ⚠️  API Monitor: não acessível após 30s — verifique com 'monitor-cli logs'${WHITE}\n"
+  fi
+
+  # --- Registro automático (apenas se ambos OK) ---
+  if [ "$zapmeow_ok" = true ] && [ "$api_ok" = true ]; then
+    printf "${YELLOW}   ⏳ Criando instância e registrando ZapMeow...${WHITE}\n"
+
+    # Criar instância padrão no ZapMeow
+    curl -s -X POST "http://localhost:${zapmeow_port}/api/equipechat/qrcode" >/dev/null 2>&1 || true
+    sleep 2
+
+    # Registrar no banco via API
+    reg_response=$(curl -s -w "\n%{http_code}" -X POST "http://localhost:3200/api/register-zapmeow" \
+      -H "Content-Type: application/json" \
+      -d "{\"zapmeow_url\":\"http://localhost:${zapmeow_port}/api\",\"instance_id\":\"equipechat\"}" 2>/dev/null)
+
+    reg_http_code=$(echo "$reg_response" | tail -1)
+    reg_body=$(echo "$reg_response" | sed '$d')
+
+    if [ "$reg_http_code" = "200" ] && echo "$reg_body" | grep -q '"success":true\|"success": true'; then
+      registro_ok=true
+      touch /home/deploy/monitor/.zapmeow-registered
+      printf "${GREEN}   ✅ Registro: ZapMeow registrado com sucesso no painel${WHITE}\n"
+    else
+      printf "${YELLOW}   ⚠️  Registro: falhou (HTTP ${reg_http_code}) — tente manualmente no painel${WHITE}\n"
+    fi
+  else
+    printf "${YELLOW}   ⚠️  Registro: ignorado (serviços indisponíveis)${WHITE}\n"
+  fi
+
+  # --- Resumo de status ---
+  echo
+  printf "${CYAN}   ╔══════════════════════════════════════════╗${WHITE}\n"
+  printf "${CYAN}   ║       STATUS DOS SERVIÇOS                ║${WHITE}\n"
+  printf "${CYAN}   ╠══════════════════════════════════════════╣${WHITE}\n"
+  if [ "$zapmeow_ok" = true ]; then
+    printf "${CYAN}   ║${GREEN}  ✅ ZapMeow ........... porta ${zapmeow_port}     ${CYAN}║${WHITE}\n"
+  else
+    printf "${CYAN}   ║${YELLOW}  ⚠️  ZapMeow ........... OFFLINE       ${CYAN}║${WHITE}\n"
+  fi
+  if [ "$api_ok" = true ]; then
+    printf "${CYAN}   ║${GREEN}  ✅ API Monitor ....... porta 3200    ${CYAN}║${WHITE}\n"
+  else
+    printf "${CYAN}   ║${YELLOW}  ⚠️  API Monitor ....... OFFLINE       ${CYAN}║${WHITE}\n"
+  fi
+  if [ "$registro_ok" = true ]; then
+    printf "${CYAN}   ║${GREEN}  ✅ Registro .......... concluído     ${CYAN}║${WHITE}\n"
+  else
+    printf "${CYAN}   ║${YELLOW}  ⚠️  Registro .......... pendente      ${CYAN}║${WHITE}\n"
+  fi
+  printf "${CYAN}   ╚══════════════════════════════════════════╝${WHITE}\n"
+  echo
 
   # CLI de manutenção
   cat > /usr/local/bin/monitor-cli <<'CLIMONITOR'
