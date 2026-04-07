@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch, logout as apiLogout, changePassword } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import {
   Shield, Globe, Key, Calendar, Search, RefreshCw, LogOut,
@@ -37,26 +37,8 @@ interface Installation {
 }
 
 const PALETTE = ["hsl(213,94%,58%)", "hsl(152,68%,46%)", "hsl(36,94%,54%)", "hsl(280,65%,60%)", "hsl(0,72%,55%)"];
-const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-const BASE_URL = `https://${PROJECT_ID}.supabase.co/functions/v1`;
 
 interface BlockedEntry { reason: string; blockedAt: string; }
-
-// ── API HELPERS ───────────────────────────────────────────────────────────────
-async function apiFetch(path: string, opts?: RequestInit) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Não autenticado");
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...opts,
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${session.access_token}`,
-      ...(opts?.headers ?? {}),
-    },
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
 
 // ── BLOCKED PAGE PREVIEW MODAL ────────────────────────────────────────────────
 function BlockedPreviewModal({ inst, entry, onClose }: {
