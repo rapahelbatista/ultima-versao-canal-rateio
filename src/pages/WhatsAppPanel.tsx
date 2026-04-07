@@ -12,22 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-const BASE_URL = `https://${PROJECT_ID}.supabase.co/functions/v1`;
-
 async function whatsappApi(action: string, extra: Record<string, any> = {}) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Não autenticado");
-  const res = await fetch(`${BASE_URL}/whatsapp-proxy`, {
+  return apiFetch("/api/whatsapp-proxy", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`,
-      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-    },
     body: JSON.stringify({ action, ...extra }),
   });
-  return res.json();
 }
 
 type ConnectionStatus = "disconnected" | "connected" | "loading" | "not_configured";
