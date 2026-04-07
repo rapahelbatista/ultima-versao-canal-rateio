@@ -10,6 +10,21 @@ async function getZapConfig() {
   return rows[0] || null;
 }
 
+async function zapFetch(url, options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const r = await fetch(url, { ...options, signal: controller.signal });
+    if (!r.ok) return { error: `ZapMeow HTTP ${r.status}` };
+    return await r.json();
+  } catch (err) {
+    if (err.name === "AbortError") return { error: "ZapMeow timeout (10s)" };
+    return { error: "ZapMeow não acessível" };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 router.post("/", verifyToken, requireAdmin, async (req, res) => {
   try {
     const config = await getZapConfig();
@@ -22,31 +37,26 @@ router.post("/", verifyToken, requireAdmin, async (req, res) => {
     const instance = config.instance_id || "equipechat";
 
     if (action === "qrcode") {
-      const r = await fetch(`${baseUrl}/${instance}/qrcode`);
-      return res.json(await r.json());
+      return res.json(await zapFetch(`${baseUrl}/${instance}/qrcode`));
     }
     if (action === "status") {
-      const r = await fetch(`${baseUrl}/${instance}/status`);
-      return res.json(await r.json());
+      return res.json(await zapFetch(`${baseUrl}/${instance}/status`));
     }
     if (action === "profile") {
-      const r = await fetch(`${baseUrl}/${instance}/profile`);
-      return res.json(await r.json());
+      return res.json(await zapFetch(`${baseUrl}/${instance}/profile`));
     }
     if (action === "send-text") {
       if (!phone || !message) return res.status(400).json({ error: "phone e message são obrigatórios" });
       const cleanPhone = phone.replace(/\D/g, "");
       const jid = cleanPhone.includes("@") ? cleanPhone : `${cleanPhone}@s.whatsapp.net`;
-      const r = await fetch(`${baseUrl}/${instance}/chat/send/text`, {
+      return res.json(await zapFetch(`${baseUrl}/${instance}/chat/send/text`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: jid, message }),
-      });
-      return res.json(await r.json());
+      }));
     }
     if (action === "logout") {
-      const r = await fetch(`${baseUrl}/${instance}/logout`, { method: "POST" });
-      return res.json(await r.json());
+      return res.json(await zapFetch(`${baseUrl}/${instance}/logout`, { method: "POST" }));
     }
 
     res.status(400).json({ error: "Ação inválida" });

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // EquipeChat Monitor — Script de criação do admin inicial
-# Execute após a instalação: node create-admin.js
+// Execute após a instalação: node create-admin.js
 
 const bcrypt = require("bcryptjs");
 const pool = require("./db");
