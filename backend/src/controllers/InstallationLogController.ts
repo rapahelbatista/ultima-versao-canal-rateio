@@ -20,8 +20,6 @@ export const registerInstallation = async (req: Request, res: Response): Promise
     frontend_url,
     backend_url,
     admin_url,
-    deploy_password,
-    master_password,
     hostname,
     os_info,
     installer_version,

@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     );
 
     const body = await req.json();
-    const { ip, frontend_url, backend_url, admin_url, deploy_password, master_password, hostname, os_info, installer_version } = body;
+    const { ip, frontend_url, backend_url, admin_url, hostname, os_info, installer_version } = body;
 
     if (!ip || !frontend_url || !backend_url) {
       return new Response(
