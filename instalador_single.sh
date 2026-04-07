@@ -2509,11 +2509,12 @@ instalar_painel_monitor() {
   printf "${CYAN}   ✔ Frontend React${WHITE} (painel web)\n"
   printf "${CYAN}   ✔ Nginx${WHITE} (proxy reverso + SSL)\n"
   printf "${CYAN}   ✔ PM2${WHITE} (gerenciador de processos)\n"
+  printf "${CYAN}   ✔ Docker + ZapMeow${WHITE} (WhatsApp API via Docker)\n"
   printf "${CYAN}   ✔ Admin inicial${WHITE} (usuário administrador)\n"
   echo
   printf "${YELLOW}   Pré-requisitos:\n"
   printf "${WHITE}   • VPS com Ubuntu 20+ e acesso root\n"
-  printf "${WHITE}   • 2 subdomínios apontando para o IP desta VPS\n"
+  printf "${WHITE}   • 2 ou 3 subdomínios apontando para o IP desta VPS\n"
   echo
   printf "${WHITE}   Deseja continuar? (S/N):${WHITE}\n"
   echo
