@@ -2854,9 +2854,9 @@ ENVZAP
   echo
 
   # ============================================================
-  # ETAPA 2: Banco de dados
+  # ETAPA 3/11: Banco de dados
   # ============================================================
-  printf "${BLUE} >> [2/9] Configurando banco de dados...${WHITE}\n"
+  printf "${BLUE} >> [3/11] Configurando banco de dados...${WHITE}\n"
   echo
 
   sudo -u postgres psql -c "CREATE USER monitor_user WITH PASSWORD '${monitor_db_pass}';" 2>/dev/null || true
