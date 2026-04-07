@@ -2946,9 +2946,9 @@ ENVZAP
   echo
 
   # ============================================================
-  # ETAPA 5: Configurar e iniciar API
+  # ETAPA 6/11: Configurar e iniciar API
   # ============================================================
-  printf "${BLUE} >> [5/9] Configurando API Express...${WHITE}\n"
+  printf "${BLUE} >> [6/11] Configurando API Express...${WHITE}\n"
   echo
 
   cd /home/deploy/monitor/monitor-api
