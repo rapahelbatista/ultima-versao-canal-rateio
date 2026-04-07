@@ -16,6 +16,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Aceita GET com query params ou POST com body JSON
     let ip: string | null = null;
     let frontend_url: string | null = null;
 
@@ -41,81 +42,63 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Busca por frontend_url primeiro (mais preciso), depois por ip
-    let data = null;
+    // Busca instalação pelo IP e/ou frontend_url
+    let query = supabase
+      .from("installations")
+      .select("id, ip, frontend_url, is_blocked, block_reason, blocked_at")
+      .limit(1);
 
-    if (frontend_url) {
-      const { data: byUrl } = await supabase
-        .from("installations")
-        .select("id, ip, frontend_url, is_blocked, block_reason, blocked_at")
-        .eq("frontend_url", frontend_url)
-        .limit(1)
-        .maybeSingle();
-      data = byUrl;
+    if (ip && frontend_url) {
+      query = query.eq("ip", ip).eq("frontend_url", frontend_url);
+    } else if (ip) {
+      query = query.eq("ip", ip);
+    } else {
+      query = query.eq("frontend_url", frontend_url!);
     }
 
-    if (!data && ip) {
-      const { data: byIp } = await supabase
-        .from("installations")
-        .select("id, ip, frontend_url, is_blocked, block_reason, blocked_at")
-        .eq("ip", ip)
-        .limit(1)
-        .maybeSingle();
-      data = byIp;
-    }
+    const { data, error } = await query.maybeSingle();
 
-    // Não encontrou — registra automaticamente (apenas se tiver ip E frontend_url)
-    if (!data) {
-      let newId: number | null = null;
-      if (ip && frontend_url) {
-        const { data: newRec, error: insertErr } = await supabase
-          .from("installations")
-          .insert({
-            ip,
-            frontend_url,
-            backend_url: frontend_url.replace(/^(https?:\/\/)/, '$1api.'),
-          })
-          .select("id")
-          .single();
-
-        if (!insertErr && newRec) {
-          newId = newRec.id;
-          console.log(`[check-block-status] Nova instalação registrada: ID ${newId}`);
-        }
-      }
-
+    if (error) {
+      console.error("Erro na consulta:", error);
       return new Response(
-        JSON.stringify({ blocked: false, found: false, registered: !!newId, id: newId }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Erro interno ao verificar status" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Encontrou — atualiza updated_at e ip (pode ter mudado)
-    if (ip && data.ip !== ip) {
-      await supabase
-        .from("installations")
-        .update({ ip, updated_at: new Date().toISOString() })
-        .eq("id", data.id);
-    } else {
-      await supabase
-        .from("installations")
-        .update({ updated_at: new Date().toISOString() })
-        .eq("id", data.id);
+    // Instalação não encontrada — considera como não bloqueada (pode não ter sido registrada ainda)
+    if (!data) {
+      return new Response(
+        JSON.stringify({
+          blocked: false,
+          found: false,
+          message: "Instalação não encontrada no sistema"
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     if (data.is_blocked) {
       return new Response(
         JSON.stringify({
-          blocked: true, found: true, id: data.id,
+          blocked: true,
+          found: true,
+          id: data.id,
           reason: data.block_reason ?? "Acesso bloqueado pelo administrador",
           blocked_at: data.blocked_at,
+          message: "Esta instalação está bloqueada"
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
-      JSON.stringify({ blocked: false, found: true, id: data.id }),
+      JSON.stringify({
+        blocked: false,
+        found: true,
+        id: data.id,
+        message: "Instalação ativa"
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 

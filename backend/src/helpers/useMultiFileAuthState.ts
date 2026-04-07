@@ -3,14 +3,11 @@ import {
   AuthenticationCreds,
   AuthenticationState,
   SignalDataTypeMap,
+  initAuthCreds,
   BufferJSON
 } from "@whiskeysockets/baileys";
 import cacheLayer from "../libs/cache";
 import Whatsapp from "../models/Whatsapp";
-import { getInitAuthCreds } from "./baileysRuntime";
-
-const initAuthCredsSafe = (): AuthenticationCreds =>
-  (getInitAuthCreds() as () => AuthenticationCreds)();
 
 export const useMultiFileAuthState = async (
   whatsapp: Whatsapp
@@ -31,7 +28,7 @@ export const useMultiFileAuthState = async (
     try {
       const data = await cacheLayer.get(`sessions:${whatsapp.id}:${file}`);
       return JSON.parse(data, BufferJSON.reviver);
-    } catch {
+    } catch (error) {
       return null;
     }
   };
@@ -42,18 +39,8 @@ export const useMultiFileAuthState = async (
     } catch {}
   };
 
-  const legacyCreds = (() => {
-    try {
-      if (!whatsapp?.session) return null;
-      const parsed = JSON.parse(whatsapp.session, BufferJSON.reviver);
-      return parsed?.creds ?? null;
-    } catch {
-      return null;
-    }
-  })();
-
   const creds: AuthenticationCreds =
-    (await readData("creds")) || legacyCreds || initAuthCredsSafe();
+    (await readData("creds")) || initAuthCreds();
 
   return {
     state: {
@@ -67,9 +54,11 @@ export const useMultiFileAuthState = async (
               if (type === "app-state-sync-key" && value) {
                 value = proto.Message.AppStateSyncKeyData.create(value);
               }
+
               data[id] = value;
             })
           );
+
           return data;
         },
         set: async data => {
@@ -81,10 +70,13 @@ export const useMultiFileAuthState = async (
               tasks.push(value ? writeData(value, file) : removeData(file));
             }
           }
+
           await Promise.all(tasks);
         }
       }
     },
-    saveCreds: () => writeData(creds, "creds")
+    saveCreds: () => {
+      return writeData(creds, "creds");
+    }
   };
 };

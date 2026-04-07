@@ -10,182 +10,32 @@
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const path: any = require("path");
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const fs: any = require("fs");
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { createRequire }: any = require("module");
 
 // Tenta carregar o Baileys de formas diferentes dependendo do ambiente.
 // - Preferimos o fork `@itsukichan/baileys` (compatível com interactiveButtons/nativeFlow usados no projeto)
 // - Se não existir, usamos `@whiskeysockets/baileys` como fallback.
 // - Caminhos absolutos evitam cair no moduleAlias em cenários específicos.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const requireErrors: string[] = [];
-
-const tryRequire = (
-  reqFn: (id: string) => any,
-  contextLabel: string,
-  id: string,
-  collectError = true
-) => {
+const tryRequire = (id: string) => {
   try {
-    return reqFn(id);
-  } catch (error: any) {
-    if (collectError) {
-      const code = error?.code ?? "ERR";
-      const message = String(error?.message ?? error);
-      requireErrors.push(`[${contextLabel}] ${id} -> ${code}: ${message}`);
-    }
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require(id);
+  } catch {
     return undefined;
   }
 };
 
-const backendRootCandidates = Array.from(
-  new Set([
-    // Runtime compilado: dist/compat -> backend
-    path.resolve(__dirname, "..", ".."),
-    // Runtime ts-node: src/compat -> backend
-    path.resolve(__dirname, "..", "..", ".."),
-    // PM2 / scripts externos
-    process.cwd(),
-    path.dirname(require?.main?.filename || ""),
-  ].filter(Boolean))
-);
-
-const backendNodeModulesCandidates = Array.from(
-  new Set(backendRootCandidates.map((root) => path.join(root, "node_modules")))
-);
-
-const requireContexts: Array<{ label: string; reqFn: (id: string) => any }> = [
-  { label: "native-require", reqFn: require },
-  ...backendRootCandidates
-    .map((root) => ({ root, packageJsonPath: path.join(root, "package.json") }))
-    .filter(({ packageJsonPath }) => fs.existsSync(packageJsonPath))
-    .map(({ root, packageJsonPath }) => ({
-      label: `createRequire(${root})`,
-      reqFn: createRequire(packageJsonPath),
-    })),
-];
-
-const packageCandidates = ["@whiskeysockets/baileys", "@itsukichan/baileys", "@itsliaaa/baileys"];
-const entrypointCandidates = [
-  "lib/index.cjs",
-  "dist/index.cjs",
-  "lib/index.js",
-  "dist/index.js",
-  "lib/Socket/index.js",
-  "lib/Socket/index.cjs",
-  "lib/Socket/socket.js",
-  "lib/Socket/socket.cjs",
-  "dist/Socket/index.js",
-  "dist/Socket/index.cjs",
-  "dist/Socket/socket.js",
-  "dist/Socket/socket.cjs"
-];
-
-const socketFileCandidates = [
-  "lib/Socket/socket.js",
-  "lib/Socket/socket.cjs",
-  "lib/Socket/index.js",
-  "lib/Socket/index.cjs",
-  "dist/Socket/socket.js",
-  "dist/Socket/socket.cjs",
-  "dist/Socket/index.js",
-  "dist/Socket/index.cjs",
-  "lib/index.js",
-  "lib/index.cjs",
-  "dist/index.js",
-  "dist/index.cjs"
-];
-
-const moduleCandidates = Array.from(
-  new Set([
-    ...packageCandidates,
-    ...packageCandidates.flatMap((pkg) =>
-      backendNodeModulesCandidates.map((nm) => path.join(nm, ...pkg.split("/")))
-    ),
-    ...packageCandidates.flatMap((pkg) =>
-      entrypointCandidates.map((entry) => `${pkg}/${entry}`)
-    ),
-    ...packageCandidates.flatMap((pkg) =>
-      backendNodeModulesCandidates.flatMap((nm) =>
-        entrypointCandidates.map((entry) => path.join(nm, ...pkg.split("/"), entry))
-      )
-    ),
-  ])
-);
-
-const hasSocketFactory = (root: any): boolean => {
-  const queue: Array<{ value: any; depth: number }> = [{ value: root, depth: 0 }];
-  const visited = new Set<any>();
-
-  while (queue.length > 0) {
-    const { value, depth } = queue.shift()!;
-    if (!value || depth > 8 || visited.has(value)) continue;
-
-    const valueType = typeof value;
-    if (valueType === "function") return true;
-    if (valueType !== "object") continue;
-
-    visited.add(value);
-
-    for (const key of ["makeWASocket", "makeWaSocket", "default"]) {
-      const child = (value as any)[key];
-      if (typeof child === "function") return true;
-      if (child && (typeof child === "object" || typeof child === "function") && !visited.has(child)) {
-        queue.push({ value: child, depth: depth + 1 });
-      }
-    }
-
-    try {
-      for (const key of Object.getOwnPropertyNames(value)) {
-        if (key === "makeWASocket" || key === "makeWaSocket" || key === "default") continue;
-        const child = (value as any)[key];
-        if (typeof child === "function" && /socket|wa|connect/i.test(key)) return true;
-        if (child && (typeof child === "object" || typeof child === "function") && !visited.has(child)) {
-          queue.push({ value: child, depth: depth + 1 });
-        }
-      }
-    } catch {
-      // noop
-    }
-  }
-
-  return false;
-};
-
-let baileys: any;
-let firstLoadedModule: any;
-
-for (const context of requireContexts) {
-  for (const candidate of moduleCandidates) {
-    const loadedModule = tryRequire(context.reqFn, context.label, candidate);
-    if (!loadedModule) continue;
-
-    if (!firstLoadedModule) {
-      firstLoadedModule = loadedModule;
-    }
-
-    if (hasSocketFactory(loadedModule) || hasSocketFactory(loadedModule?.default)) {
-      baileys = loadedModule;
-      break;
-    }
-
-    requireErrors.push(`[${context.label}] ${candidate} -> módulo carregou, mas sem makeWASocket detectável`);
-  }
-
-  if (baileys) break;
-}
-
-if (!baileys && firstLoadedModule) {
-  baileys = firstLoadedModule;
-  requireErrors.push("[compat] fallback para primeiro módulo carregado (sem factory validada)");
-}
+const baileys: any =
+  tryRequire("@itsukichan/baileys") ??
+  tryRequire(path.join(process.cwd(), "node_modules", "@itsukichan", "baileys")) ??
+  tryRequire(path.join(__dirname, "..", "..", "node_modules", "@itsukichan", "baileys")) ??
+  tryRequire("@whiskeysockets/baileys") ??
+  tryRequire(path.join(process.cwd(), "node_modules", "@whiskeysockets", "baileys")) ??
+  tryRequire(path.join(__dirname, "..", "..", "node_modules", "@whiskeysockets", "baileys"));
 
 if (!baileys) {
-  const debugInfo = requireErrors.slice(0, 12).join("\n") || "Sem detalhes de erro capturados.";
   throw new Error(
-    `Baileys não encontrado. Instale @whiskeysockets/baileys (recomendado) ou @itsukichan/baileys no backend.\nTentativas:\n${debugInfo}`
+    "Baileys não encontrado. Instale @itsukichan/baileys (recomendado) ou @whiskeysockets/baileys no backend."
   );
 }
 
@@ -193,159 +43,11 @@ if (!baileys) {
 const defaultExport: any = baileys?.default ?? baileys;
 export default defaultExport;
 
-// Helper: resolve símbolos no módulo principal OU em sub-módulos conhecidos
-const _pickFromModule = (mod: any, name: string): any => {
-  if (!mod) return undefined;
-  if (mod[name] !== undefined) return mod[name];
-  if (mod?.default?.[name] !== undefined) return mod.default[name];
-
-  if (name === "makeWASocket" || name === "makeWaSocket") {
-    if (typeof mod === "function") return mod;
-    if (typeof mod?.default === "function") return mod.default;
-    if (typeof mod?.default?.default === "function") return mod.default.default;
-  }
-
-  return undefined;
-};
-
-const _unwrapFn = (value: any, depth = 0, visited = new Set<any>()): any => {
-  if (depth > 8 || !value || visited.has(value)) return undefined;
-  visited.add(value);
-  if (typeof value === "function") return value;
-  if (typeof value !== "object") return undefined;
-
-  // Checagens rápidas
-  for (const key of ["makeWASocket", "makeWaSocket", "default"]) {
-    if (typeof value[key] === "function") return value[key];
-  }
-
-  // Recursão nos caminhos prioritários
-  return (
-    _unwrapFn(value?.makeWASocket, depth + 1, visited) ??
-    _unwrapFn(value?.makeWaSocket, depth + 1, visited) ??
-    _unwrapFn(value?.default, depth + 1, visited) ??
-    // Varrer todas as chaves como último recurso
-    (() => {
-      try {
-        for (const key of Object.getOwnPropertyNames(value)) {
-          if (key === "makeWASocket" || key === "makeWaSocket" || key === "default") continue;
-          const child = value[key];
-          if (typeof child === "function" && /socket|wa|connect/i.test(key)) return child;
-          const found = _unwrapFn(child, depth + 2, visited);
-          if (found) return found;
-        }
-      } catch {}
-      return undefined;
-    })()
-  );
-};
-
-const _resolveSocketFromPackageFiles = (): any => {
-  for (const pkg of packageCandidates) {
-    let packageJsonPath: string | undefined;
-
-    for (const context of requireContexts) {
-      try {
-        const resolved = (context.reqFn as any).resolve?.(`${pkg}/package.json`);
-        if (resolved) {
-          packageJsonPath = resolved;
-          break;
-        }
-      } catch {
-        // próximo contexto
-      }
-    }
-
-    if (!packageJsonPath) {
-      for (const nm of backendNodeModulesCandidates) {
-        const candidate = path.join(nm, ...pkg.split("/"), "package.json");
-        if (fs.existsSync(candidate)) {
-          packageJsonPath = candidate;
-          break;
-        }
-      }
-    }
-
-    if (!packageJsonPath) continue;
-
-    const packageDir = path.dirname(packageJsonPath);
-    for (const relPath of socketFileCandidates) {
-      const absPath = path.join(packageDir, relPath);
-      if (!fs.existsSync(absPath)) continue;
-
-      for (const context of requireContexts) {
-        const mod = tryRequire(context.reqFn, `${context.label}::socket-file`, absPath, false);
-        const fn = _unwrapFn(_pickFromModule(mod, "makeWASocket") ?? mod);
-        if (typeof fn === "function") return fn;
-      }
-    }
-  }
-
-  return undefined;
-};
-
-const _resolveAny = (name: string, ...subModulePaths: string[]): any => {
-  const direct = _pickFromModule(baileys, name);
-  if (direct !== undefined) return direct;
-
-  const fromDefault = _pickFromModule(defaultExport, name);
-  if (fromDefault !== undefined) return fromDefault;
-
-  for (const subPath of subModulePaths) {
-    for (const pkg of packageCandidates) {
-      for (const context of requireContexts) {
-        const mod = tryRequire(context.reqFn, `${context.label}::${name}`, `${pkg}/${subPath}`, false);
-        const fromMod = _pickFromModule(mod, name);
-        if (fromMod !== undefined) return fromMod;
-      }
-    }
-  }
-
-  return undefined;
-};
-
-const _resolveFn = (name: string, ...subModulePaths: string[]): any =>
-  _unwrapFn(_resolveAny(name, ...subModulePaths));
-
 // --- Core runtime exports ---
-const _resolvedFactory: any =
-  _resolveSocketFromPackageFiles() ??
-  _resolveFn(
-    "makeWASocket",
-    "lib/Socket/index",
-    "lib/Socket/index.js",
-    "lib/Socket/socket",
-    "lib/Socket/socket.js",
-    "dist/Socket/index",
-    "dist/Socket/index.js",
-    "dist/Socket/socket",
-    "dist/Socket/socket.js",
-    "src/Socket/index",
-    "src/Socket/socket"
-  ) ??
-  _resolveFn(
-    "makeWaSocket",
-    "lib/Socket/index",
-    "lib/Socket/index.js",
-    "lib/Socket/socket",
-    "lib/Socket/socket.js",
-    "dist/Socket/index",
-    "dist/Socket/index.js",
-    "dist/Socket/socket",
-    "dist/Socket/socket.js",
-    "src/Socket/index",
-    "src/Socket/socket"
-  ) ??
-  _resolveFn("makeWASocket") ??
-  _resolveFn("makeWaSocket") ??
-  _unwrapFn(baileys) ??
-  _unwrapFn(defaultExport);
-
-// NUNCA exportar objeto como makeWASocket — apenas função válida ou undefined
-export const makeWASocket: any = typeof _resolvedFactory === "function" ? _resolvedFactory : undefined;
+export const makeWASocket: any = baileys.makeWASocket ?? defaultExport;
 
 // proto needs to work both as a value AND as a namespace (proto.IWebMessageInfo etc.)
-export const proto: any = _resolveAny("proto");
+export const proto: any = baileys.proto;
 // Declare proto as a namespace so `proto.X` type references compile
 export declare namespace proto {
   type IWebMessageInfo = any;
@@ -357,44 +59,26 @@ export declare namespace proto {
   }
 }
 
-export const initAuthCreds: any = _resolveFn(
-  "initAuthCreds",
-  "lib/Utils/auth-utils",
-  "lib/Utils/auth-utils.js",
-  "lib/Utils/auth-utils.cjs",
-  "dist/Utils/auth-utils",
-  "dist/Utils/auth-utils.js"
-);
+export const initAuthCreds: any = baileys.initAuthCreds;
+export const makeCacheableSignalKeyStore: any = baileys.makeCacheableSignalKeyStore;
 
-export const makeCacheableSignalKeyStore: any = _resolveFn(
-  "makeCacheableSignalKeyStore",
-  "lib/Utils/signal",
-  "lib/Utils/signal.js",
-  "lib/Utils/signal.cjs",
-  "lib/Utils/auth-utils",
-  "lib/Utils/auth-utils.js",
-  "dist/Utils/signal",
-  "dist/Utils/signal.js"
-);
+export const delay: any = baileys.delay;
+export const generateWAMessageFromContent: any = baileys.generateWAMessageFromContent;
+export const downloadMediaMessage: any = baileys.downloadMediaMessage;
+export const extractMessageContent: any = baileys.extractMessageContent;
+export const getContentType: any = baileys.getContentType;
 
-export const delay: any = _resolveFn("delay", "lib/Utils/generics", "lib/Utils/generics.js");
-export const generateWAMessageFromContent: any = _resolveFn("generateWAMessageFromContent", "lib/Utils/messages", "lib/Utils/messages.js");
-export const downloadMediaMessage: any = _resolveFn("downloadMediaMessage", "lib/Utils/messages-media", "lib/Utils/messages-media.js");
-export const extractMessageContent: any = _resolveFn("extractMessageContent", "lib/Utils/messages", "lib/Utils/messages.js");
-export const getContentType: any = _resolveFn("getContentType", "lib/Utils/messages", "lib/Utils/messages.js");
+export const jidNormalizedUser: any = baileys.jidNormalizedUser;
+export const isJidBroadcast: any = baileys.isJidBroadcast;
+export const isJidGroup: any = baileys.isJidGroup;
+export const isJidStatusBroadcast: any = baileys.isJidStatusBroadcast;
 
-export const jidNormalizedUser: any = _resolveFn("jidNormalizedUser", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
-export const isJidBroadcast: any = _resolveFn("isJidBroadcast", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
-export const isJidGroup: any = _resolveFn("isJidGroup", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
-export const isJidStatusBroadcast: any = _resolveFn("isJidStatusBroadcast", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
-
-export const Browsers: any = _resolveAny("Browsers", "lib/Utils/generics", "lib/Utils/generics.js");
-export const DisconnectReason: any = _resolveAny("DisconnectReason", "lib/Types", "lib/Types/index.js");
+export const Browsers: any = baileys.Browsers;
+export const DisconnectReason: any = baileys.DisconnectReason;
 
 // Some forks expose this with different naming
 export const isJidNewsletter: any =
-  _resolveFn("isJidNewsletter", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js") ??
-  _resolveFn("isJidNewsLetter", "lib/WABinary/jid-utils", "lib/WABinary/jid-utils.js");
+  baileys.isJidNewsletter ?? baileys.isJidNewsLetter ?? baileys.isJidNewsLetter;
 
 // BufferJSON helper (used to serialize sessions)
 export const BufferJSON = {
@@ -425,27 +109,21 @@ const _resolveInMemoryStore = (): any => {
     "Store/make-in-memory-store",
   ];
   const packages = ["@itsukichan/baileys", "@whiskeysockets/baileys"];
-  for (const context of requireContexts) {
-    for (const pkg of packages) {
-      for (const sub of subPaths) {
-        const mod = tryRequire(context.reqFn, `${context.label}::store`, `${pkg}/${sub}`, false);
+  for (const pkg of packages) {
+    for (const sub of subPaths) {
+      try {
+        const mod = require(`${pkg}/${sub}`);
         const fn = mod?.default ?? mod?.makeInMemoryStore ?? mod;
         if (typeof fn === "function") return fn;
-      }
-
-      // Também tenta caminhos absolutos a partir dos node_modules candidatos
-      for (const nm of backendNodeModulesCandidates) {
-        for (const sub of subPaths) {
-          const mod = tryRequire(
-            context.reqFn,
-            `${context.label}::store-abs`,
-            path.join(nm, ...pkg.split("/"), sub),
-            false
-          );
-          const fn = mod?.default ?? mod?.makeInMemoryStore ?? mod;
-          if (typeof fn === "function") return fn;
-        }
-      }
+      } catch {}
+    }
+    // Also try absolute path
+    for (const sub of subPaths) {
+      try {
+        const mod = require(path.join(process.cwd(), "node_modules", ...pkg.split("/"), sub));
+        const fn = mod?.default ?? mod?.makeInMemoryStore ?? mod;
+        if (typeof fn === "function") return fn;
+      } catch {}
     }
   }
 

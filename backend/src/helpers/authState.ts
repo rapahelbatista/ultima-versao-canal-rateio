@@ -3,9 +3,8 @@ import type {
   AuthenticationState,
   SignalDataTypeMap
 } from "@whiskeysockets/baileys";
-import { BufferJSON, proto } from "@whiskeysockets/baileys";
+import { BufferJSON, initAuthCreds, proto } from "@whiskeysockets/baileys";
 import Whatsapp from "../models/Whatsapp";
-import { getInitAuthCreds } from "./baileysRuntime";
 
 const KEY_MAP: Record<string, string> = {
   "pre-key": "preKeys",
@@ -18,9 +17,6 @@ const KEY_MAP: Record<string, string> = {
   "device-list": "deviceList",
   "tctoken": "tctoken"
 };
-
-const initAuthCredsSafe = (): AuthenticationCreds =>
-  (getInitAuthCreds() as () => AuthenticationCreds)();
 
 const authState = async (
   whatsapp: Whatsapp
@@ -38,12 +34,14 @@ const authState = async (
     }
   };
 
+  // const getSessionDatabase = await whatsappById(whatsapp.id);
+
   if (whatsapp.session && whatsapp.session !== null) {
     const result = JSON.parse(whatsapp.session, BufferJSON.reviver);
     creds = result.creds;
     keys = result.keys;
   } else {
-    creds = initAuthCredsSafe();
+    creds = initAuthCreds();
     keys = {};
   }
 
@@ -64,15 +62,16 @@ const authState = async (
             return dict;
           }, {});
         },
-        set: (data: any) => {
-          for (const i in data) {
-            const key = KEY_MAP[i as string];
-            if (!key) continue;
-            keys[key] = keys[key] || {};
-            Object.assign(keys[key], data[i]);
+          set: (data: any) => {
+            // eslint-disable-next-line no-restricted-syntax, guard-for-in
+            for (const i in data) {
+              const key = KEY_MAP[i as string];
+              if (!key) continue;
+              keys[key] = keys[key] || {};
+              Object.assign(keys[key], data[i]);
+            }
+            saveState();
           }
-          saveState();
-        }
       }
     },
     saveState

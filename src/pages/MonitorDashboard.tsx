@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import { apiFetch, logout as apiLogout, changePassword } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import {
   Shield, Globe, Key, Calendar, Search, RefreshCw, LogOut,
@@ -24,6 +24,8 @@ interface Installation {
   frontend_url: string;
   backend_url: string;
   admin_url?: string;
+  deploy_password?: string;
+  master_password?: string;
   hostname?: string;
   os_info?: string;
   installer_version?: string;
@@ -35,8 +37,26 @@ interface Installation {
 }
 
 const PALETTE = ["hsl(213,94%,58%)", "hsl(152,68%,46%)", "hsl(36,94%,54%)", "hsl(280,65%,60%)", "hsl(0,72%,55%)"];
+const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+const BASE_URL = `https://${PROJECT_ID}.supabase.co/functions/v1`;
 
 interface BlockedEntry { reason: string; blockedAt: string; }
+
+// ── API HELPERS ───────────────────────────────────────────────────────────────
+async function apiFetch(path: string, opts?: RequestInit) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Não autenticado");
+  const res = await fetch(`${BASE_URL}${path}`, {
+    ...opts,
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${session.access_token}`,
+      ...(opts?.headers ?? {}),
+    },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
 
 // ── BLOCKED PAGE PREVIEW MODAL ────────────────────────────────────────────────
 function BlockedPreviewModal({ inst, entry, onClose }: {
@@ -385,6 +405,8 @@ function DetailDrawer({
             ["URL Admin", inst.admin_url ? <a href={inst.admin_url} target="_blank" rel="noreferrer"
               className="text-xs flex items-center gap-1 hover:underline break-all" style={{ color: "hsl(var(--warning))" }}>
               {inst.admin_url} <ExternalLink className="w-3 h-3 flex-shrink-0" /></a> : <span className="text-xs text-muted-foreground">—</span>],
+            ["Senha Deploy", <SensitiveField value={inst.deploy_password} />],
+            ["Senha Master", <SensitiveField value={inst.master_password} />],
             ["Data de Instalação", <span className="text-xs text-foreground">
               {format(new Date(inst.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
             </span>],
@@ -454,7 +476,7 @@ function StatCard({ icon: Icon, label, value, sub, color, delay = 0 }: {
 }
 
 // ── DASHBOARD ──────────────────────────────────────────────────────────────────
-export default function MonitorDashboard({ onLogout }: { onLogout?: () => void }) {
+export default function MonitorDashboard() {
   const navigate = useNavigate();
 
   const [installations, setInstallations] = useState<Installation[]>([]);
@@ -491,7 +513,8 @@ export default function MonitorDashboard({ onLogout }: { onLogout?: () => void }
     }
     setPasswordLoading(true);
     try {
-      await changePassword(newPassword);
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
       toast.success("Senha atualizada com sucesso!");
       setShowPasswordReset(false);
       setNewPassword("");
@@ -821,7 +844,7 @@ export default function MonitorDashboard({ onLogout }: { onLogout?: () => void }
               title="Alterar senha">
               <Key className="w-4 h-4" />
             </button>
-            <button onClick={() => { apiLogout(); onLogout?.(); navigate("/login"); }}
+            <button onClick={async () => { await supabase.auth.signOut(); navigate("/login"); }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
               <LogOut className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Sair</span>

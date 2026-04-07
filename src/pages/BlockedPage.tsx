@@ -3,7 +3,8 @@ import { Ban, RefreshCw, AlertTriangle, Shield, Phone, Mail } from "lucide-react
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const API_URL = import.meta.env.VITE_API_URL || "";
+const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+const CHECK_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/check-block-status`;
 
 interface BlockStatus {
   blocked: boolean;
@@ -13,6 +14,7 @@ interface BlockStatus {
   message?: string;
 }
 
+// Pega IP público do cliente
 async function getClientIP(): Promise<string | null> {
   try {
     const res = await fetch("https://api.ipify.org?format=json");
@@ -26,10 +28,11 @@ async function getClientIP(): Promise<string | null> {
 async function checkBlock(ip: string, frontendUrl?: string): Promise<BlockStatus> {
   const params = new URLSearchParams({ ip });
   if (frontendUrl) params.set("frontend_url", frontendUrl);
-  const res = await fetch(`${API_URL}/api/check-block-status?${params}`);
+  const res = await fetch(`${CHECK_URL}?${params}`);
   return res.json();
 }
 
+// ── LOADING ───────────────────────────────────────────────────────────────────
 function LoadingScreen() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4"
@@ -50,6 +53,7 @@ function LoadingScreen() {
   );
 }
 
+// ── NOT BLOCKED ───────────────────────────────────────────────────────────────
 function ActiveScreen() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-8 text-center"
@@ -58,7 +62,10 @@ function ActiveScreen() {
         <div className="absolute inset-0 rounded-full blur-2xl opacity-25 animate-pulse"
           style={{ background: "hsl(152,68%,46%)" }} />
         <div className="relative w-24 h-24 rounded-full flex items-center justify-center"
-          style={{ background: "hsl(152,68%,46%,0.12)", border: "2px solid hsl(152,68%,46%,0.4)" }}>
+          style={{
+            background: "hsl(152,68%,46%,0.12)",
+            border: "2px solid hsl(152,68%,46%,0.4)"
+          }}>
           <Shield className="w-12 h-12" style={{ color: "hsl(152,68%,46%)" }} />
         </div>
       </div>
@@ -76,32 +83,52 @@ function ActiveScreen() {
   );
 }
 
+// ── BLOCKED ───────────────────────────────────────────────────────────────────
 function BlockedScreen({ status, ip }: { status: BlockStatus; ip: string | null }) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6"
       style={{ background: "#070a0f" }}>
+
+      {/* Background glow */}
       <div className="fixed inset-0 pointer-events-none"
         style={{ background: "radial-gradient(ellipse 80% 50% at 50% 0%, hsl(0,72%,55%,0.08), transparent)" }} />
+
       <div className="w-full max-w-lg relative z-10">
+
+        {/* Top badge */}
         <div className="flex justify-center mb-8">
           <div className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase"
-            style={{ background: "hsl(0,72%,55%,0.1)", border: "1px solid hsl(0,72%,55%,0.3)", color: "hsl(0,72%,55%)" }}>
+            style={{
+              background: "hsl(0,72%,55%,0.1)",
+              border: "1px solid hsl(0,72%,55%,0.3)",
+              color: "hsl(0,72%,55%)"
+            }}>
             <AlertTriangle className="w-3.5 h-3.5" />
             EquipeChat — Sistema de Proteção
           </div>
         </div>
+
+        {/* Icon */}
         <div className="flex justify-center mb-8">
           <div className="relative">
             <div className="absolute inset-0 rounded-full blur-3xl opacity-30 animate-pulse"
               style={{ background: "hsl(0,72%,55%)" }} />
             <div className="relative w-28 h-28 rounded-full flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg, hsl(0,72%,55%,0.15), hsl(0,72%,55%,0.05))", border: "2px solid hsl(0,72%,55%,0.5)", boxShadow: "0 0 60px hsl(0,72%,55%,0.2)" }}>
+              style={{
+                background: "linear-gradient(135deg, hsl(0,72%,55%,0.15), hsl(0,72%,55%,0.05))",
+                border: "2px solid hsl(0,72%,55%,0.5)",
+                boxShadow: "0 0 60px hsl(0,72%,55%,0.2)"
+              }}>
               <Ban className="w-14 h-14" style={{ color: "hsl(0,72%,55%)" }} />
             </div>
           </div>
         </div>
+
+        {/* Title */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-black text-white mb-3 tracking-tight leading-tight">Acesso Bloqueado</h1>
+          <h1 className="text-4xl font-black text-white mb-3 tracking-tight leading-tight">
+            Acesso Bloqueado
+          </h1>
           <p className="text-base leading-relaxed" style={{ color: "hsl(0,0%,60%)" }}>
             O uso desta versão do software foi identificado como{" "}
             <strong style={{ color: "hsl(0,72%,70%)" }}>não autorizado</strong>.
@@ -109,13 +136,30 @@ function BlockedScreen({ status, ip }: { status: BlockStatus; ip: string | null 
             <strong className="text-white">Lei de Direitos Autorais (Lei 9.610/98)</strong>.
           </p>
         </div>
+
+        {/* Reason box */}
         {status.reason && (
-          <div className="rounded-2xl p-5 mb-4" style={{ background: "hsl(0,72%,55%,0.07)", border: "1px solid hsl(0,72%,55%,0.25)" }}>
-            <p className="text-xs uppercase tracking-widest font-semibold mb-2" style={{ color: "hsl(0,72%,55%,0.7)" }}>Motivo do bloqueio</p>
-            <p className="text-base font-semibold" style={{ color: "hsl(0,80%,78%)" }}>{status.reason}</p>
+          <div className="rounded-2xl p-5 mb-4"
+            style={{
+              background: "hsl(0,72%,55%,0.07)",
+              border: "1px solid hsl(0,72%,55%,0.25)"
+            }}>
+            <p className="text-xs uppercase tracking-widest font-semibold mb-2"
+              style={{ color: "hsl(0,72%,55%,0.7)" }}>
+              Motivo do bloqueio
+            </p>
+            <p className="text-base font-semibold" style={{ color: "hsl(0,80%,78%)" }}>
+              {status.reason}
+            </p>
           </div>
         )}
-        <div className="rounded-2xl p-5 mb-8 space-y-3" style={{ background: "hsl(0,0%,100%,0.03)", border: "1px solid hsl(0,0%,100%,0.08)" }}>
+
+        {/* Info box */}
+        <div className="rounded-2xl p-5 mb-8 space-y-3"
+          style={{
+            background: "hsl(0,0%,100%,0.03)",
+            border: "1px solid hsl(0,0%,100%,0.08)"
+          }}>
           {ip && (
             <div className="flex items-center justify-between text-sm">
               <span style={{ color: "hsl(0,0%,45%)" }}>IP identificado</span>
@@ -133,27 +177,57 @@ function BlockedScreen({ status, ip }: { status: BlockStatus; ip: string | null 
           <div className="flex items-center justify-between text-sm">
             <span style={{ color: "hsl(0,0%,45%)" }}>Status</span>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-              style={{ background: "hsl(0,72%,55%,0.15)", color: "hsl(0,72%,70%)", border: "1px solid hsl(0,72%,55%,0.3)" }}>
+              style={{
+                background: "hsl(0,72%,55%,0.15)",
+                color: "hsl(0,72%,70%)",
+                border: "1px solid hsl(0,72%,55%,0.3)"
+              }}>
               ⛔ BLOQUEADO
             </span>
           </div>
         </div>
-        <div className="rounded-2xl p-6 text-center" style={{ background: "hsl(213,94%,58%,0.05)", border: "1px solid hsl(213,94%,58%,0.2)" }}>
-          <p className="text-sm font-semibold text-white mb-1">Regularize sua licença</p>
-          <p className="text-xs mb-5" style={{ color: "hsl(0,0%,50%)" }}>Entre em contato com o suporte do EquipeChat.</p>
+
+        {/* CTA */}
+        <div className="rounded-2xl p-6 text-center"
+          style={{
+            background: "hsl(213,94%,58%,0.05)",
+            border: "1px solid hsl(213,94%,58%,0.2)"
+          }}>
+          <p className="text-sm font-semibold text-white mb-1">
+            Regularize sua licença
+          </p>
+          <p className="text-xs mb-5" style={{ color: "hsl(0,0%,50%)" }}>
+            Entre em contato com o suporte do EquipeChat para regularizar sua situação.
+          </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a href="https://wa.me/5511999999999?text=Preciso+regularizar+minha+licença+EquipeChat" target="_blank" rel="noreferrer"
+            <a
+              href="https://wa.me/5511999999999?text=Preciso+regularizar+minha+licença+EquipeChat"
+              target="_blank"
+              rel="noreferrer"
               className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
-              style={{ background: "linear-gradient(135deg, hsl(142,70%,40%), hsl(142,70%,32%))", color: "#fff", boxShadow: "0 4px 20px hsl(142,70%,40%,0.35)" }}>
-              <Phone className="w-4 h-4" /> WhatsApp
+              style={{
+                background: "linear-gradient(135deg, hsl(142,70%,40%), hsl(142,70%,32%))",
+                color: "#fff",
+                boxShadow: "0 4px 20px hsl(142,70%,40%,0.35)"
+              }}>
+              <Phone className="w-4 h-4" />
+              WhatsApp
             </a>
-            <a href="mailto:contato@equipechat.com?subject=Regularização de licença"
+            <a
+              href="mailto:contato@equipechat.com?subject=Regularização de licença"
               className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
-              style={{ background: "hsl(213,94%,58%,0.12)", color: "hsl(213,94%,70%)", border: "1px solid hsl(213,94%,58%,0.3)" }}>
-              <Mail className="w-4 h-4" /> E-mail
+              style={{
+                background: "hsl(213,94%,58%,0.12)",
+                color: "hsl(213,94%,70%)",
+                border: "1px solid hsl(213,94%,58%,0.3)"
+              }}>
+              <Mail className="w-4 h-4" />
+              E-mail
             </a>
           </div>
         </div>
+
+        {/* Footer */}
         <p className="text-center text-xs mt-6" style={{ color: "hsl(0,0%,30%)" }}>
           EquipeChat — By Raphael Batista · Sistema Anti-Pirataria · Lei 9.610/98
         </p>
@@ -162,11 +236,13 @@ function BlockedScreen({ status, ip }: { status: BlockStatus; ip: string | null 
   );
 }
 
+// ── MAIN ──────────────────────────────────────────────────────────────────────
 export default function BlockedPage() {
   const [loading, setLoading] = useState(true);
   const [ip, setIp] = useState<string | null>(null);
   const [status, setStatus] = useState<BlockStatus | null>(null);
 
+  // frontend_url pode vir por query param (passado pelo instalador)
   const params = new URLSearchParams(window.location.search);
   const frontendUrl = params.get("frontend_url") ?? window.location.origin;
 

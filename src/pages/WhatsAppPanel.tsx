@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiFetch, logout as apiLogout } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   MessageSquare, QrCode, RefreshCw, Wifi, WifiOff,
@@ -12,11 +12,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
+const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+const BASE_URL = `https://${PROJECT_ID}.supabase.co/functions/v1`;
+
 async function whatsappApi(action: string, extra: Record<string, any> = {}) {
-  return apiFetch("/api/whatsapp-proxy", {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Não autenticado");
+  const res = await fetch(`${BASE_URL}/whatsapp-proxy`, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
     body: JSON.stringify({ action, ...extra }),
   });
+  return res.json();
 }
 
 type ConnectionStatus = "disconnected" | "connected" | "loading" | "not_configured";
@@ -47,7 +58,7 @@ const TEMPLATE_COLORS: Record<string, { color: string; bg: string; border: strin
   unblock: { color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/20" },
 };
 
-export default function WhatsAppPanel({ onLogout }: { onLogout?: () => void }) {
+export default function WhatsAppPanel() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<ConnectionStatus>("loading");
   const [qrCode, setQrCode] = useState<string | null>(null);
@@ -81,10 +92,11 @@ export default function WhatsAppPanel({ onLogout }: { onLogout?: () => void }) {
   }, []);
 
   const loadTemplates = useCallback(async () => {
-    try {
-      const result = await apiFetch("/api/templates");
-      if (result.data) setTemplates(result.data as Template[]);
-    } catch {}
+    const { data } = await supabase
+      .from("whatsapp_templates")
+      .select("*")
+      .order("template_key");
+    if (data) setTemplates(data as Template[]);
   }, []);
 
   useEffect(() => { checkStatus(); loadTemplates(); }, [checkStatus, loadTemplates]);
@@ -143,10 +155,11 @@ export default function WhatsAppPanel({ onLogout }: { onLogout?: () => void }) {
   const saveTemplate = async (tpl: Template) => {
     setSavingTemplate(true);
     try {
-      await apiFetch(`/api/templates/${tpl.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ message_body: editBody }),
-      });
+      const { error } = await supabase
+        .from("whatsapp_templates")
+        .update({ message_body: editBody })
+        .eq("id", tpl.id);
+      if (error) throw error;
       toast.success(`Template "${tpl.title}" salvo!`);
       setEditingKey(null);
       loadTemplates();
@@ -155,12 +168,11 @@ export default function WhatsAppPanel({ onLogout }: { onLogout?: () => void }) {
   };
 
   const toggleActive = async (tpl: Template) => {
-    try {
-      await apiFetch(`/api/templates/${tpl.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ is_active: !tpl.is_active }),
-      });
-    } catch { toast.error("Erro ao atualizar."); return; }
+    const { error } = await supabase
+      .from("whatsapp_templates")
+      .update({ is_active: !tpl.is_active })
+      .eq("id", tpl.id);
+    if (error) { toast.error("Erro ao atualizar."); return; }
     toast.success(tpl.is_active ? `"${tpl.title}" desativada` : `"${tpl.title}" ativada`);
     loadTemplates();
   };
@@ -210,7 +222,7 @@ export default function WhatsAppPanel({ onLogout }: { onLogout?: () => void }) {
             <Button variant="ghost" size="sm" onClick={() => { checkStatus(); loadTemplates(); }} title="Atualizar">
               <RefreshCw className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => { apiLogout(); onLogout?.(); navigate("/login"); }}>
+            <Button variant="ghost" size="sm" onClick={async () => { await supabase.auth.signOut(); navigate("/login"); }}>
               <LogOut className="w-4 h-4" />
             </Button>
           </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiFetch, logout as apiLogout } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   ClipboardList, Plus, Copy, Check, ExternalLink, Clock,
@@ -35,7 +35,7 @@ interface PurchaseRequest {
   link_id: string | null;
 }
 
-export default function ClientFormsDashboard({ onLogout }: { onLogout?: () => void }) {
+export default function ClientFormsDashboard() {
   const navigate = useNavigate();
   const [links, setLinks] = useState<PurchaseLink[]>([]);
   const [requests, setRequests] = useState<PurchaseRequest[]>([]);
@@ -51,12 +51,12 @@ export default function ClientFormsDashboard({ onLogout }: { onLogout?: () => vo
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [linksData, reqsData] = await Promise.all([
-        apiFetch("/api/purchase/links"),
-        apiFetch("/api/purchase/requests"),
+      const [linksRes, reqsRes] = await Promise.all([
+        supabase.from("purchase_links").select("*").order("created_at", { ascending: false }),
+        supabase.from("purchase_requests").select("*").order("created_at", { ascending: false }),
       ]);
-      if (linksData.data) setLinks(linksData.data as PurchaseLink[]);
-      if (reqsData.data) setRequests(reqsData.data as PurchaseRequest[]);
+      if (linksRes.data) setLinks(linksRes.data as PurchaseLink[]);
+      if (reqsRes.data) setRequests(reqsRes.data as PurchaseRequest[]);
     } catch {
       toast.error("Erro ao carregar dados");
     } finally {
@@ -70,10 +70,10 @@ export default function ClientFormsDashboard({ onLogout }: { onLogout?: () => vo
     if (!newLabel.trim()) return;
     setCreating(true);
     try {
-      await apiFetch("/api/purchase/links", {
-        method: "POST",
-        body: JSON.stringify({ client_label: newLabel.trim() }),
-      });
+      const { error } = await supabase
+        .from("purchase_links")
+        .insert({ client_label: newLabel.trim() });
+      if (error) throw error;
       toast.success("Link criado com sucesso!");
       setNewLabel("");
       setShowCreate(false);
@@ -87,7 +87,7 @@ export default function ClientFormsDashboard({ onLogout }: { onLogout?: () => vo
 
   const deleteLink = async (id: string) => {
     try {
-      await apiFetch(`/api/purchase/links/${id}`, { method: "DELETE" });
+      await supabase.from("purchase_links").delete().eq("id", id);
       toast.success("Link removido");
       await loadData();
     } catch {
@@ -168,7 +168,7 @@ export default function ClientFormsDashboard({ onLogout }: { onLogout?: () => vo
               className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </button>
-            <button onClick={() => { apiLogout(); onLogout?.(); navigate("/login"); }}
+            <button onClick={async () => { await supabase.auth.signOut(); navigate("/login"); }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
               <LogOut className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Sair</span>
