@@ -311,6 +311,7 @@ menu() {
     printf "   [${BLUE}1${WHITE}] Instalar ${nome_titulo} ${CYAN}(Backend + Frontend)${WHITE}\n"
     printf "   [${BLUE}2${WHITE}] Instalar API Oficial ${YELLOW}(WhatsApp Business)${WHITE}\n"
     printf "   [${BLUE}3${WHITE}] Instalar Transcrição de Áudio ${YELLOW}(API Python)${WHITE}\n"
+    printf "   [${BLUE}4${WHITE}] Instalar Painel Monitor ${RED}(Anti-Pirataria)${WHITE}\n"
     printf "   [${BLUE}0${WHITE}] Sair\n"
     echo
     read -p "> " option
@@ -323,6 +324,9 @@ menu() {
       ;;
     3)
       instalar_transcricao_audio_nativa
+      ;;
+    4)
+      instalar_painel_monitor
       ;;
     0)
       sair
@@ -2484,6 +2488,479 @@ migrar_multiflow_pro() {
   fi
   printf "${GREEN} >> Processo de migração finalizado. Voltando ao menu...${WHITE}\n"
   sleep 2
+}
+
+################################################################
+#          PAINEL MONITOR ANTI-PIRATARIA — INSTALAÇÃO          #
+################################################################
+
+instalar_painel_monitor() {
+  banner
+  printf "${RED}══════════════════════════════════════════════════════════════════${WHITE}\n"
+  printf "${RED}   🛡️  INSTALAÇÃO DO PAINEL MONITOR ANTI-PIRATARIA${WHITE}\n"
+  printf "${RED}══════════════════════════════════════════════════════════════════${WHITE}\n"
+  echo
+  printf "${WHITE}   Este instalador vai configurar automaticamente:\n"
+  printf "${CYAN}   ✔ PostgreSQL${WHITE} (banco de dados local)\n"
+  printf "${CYAN}   ✔ API Express${WHITE} (backend na porta 3200)\n"
+  printf "${CYAN}   ✔ Frontend React${WHITE} (build estático)\n"
+  printf "${CYAN}   ✔ Nginx${WHITE} (proxy reverso + SSL)\n"
+  printf "${CYAN}   ✔ PM2${WHITE} (gerenciador de processos)\n"
+  printf "${CYAN}   ✔ Admin inicial${WHITE} (usuário administrador)\n"
+  echo
+  printf "${YELLOW}   Pré-requisitos:\n"
+  printf "${WHITE}   • VPS com Ubuntu 20+ e acesso root\n"
+  printf "${WHITE}   • 2 subdomínios apontando para o IP desta VPS\n"
+  printf "${WHITE}   • Repositório do painel no GitHub\n"
+  echo
+  printf "${WHITE}   Deseja continuar? (S/N):${WHITE}\n"
+  echo
+  read -p "> " confirma_monitor
+  confirma_monitor=$(echo "${confirma_monitor}" | tr '[:lower:]' '[:upper:]')
+
+  if [ "${confirma_monitor}" != "S" ]; then
+    printf "${GREEN} >> Operação cancelada. Voltando ao menu...${WHITE}\n"
+    sleep 2
+    return
+  fi
+
+  # --- Coleta de dados ---
+  banner
+  printf "${WHITE} >> Digite a URL do repositório GitHub do painel monitor:\n"
+  printf "${YELLOW}    Exemplo: https://github.com/seuusuario/monitor.git${WHITE}\n"
+  echo
+  read -p "> " monitor_repo_url
+  echo
+
+  if [ -z "$monitor_repo_url" ]; then
+    printf "${RED}❌ URL do repositório não pode estar vazia.${WHITE}\n"
+    sleep 2
+    return
+  fi
+
+  printf "${WHITE} >> O repositório é privado? (S/N):${WHITE}\n"
+  echo
+  read -p "> " repo_privado
+  repo_privado=$(echo "${repo_privado}" | tr '[:lower:]' '[:upper:]')
+  echo
+
+  monitor_github_token=""
+  if [ "${repo_privado}" == "S" ]; then
+    printf "${WHITE} >> Digite o TOKEN de acesso do GitHub:${WHITE}\n"
+    echo
+    read -p "> " monitor_github_token
+    echo
+    if [ -z "$monitor_github_token" ]; then
+      printf "${RED}❌ Token não pode estar vazio para repositórios privados.${WHITE}\n"
+      sleep 2
+      return
+    fi
+    # Inserir token na URL
+    monitor_repo_url=$(echo "$monitor_repo_url" | sed "s|https://|https://${monitor_github_token}@|")
+  fi
+
+  printf "${WHITE} >> Digite o subdomínio do PAINEL (frontend):\n"
+  printf "${YELLOW}    Exemplo: monitor.seudominio.com.br${WHITE}\n"
+  echo
+  read -p "> " monitor_frontend_domain
+  echo
+
+  printf "${WHITE} >> Digite o subdomínio da API (backend):\n"
+  printf "${YELLOW}    Exemplo: api-monitor.seudominio.com.br${WHITE}\n"
+  echo
+  read -p "> " monitor_api_domain
+  echo
+
+  printf "${WHITE} >> Digite o e-mail para SSL (Certbot):\n"
+  echo
+  read -p "> " monitor_email_ssl
+  echo
+
+  printf "${WHITE} >> Digite o e-mail do administrador do painel:\n"
+  printf "${YELLOW}    (será usado para login)${WHITE}\n"
+  echo
+  read -p "> " monitor_admin_email
+  echo
+
+  printf "${WHITE} >> Digite a senha do administrador:\n"
+  echo
+  read -s -p "> " monitor_admin_password
+  echo
+  echo
+
+  if [ -z "$monitor_frontend_domain" ] || [ -z "$monitor_api_domain" ] || [ -z "$monitor_email_ssl" ] || [ -z "$monitor_admin_email" ] || [ -z "$monitor_admin_password" ]; then
+    printf "${RED}❌ Todos os campos são obrigatórios.${WHITE}\n"
+    sleep 2
+    return
+  fi
+
+  # --- Verificar DNS ---
+  printf "${BLUE} >> Verificando DNS dos subdomínios...${WHITE}\n"
+  echo
+
+  monitor_dns_front=$(dig +short "$monitor_frontend_domain" | head -1)
+  monitor_dns_api=$(dig +short "$monitor_api_domain" | head -1)
+
+  if [ "$monitor_dns_front" != "$ip_atual" ]; then
+    printf "${YELLOW}⚠️  DNS de ${monitor_frontend_domain} aponta para: ${monitor_dns_front:-NÃO ENCONTRADO}${WHITE}\n"
+    printf "${YELLOW}   IP desta VPS: ${ip_atual}${WHITE}\n"
+    printf "${WHITE}   Deseja continuar mesmo assim? (S/N):${WHITE}\n"
+    echo
+    read -p "> " continua_dns
+    continua_dns=$(echo "${continua_dns}" | tr '[:lower:]' '[:upper:]')
+    if [ "${continua_dns}" != "S" ]; then
+      printf "${RED} >> Configure o DNS e tente novamente.${WHITE}\n"
+      sleep 2
+      return
+    fi
+  else
+    printf "${GREEN}✅ ${monitor_frontend_domain} → ${ip_atual}${WHITE}\n"
+  fi
+
+  if [ "$monitor_dns_api" != "$ip_atual" ]; then
+    printf "${YELLOW}⚠️  DNS de ${monitor_api_domain} aponta para: ${monitor_dns_api:-NÃO ENCONTRADO}${WHITE}\n"
+    printf "${YELLOW}   IP desta VPS: ${ip_atual}${WHITE}\n"
+    printf "${WHITE}   Deseja continuar mesmo assim? (S/N):${WHITE}\n"
+    echo
+    read -p "> " continua_dns2
+    continua_dns2=$(echo "${continua_dns2}" | tr '[:lower:]' '[:upper:]')
+    if [ "${continua_dns2}" != "S" ]; then
+      printf "${RED} >> Configure o DNS e tente novamente.${WHITE}\n"
+      sleep 2
+      return
+    fi
+  else
+    printf "${GREEN}✅ ${monitor_api_domain} → ${ip_atual}${WHITE}\n"
+  fi
+
+  echo
+  printf "${GREEN} >> DNS verificado. Iniciando instalação...${WHITE}\n"
+  sleep 2
+
+  # --- Gerar senhas ---
+  monitor_db_pass=$(openssl rand -hex 16)
+  monitor_jwt_secret=$(openssl rand -hex 32)
+
+  # --- Confirmação ---
+  banner
+  printf "${CYAN}══════════════════════════════════════════════════════════════════${WHITE}\n"
+  printf "${CYAN}   📋 RESUMO DA INSTALAÇÃO${WHITE}\n"
+  printf "${CYAN}══════════════════════════════════════════════════════════════════${WHITE}\n"
+  echo
+  printf "${WHITE}   Repositório:    ${BLUE}${monitor_repo_url%%@*}...${WHITE}\n"
+  printf "${WHITE}   Frontend:       ${GREEN}https://${monitor_frontend_domain}${WHITE}\n"
+  printf "${WHITE}   API:            ${GREEN}https://${monitor_api_domain}${WHITE}\n"
+  printf "${WHITE}   Admin:          ${YELLOW}${monitor_admin_email}${WHITE}\n"
+  printf "${WHITE}   Email SSL:      ${YELLOW}${monitor_email_ssl}${WHITE}\n"
+  echo
+  printf "${WHITE}   Confirma a instalação? (S/N):${WHITE}\n"
+  echo
+  read -p "> " confirma_final
+  confirma_final=$(echo "${confirma_final}" | tr '[:lower:]' '[:upper:]')
+
+  if [ "${confirma_final}" != "S" ]; then
+    printf "${RED} >> Instalação cancelada.${WHITE}\n"
+    sleep 2
+    return
+  fi
+
+  # ============================================================
+  # ETAPA 1: Dependências do sistema
+  # ============================================================
+  banner
+  printf "${BLUE} >> [1/9] Instalando dependências do sistema...${WHITE}\n"
+  echo
+
+  export DEBIAN_FRONTEND=noninteractive
+
+  apt-get update -y
+  apt-get install -y curl wget git nginx certbot python3-certbot-nginx dnsutils build-essential
+
+  # Node.js 20
+  if ! command -v node &>/dev/null || [[ $(node -v | cut -d'.' -f1 | tr -d 'v') -lt 20 ]]; then
+    printf "${WHITE} >> Instalando Node.js 20...${WHITE}\n"
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt-get install -y nodejs
+  fi
+  printf "${GREEN}✅ Node.js $(node -v) instalado.${WHITE}\n"
+
+  # PM2
+  if ! command -v pm2 &>/dev/null; then
+    npm install -g pm2
+  fi
+  printf "${GREEN}✅ PM2 instalado.${WHITE}\n"
+
+  # PostgreSQL
+  if ! command -v psql &>/dev/null; then
+    printf "${WHITE} >> Instalando PostgreSQL...${WHITE}\n"
+    apt-get install -y postgresql postgresql-contrib
+    systemctl enable postgresql
+    systemctl start postgresql
+  fi
+  printf "${GREEN}✅ PostgreSQL instalado.${WHITE}\n"
+  echo
+
+  # ============================================================
+  # ETAPA 2: Banco de dados
+  # ============================================================
+  printf "${BLUE} >> [2/9] Configurando banco de dados...${WHITE}\n"
+  echo
+
+  sudo -u postgres psql -c "CREATE USER monitor_user WITH PASSWORD '${monitor_db_pass}';" 2>/dev/null || true
+  sudo -u postgres psql -c "CREATE DATABASE monitor_db OWNER monitor_user;" 2>/dev/null || true
+  sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE monitor_db TO monitor_user;" 2>/dev/null || true
+
+  printf "${GREEN}✅ Banco monitor_db criado.${WHITE}\n"
+  echo
+
+  # ============================================================
+  # ETAPA 3: Clonar repositório
+  # ============================================================
+  printf "${BLUE} >> [3/9] Clonando repositório...${WHITE}\n"
+  echo
+
+  mkdir -p /home/deploy
+  rm -rf /home/deploy/monitor
+
+  if git clone "$monitor_repo_url" /home/deploy/monitor; then
+    printf "${GREEN}✅ Repositório clonado com sucesso.${WHITE}\n"
+  else
+    printf "${RED}❌ Erro ao clonar repositório. Verifique a URL e o token.${WHITE}\n"
+    sleep 3
+    return
+  fi
+  echo
+
+  # ============================================================
+  # ETAPA 4: Executar schema SQL
+  # ============================================================
+  printf "${BLUE} >> [4/9] Executando schema do banco...${WHITE}\n"
+  echo
+
+  if [ -f /home/deploy/monitor/monitor-api/schema.sql ]; then
+    PGPASSWORD="${monitor_db_pass}" psql -U monitor_user -h localhost -d monitor_db -f /home/deploy/monitor/monitor-api/schema.sql
+    printf "${GREEN}✅ Schema executado com sucesso.${WHITE}\n"
+  else
+    printf "${YELLOW}⚠️  schema.sql não encontrado. Verifique o repositório.${WHITE}\n"
+  fi
+  echo
+
+  # ============================================================
+  # ETAPA 5: Configurar e iniciar API
+  # ============================================================
+  printf "${BLUE} >> [5/9] Configurando API Express...${WHITE}\n"
+  echo
+
+  cd /home/deploy/monitor/monitor-api
+
+  cat > .env <<ENVAPI
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=monitor_db
+DB_USER=monitor_user
+DB_PASS=${monitor_db_pass}
+JWT_SECRET=${monitor_jwt_secret}
+PORT=3200
+RESEND_API_KEY=
+ADMIN_EMAIL=${monitor_admin_email}
+ENVAPI
+
+  npm install --production
+  pm2 delete monitor-api 2>/dev/null || true
+  pm2 start server.js --name monitor-api
+  pm2 save
+
+  printf "${GREEN}✅ API rodando na porta 3200.${WHITE}\n"
+  echo
+
+  # ============================================================
+  # ETAPA 6: Build do frontend
+  # ============================================================
+  printf "${BLUE} >> [6/9] Fazendo build do frontend...${WHITE}\n"
+  echo
+
+  cd /home/deploy/monitor
+
+  cat > .env <<ENVFRONT
+VITE_API_URL=https://${monitor_api_domain}
+ENVFRONT
+
+  npm install
+  npm run build
+
+  if [ -d /home/deploy/monitor/dist ]; then
+    printf "${GREEN}✅ Build do frontend concluído.${WHITE}\n"
+  else
+    printf "${RED}❌ Erro no build do frontend.${WHITE}\n"
+    sleep 3
+    return
+  fi
+  echo
+
+  # ============================================================
+  # ETAPA 7: Configurar Nginx
+  # ============================================================
+  printf "${BLUE} >> [7/9] Configurando Nginx...${WHITE}\n"
+  echo
+
+  # Frontend
+  cat > /etc/nginx/sites-available/monitor-frontend <<NGINXFRONT
+server {
+    listen 80;
+    server_name ${monitor_frontend_domain};
+
+    root /home/deploy/monitor/dist;
+    index index.html;
+
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+NGINXFRONT
+
+  # API
+  cat > /etc/nginx/sites-available/monitor-api <<NGINXAPI
+server {
+    listen 80;
+    server_name ${monitor_api_domain};
+
+    location / {
+        proxy_pass http://localhost:3200;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+    }
+}
+NGINXAPI
+
+  ln -sf /etc/nginx/sites-available/monitor-frontend /etc/nginx/sites-enabled/
+  ln -sf /etc/nginx/sites-available/monitor-api /etc/nginx/sites-enabled/
+
+  nginx -t && systemctl reload nginx
+
+  printf "${GREEN}✅ Nginx configurado.${WHITE}\n"
+  echo
+
+  # ============================================================
+  # ETAPA 8: SSL com Certbot
+  # ============================================================
+  printf "${BLUE} >> [8/9] Gerando certificado SSL...${WHITE}\n"
+  echo
+
+  certbot --nginx -d "${monitor_frontend_domain}" --non-interactive --agree-tos -m "${monitor_email_ssl}" 2>/dev/null || \
+    printf "${YELLOW}⚠️  SSL do frontend pode precisar de configuração manual.${WHITE}\n"
+
+  certbot --nginx -d "${monitor_api_domain}" --non-interactive --agree-tos -m "${monitor_email_ssl}" 2>/dev/null || \
+    printf "${YELLOW}⚠️  SSL da API pode precisar de configuração manual.${WHITE}\n"
+
+  printf "${GREEN}✅ SSL configurado.${WHITE}\n"
+  echo
+
+  # ============================================================
+  # ETAPA 9: Criar admin + CLI
+  # ============================================================
+  printf "${BLUE} >> [9/9] Criando usuário admin e CLI...${WHITE}\n"
+  echo
+
+  cd /home/deploy/monitor/monitor-api
+  node create-admin.js "${monitor_admin_email}" "${monitor_admin_password}"
+
+  # PM2 startup
+  pm2 startup systemd -u root --hp /root 2>/dev/null || true
+  pm2 save
+
+  # CLI de manutenção
+  cat > /usr/local/bin/monitor-cli <<'CLIMONITOR'
+#!/bin/bash
+case "$1" in
+  status)
+    echo "=== Monitor API ==="
+    pm2 show monitor-api 2>/dev/null || echo "API não encontrada no PM2"
+    echo ""
+    echo "=== Nginx ==="
+    systemctl status nginx --no-pager -l | head -5
+    echo ""
+    echo "=== PostgreSQL ==="
+    systemctl status postgresql --no-pager -l | head -5
+    ;;
+  logs)
+    pm2 logs monitor-api --lines 50
+    ;;
+  restart)
+    pm2 restart monitor-api
+    echo "✅ API reiniciada."
+    ;;
+  update)
+    echo ">> Atualizando painel monitor..."
+    cd /home/deploy/monitor
+    git pull
+    cd monitor-api && npm install --production
+    pm2 restart monitor-api
+    cd /home/deploy/monitor
+    npm install && npm run build
+    echo "✅ Atualização concluída."
+    ;;
+  *)
+    echo "Uso: monitor-cli {status|logs|restart|update}"
+    ;;
+esac
+CLIMONITOR
+
+  chmod +x /usr/local/bin/monitor-cli
+
+  # Integração ZapMeow (opcional)
+  echo
+  printf "${WHITE} >> Deseja registrar uma instância ZapMeow existente? (S/N):${WHITE}\n"
+  echo
+  read -p "> " registrar_zapmeow
+  registrar_zapmeow=$(echo "${registrar_zapmeow}" | tr '[:lower:]' '[:upper:]')
+
+  if [ "${registrar_zapmeow}" == "S" ]; then
+    printf "${WHITE} >> Digite a URL do ZapMeow (ex: http://localhost:8900):${WHITE}\n"
+    echo
+    read -p "> " zapmeow_url
+    echo
+    if [ -n "$zapmeow_url" ]; then
+      curl -s -X POST "http://localhost:3200/api/register-zapmeow" \
+        -H "Content-Type: application/json" \
+        -d "{\"zapmeow_url\":\"${zapmeow_url}\",\"instance_id\":\"equipechat\"}" >/dev/null 2>&1
+      printf "${GREEN}✅ ZapMeow registrado.${WHITE}\n"
+    fi
+  fi
+
+  # ============================================================
+  # RESUMO FINAL
+  # ============================================================
+  banner
+  printf "${GREEN}══════════════════════════════════════════════════════════════════${WHITE}\n"
+  printf "${GREEN}   ✅ PAINEL MONITOR INSTALADO COM SUCESSO!${WHITE}\n"
+  printf "${GREEN}══════════════════════════════════════════════════════════════════${WHITE}\n"
+  echo
+  printf "${WHITE}   🌐 Painel:    ${GREEN}https://${monitor_frontend_domain}${WHITE}\n"
+  printf "${WHITE}   🔗 API:       ${GREEN}https://${monitor_api_domain}${WHITE}\n"
+  printf "${WHITE}   👤 Admin:     ${YELLOW}${monitor_admin_email}${WHITE}\n"
+  printf "${WHITE}   🔑 Senha:     ${YELLOW}${monitor_admin_password}${WHITE}\n"
+  echo
+  printf "${CYAN}   Comandos úteis:${WHITE}\n"
+  printf "${WHITE}   • ${BLUE}monitor-cli status${WHITE}   — Ver status dos serviços\n"
+  printf "${WHITE}   • ${BLUE}monitor-cli logs${WHITE}     — Ver logs da API\n"
+  printf "${WHITE}   • ${BLUE}monitor-cli restart${WHITE}  — Reiniciar API\n"
+  printf "${WHITE}   • ${BLUE}monitor-cli update${WHITE}   — Atualizar painel (git pull + rebuild)\n"
+  echo
+  printf "${GREEN}══════════════════════════════════════════════════════════════════${WHITE}\n"
+  echo
+  printf "${WHITE} >> Pressione Enter para voltar ao menu...${WHITE}\n"
+  read -r
 }
 
 carregar_variaveis
