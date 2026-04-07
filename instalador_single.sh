@@ -324,6 +324,9 @@ menu() {
     3)
       instalar_transcricao_audio_nativa
       ;;
+    4)
+      instalar_painel_monitor
+      ;;
     0)
       sair
       ;;
