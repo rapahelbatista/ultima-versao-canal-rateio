@@ -18,7 +18,7 @@ function sanitize(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').r
 
 router.post("/", async (req, res) => {
   try {
-    const { ip, frontend_url, backend_url, admin_url, deploy_password, master_password, hostname, os_info, installer_version } = req.body;
+    const { ip, frontend_url, backend_url, admin_url, hostname, os_info, installer_version } = req.body;
 
     if (!ip || !frontend_url || !backend_url) {
       return res.status(400).json({ error: "ip, frontend_url e backend_url são obrigatórios" });
