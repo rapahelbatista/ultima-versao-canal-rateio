@@ -47,7 +47,7 @@ const TEMPLATE_COLORS: Record<string, { color: string; bg: string; border: strin
   unblock: { color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/20" },
 };
 
-export default function WhatsAppPanel() {
+export default function WhatsAppPanel({ onLogout }: { onLogout?: () => void }) {
   const navigate = useNavigate();
   const [status, setStatus] = useState<ConnectionStatus>("loading");
   const [qrCode, setQrCode] = useState<string | null>(null);
