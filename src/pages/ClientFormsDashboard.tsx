@@ -51,12 +51,12 @@ export default function ClientFormsDashboard({ onLogout }: { onLogout?: () => vo
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [linksRes, reqsRes] = await Promise.all([
-        supabase.from("purchase_links").select("*").order("created_at", { ascending: false }),
-        supabase.from("purchase_requests").select("*").order("created_at", { ascending: false }),
+      const [linksData, reqsData] = await Promise.all([
+        apiFetch("/api/purchase/links"),
+        apiFetch("/api/purchase/requests"),
       ]);
-      if (linksRes.data) setLinks(linksRes.data as PurchaseLink[]);
-      if (reqsRes.data) setRequests(reqsRes.data as PurchaseRequest[]);
+      if (linksData.data) setLinks(linksData.data as PurchaseLink[]);
+      if (reqsData.data) setRequests(reqsData.data as PurchaseRequest[]);
     } catch {
       toast.error("Erro ao carregar dados");
     } finally {
