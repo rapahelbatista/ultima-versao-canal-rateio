@@ -1,91 +1,45 @@
 
 
-# Plano: Instalação Local sem Git (Tudo Embutido no Script)
+# Plano: Duas Opções de Instalação — Local (Embutido) + Git Clone
 
 ## O que será feito
 
-Modificar a função `instalar_painel_monitor()` no `instalador_single.sh` para **embutir todos os arquivos do projeto diretamente no script** usando heredocs. Assim, não precisa de Git, GitHub, nem de internet para baixar o código — tudo já vem dentro do instalador.
-
-## Como funciona
-
-Em vez de pedir URL do repositório e fazer `git clone`, o instalador vai:
-
-1. **Extrair os arquivos embutidos** — O script contém o código do backend (`monitor-api/`) e o frontend já buildado (`dist/`) codificados em base64 dentro de um arquivo `.tar.gz` embutido
-2. O resto do fluxo continua igual: instalar dependências, configurar PostgreSQL, Nginx, SSL, criar admin, etc.
-
-## Mudanças no fluxo
-
-### Removido
-- Pergunta sobre URL do repositório GitHub
-- Pergunta sobre repositório privado/token
-- Comando `git clone`
-- Necessidade de Node.js para build do frontend (já vem pronto)
-
-### Mantido
-- Subdomínios, email SSL, credenciais admin
-- Verificação de DNS
-- Instalação de PostgreSQL, Nginx, Certbot, Node.js, PM2
-- Configuração do banco, API, SSL
-- Integração ZapMeow
-- CLI `monitor-cli`
-
-## Abordagem técnica
-
-### Opção escolhida: Arquivo tar.gz embutido em base64
-
-O script terá no final um bloco com o conteúdo do projeto compactado:
+Adicionar um **sub-menu** na função `instalar_painel_monitor()` que permite escolher entre dois modos de instalação:
 
 ```text
-# No instalador_single.sh:
-MONITOR_ARCHIVE="H4sIAAAAAAAAA+3d..."  # base64 do tar.gz
-
-# Na função:
-echo "$MONITOR_ARCHIVE" | base64 -d | tar xz -C /home/deploy/monitor
+[1] Instalação LOCAL (embutido no script — sem Git)
+[2] Instalação via GIT (clone de repositório GitHub)
 ```
 
-### O que vai dentro do tar.gz
-```text
-monitor/
-├── monitor-api/           ← código fonte do backend (server.js, routes/, etc.)
-│   ├── server.js
-│   ├── db.js
-│   ├── schema.sql
-│   ├── create-admin.js
-│   ├── package.json
-│   ├── routes/
-│   ├── middleware/
-│   └── helpers/
-└── dist/                  ← frontend já buildado (HTML/CSS/JS estático)
-    ├── index.html
-    └── assets/
-```
+## Mudanças no código
 
-### Processo de geração
-1. Fazer `npm run build` do frontend para gerar `dist/`
-2. Empacotar `dist/` + `monitor-api/` em `tar.gz`
-3. Converter para base64 e embutir no script
+### Arquivo: `instalador_single.sh`
 
-### Etapa 3 do instalador (substituição do git clone)
-```bash
-# ANTES: git clone "$monitor_repo_url" /home/deploy/monitor
-# DEPOIS:
-mkdir -p /home/deploy/monitor
-echo "$MONITOR_ARCHIVE" | base64 -d | tar xz -C /home/deploy/monitor
-```
+**1. Sub-menu de escolha** — Logo após a confirmação inicial ("Deseja continuar? S/N"), adicionar um menu perguntando o modo:
+- Opção 1: Local (comportamento atual — extrai `MONITOR_ARCHIVE_B64`)
+- Opção 2: Git — pede URL do repositório, token opcional, faz `git clone`, e roda `npm run build` do frontend
 
-## Vantagem
-- Zero dependência de Git/GitHub
-- Funciona offline (exceto para instalar pacotes do sistema)
-- Um único arquivo `.sh` contém tudo
+**2. Modo Git — fluxo adicional:**
+- Solicita URL do repositório GitHub
+- Pergunta se é repositório privado → pede token de acesso
+- Faz `git clone` para `/home/deploy/monitor`
+- Instala dependências do frontend (`npm install`) e faz build (`npm run build`)
+- O `VITE_API_URL` é configurado via `.env` antes do build
+- O restante (DB, API, Nginx, SSL, Admin, CLI) segue **idêntico** ao modo local
 
-## Detalhe importante
-- O `VITE_API_URL` será injetado no `index.html` via `sed` após extração, substituindo um placeholder
-- O `npm install` ainda é necessário na pasta `monitor-api/` para instalar dependências do backend (express, pg, bcrypt, etc.)
+**3. Refatoração interna:**
+- Extrair as etapas 1-2 e 4-9 (que são comuns) para que ambos os modos compartilhem o mesmo código
+- Apenas a **Etapa 3** difere:
+  - Local: `echo "$MONITOR_ARCHIVE_B64" | base64 -d | tar xz -C /home/deploy`
+  - Git: `git clone → npm install → npm run build`
 
-## Sequência de implementação
-1. Gerar o build do frontend com placeholder para API URL
-2. Criar o tar.gz com `dist/` + `monitor-api/`
-3. Embutir no script como variável base64
-4. Atualizar a função `instalar_painel_monitor()` removendo git clone e usando extração local
-5. Ajustar o `monitor-cli update` para funcionar sem git (download de nova versão do script)
+**4. Atualizar a descrição no banner** para mostrar ambas as opções disponíveis.
+
+**5. CLI `monitor-cli update`** — No modo Git, o comando `update` fará `git pull + npm install + npm run build + pm2 restart`. No modo local, mantém a mensagem atual de re-executar o instalador. Um arquivo `/home/deploy/monitor/.install-mode` guardará qual modo foi usado.
+
+## Detalhes técnicos
+
+- O modo Git requer `git` instalado (será adicionado ao `apt-get install`)
+- O build do frontend no modo Git precisa de mais RAM (~1GB) — será adicionado um aviso
+- Um arquivo `.install-mode` (`local` ou `git`) será salvo em `/home/deploy/monitor/` para o CLI saber como atualizar
 
