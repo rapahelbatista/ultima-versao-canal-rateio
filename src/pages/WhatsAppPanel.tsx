@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch, logout as apiLogout } from "@/lib/api";
 import { toast } from "sonner";
 import {
   MessageSquare, QrCode, RefreshCw, Wifi, WifiOff,
