@@ -1,62 +1,91 @@
 
 
-# Plano: Adicionar Opção [4] ao Instalador — Painel Monitor Completo
+# Plano: Instalação Local sem Git (Tudo Embutido no Script)
 
 ## O que será feito
 
-Adicionar a opção **[4] Instalar Painel Monitor Anti-Pirataria** ao menu principal do `instalador_single.sh`. Essa opção instala automaticamente:
+Modificar a função `instalar_painel_monitor()` no `instalador_single.sh` para **embutir todos os arquivos do projeto diretamente no script** usando heredocs. Assim, não precisa de Git, GitHub, nem de internet para baixar o código — tudo já vem dentro do instalador.
 
-- **PostgreSQL** (banco `monitor_db` + schema completo)
-- **API Express** (monitor-api na porta 3200, gerenciada pelo PM2)
-- **Frontend React** (build estático servido pelo Nginx)
-- **Nginx** (2 subdomínios: painel + API, com SSL via Certbot)
-- **Admin inicial** (cria usuário admin no banco)
-- **Integração ZapMeow** (opcional, registra instância existente)
-- **CLI de manutenção** (`monitor-cli update/logs/status`)
+## Como funciona
 
-## Fluxo da instalação
+Em vez de pedir URL do repositório e fazer `git clone`, o instalador vai:
 
-1. Solicita: URL do repositório GitHub, subdomínio do painel, subdomínio da API, email SSL, email/senha admin
-2. Verifica DNS dos 2 subdomínios
-3. Instala Node.js 20 + PostgreSQL + Nginx + Certbot (se não existirem)
-4. Cria banco `monitor_db`, usuário e executa `schema.sql`
-5. Clona repositório, instala dependências do `monitor-api/`, cria `.env`
-6. Inicia API com PM2
-7. Faz build do frontend com `VITE_API_URL` configurado
-8. Configura Nginx (SPA fallback + reverse proxy para API)
-9. Gera SSL com Certbot
-10. Cria admin inicial via `node create-admin.js`
-11. Pergunta se quer registrar ZapMeow existente
-12. Cria comando global `monitor-cli`
-13. Exibe resumo com URLs e credenciais
+1. **Extrair os arquivos embutidos** — O script contém o código do backend (`monitor-api/`) e o frontend já buildado (`dist/`) codificados em base64 dentro de um arquivo `.tar.gz` embutido
+2. O resto do fluxo continua igual: instalar dependências, configurar PostgreSQL, Nginx, SSL, criar admin, etc.
 
-## Detalhes técnicos
+## Mudanças no fluxo
 
-### Arquivo modificado
-- `instalador_single.sh` — adicionar:
-  - Nova opção `[4]` no menu (entre opção 3 e 0)
-  - Função `instalar_painel_monitor()` (~200 linhas)
-  - Função auxiliar `atualizar_painel_monitor()` para updates futuros
+### Removido
+- Pergunta sobre URL do repositório GitHub
+- Pergunta sobre repositório privado/token
+- Comando `git clone`
+- Necessidade de Node.js para build do frontend (já vem pronto)
 
-### Estrutura na VPS após instalação
+### Mantido
+- Subdomínios, email SSL, credenciais admin
+- Verificação de DNS
+- Instalação de PostgreSQL, Nginx, Certbot, Node.js, PM2
+- Configuração do banco, API, SSL
+- Integração ZapMeow
+- CLI `monitor-cli`
+
+## Abordagem técnica
+
+### Opção escolhida: Arquivo tar.gz embutido em base64
+
+O script terá no final um bloco com o conteúdo do projeto compactado:
+
 ```text
-/home/deploy/monitor/
-├── monitor-api/
-│   ├── .env          ← DB_HOST, JWT_SECRET, PORT=3200
-│   ├── server.js
-│   ├── routes/
-│   └── node_modules/
-├── dist/             ← build estático do frontend
-│   └── index.html
-└── .env              ← VITE_API_URL=https://api-monitor.dominio.com
+# No instalador_single.sh:
+MONITOR_ARCHIVE="H4sIAAAAAAAAA+3d..."  # base64 do tar.gz
+
+# Na função:
+echo "$MONITOR_ARCHIVE" | base64 -d | tar xz -C /home/deploy/monitor
 ```
 
-### Nginx
-- `monitor.dominio.com` → `root /home/deploy/monitor/dist` (SPA)
-- `api-monitor.dominio.com` → `proxy_pass http://localhost:3200`
+### O que vai dentro do tar.gz
+```text
+monitor/
+├── monitor-api/           ← código fonte do backend (server.js, routes/, etc.)
+│   ├── server.js
+│   ├── db.js
+│   ├── schema.sql
+│   ├── create-admin.js
+│   ├── package.json
+│   ├── routes/
+│   ├── middleware/
+│   └── helpers/
+└── dist/                  ← frontend já buildado (HTML/CSS/JS estático)
+    ├── index.html
+    └── assets/
+```
 
-### Pré-requisitos
-- Projeto conectado ao GitHub (Settings → GitHub)
-- 2 registros A no DNS apontando para o IP da VPS
-- VPS com Ubuntu 20+ e acesso root
+### Processo de geração
+1. Fazer `npm run build` do frontend para gerar `dist/`
+2. Empacotar `dist/` + `monitor-api/` em `tar.gz`
+3. Converter para base64 e embutir no script
+
+### Etapa 3 do instalador (substituição do git clone)
+```bash
+# ANTES: git clone "$monitor_repo_url" /home/deploy/monitor
+# DEPOIS:
+mkdir -p /home/deploy/monitor
+echo "$MONITOR_ARCHIVE" | base64 -d | tar xz -C /home/deploy/monitor
+```
+
+## Vantagem
+- Zero dependência de Git/GitHub
+- Funciona offline (exceto para instalar pacotes do sistema)
+- Um único arquivo `.sh` contém tudo
+
+## Detalhe importante
+- O `VITE_API_URL` será injetado no `index.html` via `sed` após extração, substituindo um placeholder
+- O `npm install` ainda é necessário na pasta `monitor-api/` para instalar dependências do backend (express, pg, bcrypt, etc.)
+
+## Sequência de implementação
+1. Gerar o build do frontend com placeholder para API URL
+2. Criar o tar.gz com `dist/` + `monitor-api/`
+3. Embutir no script como variável base64
+4. Atualizar a função `instalar_painel_monitor()` removendo git clone e usando extração local
+5. Ajustar o `monitor-cli update` para funcionar sem git (download de nova versão do script)
 
