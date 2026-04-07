@@ -825,7 +825,7 @@ export default function MonitorDashboard({ onLogout }: { onLogout?: () => void }
               title="Alterar senha">
               <Key className="w-4 h-4" />
             </button>
-            <button onClick={async () => { await supabase.auth.signOut(); navigate("/login"); }}
+            <button onClick={() => { apiLogout(); onLogout?.(); navigate("/login"); }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
               <LogOut className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Sair</span>
