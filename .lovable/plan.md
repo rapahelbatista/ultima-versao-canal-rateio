@@ -1,51 +1,50 @@
 
 
-# Plano: Unificar ZapMeow na Opção [4] do Instalador
+# Plano: Health Check + Registro Automático do ZapMeow com Retry
 
 ## O que será feito
 
-Integrar a instalação do **ZapMeow** (Docker) diretamente dentro da função `instalar_painel_monitor()`, eliminando a necessidade de instalar separadamente. A opção [4] passará a instalar tudo: PostgreSQL, API, Frontend, Nginx, SSL **e ZapMeow**.
+Substituir o registro "cego" atual (etapa 11/11) por uma verificação robusta que:
+1. Testa se o ZapMeow está respondendo (com retry e timeout)
+2. Testa se a API do Monitor está respondendo
+3. Só registra o ZapMeow no banco se ambos estiverem OK
+4. Mostra feedback claro de sucesso/falha para cada serviço
 
 ## Mudanças no `instalador_single.sh`
 
-### 1. Atualizar banner da opção [4]
-Adicionar `✔ ZapMeow (WhatsApp API via Docker)` na lista de componentes instalados (linha ~2512).
+### Substituir bloco da Etapa 11/11 (linhas ~3106-3121)
 
-### 2. Coletar dados do ZapMeow na coleta de dados (após linha ~2608)
-- Perguntar porta do ZapMeow (padrão: 8900)
-- Perguntar se deseja subdomínio para o ZapMeow (ex: `zap.seudominio.com.br`) ou usar IP:porta diretamente
+O novo bloco fará:
 
-### 3. Nova etapa entre as etapas 1 e 2: Instalar Docker + ZapMeow
-Inserir após a instalação de dependências do sistema (após linha ~2737):
-- Instalar Docker (se não existir)
-- Instalar Docker Compose plugin
-- Criar `/opt/zapmeow/` com `docker-compose.yml` e `.env`
-- Executar `docker compose up -d`
-- Aguardar o serviço iniciar (loop de health check)
+```text
+1. Health check do ZapMeow (até 60s, polling a cada 3s)
+   - GET http://localhost:{porta}/api
+   - Se OK → marca zapmeow_ok=true
+   - Se falha → aviso amarelo, continua sem registrar
 
-### 4. Nginx: adicionar bloco do ZapMeow (se subdomínio informado)
-Após os blocos Nginx existentes do frontend e API (~linha 2919), adicionar um terceiro server block para o ZapMeow com proxy_pass para `localhost:8900` e suporte a WebSocket.
+2. Health check da API Monitor (até 30s, polling a cada 3s)
+   - GET http://localhost:3200/api/health (ou /)
+   - Se OK → marca api_ok=true
+   - Se falha → aviso amarelo
 
-### 5. SSL: incluir subdomínio do ZapMeow no Certbot
-Adicionar mais um `certbot --nginx -d` para o subdomínio do ZapMeow (após linha ~2939).
+3. Se ambos OK:
+   - Criar instância: POST /api/equipechat/qrcode
+   - Registrar no banco: POST /api/register-zapmeow
+   - Verificar resposta do registro (checar HTTP status)
+   - Se registro OK → verde "ZapMeow registrado"
+   - Se falha → amarelo "Registro falhou, tente manualmente"
 
-### 6. Registro automático do ZapMeow na API
-Substituir o bloco atual de "registrar ZapMeow existente?" (linhas 3012-3030) por um registro **automático** — já que acabamos de instalar o ZapMeow, sabemos a URL:
-```bash
-curl -s -X POST "http://localhost:3200/api/register-zapmeow" \
-  -H "Content-Type: application/json" \
-  -d '{"zapmeow_url":"http://localhost:8900/api","instance_id":"equipechat"}'
+4. Resumo de status:
+   ✅ ZapMeow: rodando (porta 8900)
+   ✅ API Monitor: rodando (porta 3200)
+   ✅ Registro: concluído
+   -- ou --
+   ⚠️ ZapMeow: não acessível
+   ⚠️ Registro: pendente (acesse o painel para configurar)
 ```
 
-### 7. Atualizar resumo final
-Adicionar informações do ZapMeow: URL, porta, QR Code, subdomínio (se configurado).
-
-### 8. Atualizar `monitor-cli`
-Adicionar comandos `zapmeow-status`, `zapmeow-logs`, `zapmeow-restart` ao CLI, e mostrar status do Docker/ZapMeow no comando `status`.
-
-### 9. Re-numerar etapas
-De `[1/9]` a `[9/9]` → `[1/11]` a `[11/11]` para incluir Docker e ZapMeow como etapas explícitas.
-
-## Resultado
-A opção **[4]** instala o sistema completo em um único passo: banco, API, frontend, Nginx, SSL, ZapMeow e registro automático. O operador só precisa escanear o QR Code no painel após a instalação.
+### Detalhes técnicos
+- O loop de health check usa `curl -sf` com timeout de 5s por tentativa
+- A resposta do registro é capturada e validada (HTTP 200 + JSON `success: true`)
+- Um arquivo `/home/deploy/monitor/.zapmeow-registered` é criado se o registro for bem-sucedido, para evitar re-registros em atualizações futuras
 
