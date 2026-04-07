@@ -311,6 +311,7 @@ menu() {
     printf "   [${BLUE}1${WHITE}] Instalar ${nome_titulo} ${CYAN}(Backend + Frontend)${WHITE}\n"
     printf "   [${BLUE}2${WHITE}] Instalar API Oficial ${YELLOW}(WhatsApp Business)${WHITE}\n"
     printf "   [${BLUE}3${WHITE}] Instalar Transcrição de Áudio ${YELLOW}(API Python)${WHITE}\n"
+    printf "   [${BLUE}4${WHITE}] Instalar Painel Monitor ${RED}(Anti-Pirataria)${WHITE}\n"
     printf "   [${BLUE}0${WHITE}] Sair\n"
     echo
     read -p "> " option
