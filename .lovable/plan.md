@@ -1,45 +1,51 @@
 
 
-# Plano: Duas Opções de Instalação — Local (Embutido) + Git Clone
+# Plano: Unificar ZapMeow na Opção [4] do Instalador
 
 ## O que será feito
 
-Adicionar um **sub-menu** na função `instalar_painel_monitor()` que permite escolher entre dois modos de instalação:
+Integrar a instalação do **ZapMeow** (Docker) diretamente dentro da função `instalar_painel_monitor()`, eliminando a necessidade de instalar separadamente. A opção [4] passará a instalar tudo: PostgreSQL, API, Frontend, Nginx, SSL **e ZapMeow**.
 
-```text
-[1] Instalação LOCAL (embutido no script — sem Git)
-[2] Instalação via GIT (clone de repositório GitHub)
+## Mudanças no `instalador_single.sh`
+
+### 1. Atualizar banner da opção [4]
+Adicionar `✔ ZapMeow (WhatsApp API via Docker)` na lista de componentes instalados (linha ~2512).
+
+### 2. Coletar dados do ZapMeow na coleta de dados (após linha ~2608)
+- Perguntar porta do ZapMeow (padrão: 8900)
+- Perguntar se deseja subdomínio para o ZapMeow (ex: `zap.seudominio.com.br`) ou usar IP:porta diretamente
+
+### 3. Nova etapa entre as etapas 1 e 2: Instalar Docker + ZapMeow
+Inserir após a instalação de dependências do sistema (após linha ~2737):
+- Instalar Docker (se não existir)
+- Instalar Docker Compose plugin
+- Criar `/opt/zapmeow/` com `docker-compose.yml` e `.env`
+- Executar `docker compose up -d`
+- Aguardar o serviço iniciar (loop de health check)
+
+### 4. Nginx: adicionar bloco do ZapMeow (se subdomínio informado)
+Após os blocos Nginx existentes do frontend e API (~linha 2919), adicionar um terceiro server block para o ZapMeow com proxy_pass para `localhost:8900` e suporte a WebSocket.
+
+### 5. SSL: incluir subdomínio do ZapMeow no Certbot
+Adicionar mais um `certbot --nginx -d` para o subdomínio do ZapMeow (após linha ~2939).
+
+### 6. Registro automático do ZapMeow na API
+Substituir o bloco atual de "registrar ZapMeow existente?" (linhas 3012-3030) por um registro **automático** — já que acabamos de instalar o ZapMeow, sabemos a URL:
+```bash
+curl -s -X POST "http://localhost:3200/api/register-zapmeow" \
+  -H "Content-Type: application/json" \
+  -d '{"zapmeow_url":"http://localhost:8900/api","instance_id":"equipechat"}'
 ```
 
-## Mudanças no código
+### 7. Atualizar resumo final
+Adicionar informações do ZapMeow: URL, porta, QR Code, subdomínio (se configurado).
 
-### Arquivo: `instalador_single.sh`
+### 8. Atualizar `monitor-cli`
+Adicionar comandos `zapmeow-status`, `zapmeow-logs`, `zapmeow-restart` ao CLI, e mostrar status do Docker/ZapMeow no comando `status`.
 
-**1. Sub-menu de escolha** — Logo após a confirmação inicial ("Deseja continuar? S/N"), adicionar um menu perguntando o modo:
-- Opção 1: Local (comportamento atual — extrai `MONITOR_ARCHIVE_B64`)
-- Opção 2: Git — pede URL do repositório, token opcional, faz `git clone`, e roda `npm run build` do frontend
+### 9. Re-numerar etapas
+De `[1/9]` a `[9/9]` → `[1/11]` a `[11/11]` para incluir Docker e ZapMeow como etapas explícitas.
 
-**2. Modo Git — fluxo adicional:**
-- Solicita URL do repositório GitHub
-- Pergunta se é repositório privado → pede token de acesso
-- Faz `git clone` para `/home/deploy/monitor`
-- Instala dependências do frontend (`npm install`) e faz build (`npm run build`)
-- O `VITE_API_URL` é configurado via `.env` antes do build
-- O restante (DB, API, Nginx, SSL, Admin, CLI) segue **idêntico** ao modo local
-
-**3. Refatoração interna:**
-- Extrair as etapas 1-2 e 4-9 (que são comuns) para que ambos os modos compartilhem o mesmo código
-- Apenas a **Etapa 3** difere:
-  - Local: `echo "$MONITOR_ARCHIVE_B64" | base64 -d | tar xz -C /home/deploy`
-  - Git: `git clone → npm install → npm run build`
-
-**4. Atualizar a descrição no banner** para mostrar ambas as opções disponíveis.
-
-**5. CLI `monitor-cli update`** — No modo Git, o comando `update` fará `git pull + npm install + npm run build + pm2 restart`. No modo local, mantém a mensagem atual de re-executar o instalador. Um arquivo `/home/deploy/monitor/.install-mode` guardará qual modo foi usado.
-
-## Detalhes técnicos
-
-- O modo Git requer `git` instalado (será adicionado ao `apt-get install`)
-- O build do frontend no modo Git precisa de mais RAM (~1GB) — será adicionado um aviso
-- Um arquivo `.install-mode` (`local` ou `git`) será salvo em `/home/deploy/monitor/` para o CLI saber como atualizar
+## Resultado
+A opção **[4]** instala o sistema completo em um único passo: banco, API, frontend, Nginx, SSL, ZapMeow e registro automático. O operador só precisa escanear o QR Code no painel após a instalação.
 
