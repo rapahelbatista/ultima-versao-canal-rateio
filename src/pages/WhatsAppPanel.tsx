@@ -210,7 +210,7 @@ export default function WhatsAppPanel({ onLogout }: { onLogout?: () => void }) {
             <Button variant="ghost" size="sm" onClick={() => { checkStatus(); loadTemplates(); }} title="Atualizar">
               <RefreshCw className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={async () => { await supabase.auth.signOut(); navigate("/login"); }}>
+            <Button variant="ghost" size="sm" onClick={() => { apiLogout(); onLogout?.(); navigate("/login"); }}>
               <LogOut className="w-4 h-4" />
             </Button>
           </div>
