@@ -2678,6 +2678,25 @@ instalar_painel_monitor() {
     printf "${GREEN}✅ ${monitor_api_domain} → ${ip_atual}${WHITE}\n"
   fi
 
+  if [ -n "$zapmeow_domain" ]; then
+    zapmeow_dns=$(dig +short "$zapmeow_domain" | head -1)
+    if [ "$zapmeow_dns" != "$ip_atual" ]; then
+      printf "${YELLOW}⚠️  DNS de ${zapmeow_domain} aponta para: ${zapmeow_dns:-NÃO ENCONTRADO}${WHITE}\n"
+      printf "${YELLOW}   IP desta VPS: ${ip_atual}${WHITE}\n"
+      printf "${WHITE}   Deseja continuar mesmo assim? (S/N):${WHITE}\n"
+      echo
+      read -p "> " continua_dns3
+      continua_dns3=$(echo "${continua_dns3}" | tr '[:lower:]' '[:upper:]')
+      if [ "${continua_dns3}" != "S" ]; then
+        printf "${RED} >> Configure o DNS e tente novamente.${WHITE}\n"
+        sleep 2
+        return
+      fi
+    else
+      printf "${GREEN}✅ ${zapmeow_domain} → ${ip_atual}${WHITE}\n"
+    fi
+  fi
+
   echo
   printf "${GREEN} >> DNS verificado. Iniciando instalação...${WHITE}\n"
   sleep 2
@@ -2685,6 +2704,13 @@ instalar_painel_monitor() {
   # --- Gerar senhas ---
   monitor_db_pass=$(openssl rand -hex 16)
   monitor_jwt_secret=$(openssl rand -hex 32)
+
+  # --- Definir URL do ZapMeow ---
+  if [ -n "$zapmeow_domain" ]; then
+    zapmeow_url_final="https://${zapmeow_domain}/api"
+  else
+    zapmeow_url_final="http://localhost:${zapmeow_port}/api"
+  fi
 
   # --- Confirmação ---
   banner
@@ -2699,6 +2725,10 @@ instalar_painel_monitor() {
   fi
   printf "${WHITE}   Frontend:       ${GREEN}https://${monitor_frontend_domain}${WHITE}\n"
   printf "${WHITE}   API:            ${GREEN}https://${monitor_api_domain}${WHITE}\n"
+  printf "${WHITE}   ZapMeow:        ${GREEN}${zapmeow_url_final}${WHITE}\n"
+  if [ -n "$zapmeow_domain" ]; then
+    printf "${WHITE}   ZapMeow domínio:${GREEN} https://${zapmeow_domain}${WHITE}\n"
+  fi
   printf "${WHITE}   Admin:          ${YELLOW}${monitor_admin_email}${WHITE}\n"
   printf "${WHITE}   Email SSL:      ${YELLOW}${monitor_email_ssl}${WHITE}\n"
   echo
