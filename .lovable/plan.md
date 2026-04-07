@@ -1,80 +1,102 @@
 
 
-# Plano: Adicionar Instalação do Painel Monitor + WhatsApp ao Instalador
+# Plano: Self-Hosting Completo na VPS (Sem Lovable/Supabase)
 
-## Visão Geral
+## Visao Geral
 
-O instalador `instalador_single-2.sh` será modificado para incluir uma nova opção no menu que instala o **Painel Monitor Anti-Pirataria** (este projeto React/Vite) na VPS do operador, junto com o serviço de notificações WhatsApp (ZapMeow). Assim, o operador terá tudo rodando no seu próprio domínio, sem referência à Lovable.
+Migrar **todo o sistema** para rodar 100% na sua VPS: frontend, backend (API), banco de dados e WhatsApp. Zero dependencia de Lovable ou servicos externos (exceto Resend para emails, opcional).
 
-## O que será feito
+## Arquitetura Final na VPS
 
-### 1. Nova opção no menu principal: "Instalar Painel Monitor"
-- Adicionada como opção `[11]` no menu
-- Solicita:
-  - Subdomínio para o painel (ex: `monitor.equipechat.com.br`)
-  - Email para SSL
-  - Porta (padrão: 4000)
-
-### 2. Função `instalar_painel_monitor()`
-A função fará:
-
-1. **Verificar DNS** do subdomínio informado
-2. **Clonar o repositório** do painel do GitHub (precisa conectar o projeto ao GitHub primeiro nas Settings do Lovable)
-3. **Criar o `.env`** com as variáveis do backend na nuvem:
-   ```
-   VITE_SUPABASE_URL=https://cicwzhpsiewdpugmceqm.supabase.co
-   VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGci...
-   VITE_SUPABASE_PROJECT_ID=cicwzhpsiewdpugmceqm
-   ```
-4. **Build** (`npm install && npm run build`) — gera pasta `dist/`
-5. **Servir com Nginx** como site estático (SPA fallback com `try_files`)
-6. **SSL com Certbot**
-7. **Registrar no ZapMeow** — chamar a Edge Function `register-zapmeow` com a URL da instância ZapMeow local (se existir)
-
-### 3. Integração com ZapMeow (notificações WhatsApp)
-- Pergunta se o usuário já tem ZapMeow instalado na VPS
-- Se sim: registra a URL no painel via Edge Function
-- Se não: oferece instalar (chama o `instalador_whatsmeow.sh` existente e depois registra)
-
-### 4. Comando CLI global
-- Cria um alias `monitor-cli` para facilitar manutenção:
-  - `monitor-cli logs` — ver logs do Nginx
-  - `monitor-cli update` — git pull + rebuild
-  - `monitor-cli status` — verificar se o site está acessível
-
-## Detalhes técnicos
-
-### Arquivos modificados
-- **`instalador_single-2.sh`** — novo arquivo gerado com as modificações:
-  - Novas funções: `instalar_painel_monitor()`, `atualizar_painel_monitor()`
-  - Menu principal: nova opção `[11]`
-  
-### Arquitetura do deploy do painel
 ```text
-/home/deploy/monitor/
-├── .env                    ← variáveis Supabase
-├── dist/                   ← build estático do Vite
-│   ├── index.html
-│   ├── assets/
-│   └── ...
-└── package.json
-
-Nginx (sites-available/monitor):
-  root /home/deploy/monitor/dist;
-  try_files $uri $uri/ /index.html;  ← SPA fallback
+VPS (Ubuntu)
+├── Nginx (reverse proxy + SSL)
+│   ├── monitor.seudominio.com.br → /home/deploy/monitor/dist (frontend estático)
+│   └── api-monitor.seudominio.com.br → localhost:3200 (API Express)
+├── PostgreSQL (banco local)
+│   └── database: monitor_db
+├── API Express (Node.js + PM2)
+│   ├── /api/check-block-status
+│   ├── /api/register-installation
+│   ├── /api/manage-installations
+│   ├── /api/whatsapp-proxy
+│   ├── /api/whatsapp-welcome
+│   ├── /api/register-zapmeow
+│   ├── /api/setup-admin
+│   └── /api/auth/login
+└── ZapMeow (Docker — já instalado)
 ```
 
-### Pré-requisitos
-1. **Conectar o projeto ao GitHub** (Settings → GitHub no Lovable) para permitir `git clone` na VPS
-2. Subdomínio apontando para o IP da VPS (registro A no DNS)
-3. VPS com Ubuntu 20+ e acesso root
+## O que sera feito
 
-### Variáveis sensíveis
-- A `PUBLISHABLE_KEY` (anon key) é pública por design — seguro incluir no script
-- Nenhuma service_role_key é exposta — toda autenticação passa pelas Edge Functions
+### 1. Criar backend Express.js local (`monitor-api/`)
+Novo projeto Node.js/Express com:
+- **7 rotas** convertidas das Edge Functions atuais para Express
+- **Auth local** com bcrypt + jsonwebtoken (JWT) em vez de Supabase Auth
+- **PostgreSQL local** via `pg` (node-postgres) em vez de Supabase client
+- **Middleware de auth** para rotas protegidas (verifica JWT no header)
+- **PM2** para manter rodando
 
-## Sequência de implementação
-1. Gerar o novo `instalador_single-2.sh` com a função `instalar_painel_monitor()` adicionada
-2. Adicionar ao menu principal como opção `[11]`
-3. Incluir lógica de registro do ZapMeow após instalação do painel
+### 2. Criar schema SQL para PostgreSQL local
+Tabelas:
+- `users` (id, email, password_hash, created_at)
+- `user_roles` (id, user_id, role)
+- `installations` (id, ip, frontend_url, backend_url, admin_url, deploy_password, master_password, hostname, os_info, installer_version, is_blocked, block_reason, blocked_at, created_at, updated_at)
+- `purchase_links` (id, token, client_label, status, created_at)
+- `purchase_requests` (id, link_id, contact_name, contact_email, contact_phone, company_name, document_type, document_number, usage_type, how_found_us, agreed_anti_piracy, notes, created_at)
+- `whatsapp_config` (id, zapmeow_url, instance_id, is_active, created_at, updated_at)
+- `whatsapp_templates` (id, template_key, title, message_body, is_active, created_at, updated_at)
+
+### 3. Modificar o frontend React
+- Trocar `supabase.from(...)` por chamadas `fetch()` ao backend Express local
+- Trocar `supabase.auth.signIn/signUp` por `/api/auth/login`
+- Variavel de ambiente: `VITE_API_URL=https://api-monitor.seudominio.com.br`
+- Remover dependencia do `@supabase/supabase-js`
+
+### 4. Atualizar o instalador (`instalador_single.sh`)
+Nova opcao no menu que:
+1. Instala Node.js 20, PostgreSQL, Nginx, Certbot
+2. Cria banco `monitor_db` com todas as tabelas
+3. Clona repositorio do GitHub
+4. Faz build do frontend (`npm run build`)
+5. Instala e inicia a API com PM2
+6. Configura Nginx (2 subdomínios: frontend + API)
+7. SSL via Certbot
+8. Cria usuario admin inicial
+9. Integra com ZapMeow (se presente)
+
+## Detalhes tecnicos
+
+### Mapeamento Edge Functions → Express Routes
+
+| Edge Function | Rota Express | Auth |
+|---|---|---|
+| check-block-status | GET/POST /api/check-block-status | Publico |
+| register-installation | POST /api/register-installation | Publico |
+| manage-installations | GET/POST /api/manage-installations | Admin JWT |
+| whatsapp-proxy | POST /api/whatsapp-proxy | Admin JWT |
+| whatsapp-welcome | POST /api/whatsapp-welcome | Publico |
+| register-zapmeow | POST /api/register-zapmeow | Publico |
+| setup-admin | POST /api/setup-admin | Admin JWT |
+| — | POST /api/auth/login | Publico |
+
+### Arquivos criados/modificados
+- `monitor-api/` — novo diretório com o backend Express completo
+  - `server.js`, `routes/`, `middleware/auth.js`, `db.js`, `schema.sql`
+- `src/integrations/supabase/client.ts` → substituido por `src/lib/api.ts` (fetch wrapper)
+- `src/pages/*.tsx` — trocar chamadas Supabase por API local
+- `src/App.tsx` — trocar auth Supabase por auth JWT local
+- `instalador_single.sh` — nova opcao de menu
+
+### Pre-requisitos
+1. Conectar projeto ao GitHub (Settings → GitHub)
+2. VPS com Ubuntu 20+ e root
+3. Subdomínios apontando para o IP da VPS (2 registros A)
+
+## Sequencia de implementacao
+1. Criar `monitor-api/` (backend Express + schema SQL)
+2. Criar `src/lib/api.ts` (cliente HTTP para substituir Supabase)
+3. Refatorar paginas do frontend para usar API local
+4. Refatorar auth (login/sessao) para JWT local
+5. Atualizar instalador com nova opcao de deploy completo
 
