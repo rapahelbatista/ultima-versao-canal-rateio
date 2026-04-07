@@ -3158,20 +3158,32 @@ NGINXZAP
     curl -s -X POST "http://localhost:${zapmeow_port}/api/equipechat/qrcode" >/dev/null 2>&1 || true
     sleep 2
 
-    # Registrar no banco via API
-    reg_response=$(curl -s -w "\n%{http_code}" -X POST "http://localhost:3200/api/register-zapmeow" \
+    # Fazer login para obter token JWT (necessário para register-zapmeow)
+    login_response=$(curl -s -X POST "http://localhost:3200/api/auth/login" \
       -H "Content-Type: application/json" \
-      -d "{\"zapmeow_url\":\"http://localhost:${zapmeow_port}/api\",\"instance_id\":\"equipechat\"}" 2>/dev/null)
+      -d "{\"email\":\"${monitor_admin_email}\",\"password\":\"${monitor_admin_password}\"}" 2>/dev/null)
 
-    reg_http_code=$(echo "$reg_response" | tail -1)
-    reg_body=$(echo "$reg_response" | sed '$d')
+    jwt_token=$(echo "$login_response" | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4)
 
-    if [ "$reg_http_code" = "200" ] && echo "$reg_body" | grep -q '"success":true\|"success": true'; then
-      registro_ok=true
-      touch /home/deploy/monitor/.zapmeow-registered
-      printf "${GREEN}   ✅ Registro: ZapMeow registrado com sucesso no painel${WHITE}\n"
+    if [ -z "$jwt_token" ]; then
+      printf "${YELLOW}   ⚠️  Registro: não foi possível autenticar na API — registre o ZapMeow manualmente no painel${WHITE}\n"
     else
-      printf "${YELLOW}   ⚠️  Registro: falhou (HTTP ${reg_http_code}) — tente manualmente no painel${WHITE}\n"
+      # Registrar no banco via API com token JWT
+      reg_response=$(curl -s -w "\n%{http_code}" -X POST "http://localhost:3200/api/register-zapmeow" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer ${jwt_token}" \
+        -d "{\"zapmeow_url\":\"http://localhost:${zapmeow_port}/api\",\"instance_id\":\"equipechat\"}" 2>/dev/null)
+
+      reg_http_code=$(echo "$reg_response" | tail -1)
+      reg_body=$(echo "$reg_response" | sed '$d')
+
+      if [ "$reg_http_code" = "200" ] && echo "$reg_body" | grep -q '"success":true\|"success": true'; then
+        registro_ok=true
+        touch /home/deploy/monitor/.zapmeow-registered
+        printf "${GREEN}   ✅ Registro: ZapMeow registrado com sucesso no painel${WHITE}\n"
+      else
+        printf "${YELLOW}   ⚠️  Registro: falhou (HTTP ${reg_http_code}) — tente manualmente no painel${WHITE}\n"
+      fi
     fi
   else
     printf "${YELLOW}   ⚠️  Registro: ignorado (serviços indisponíveis)${WHITE}\n"
