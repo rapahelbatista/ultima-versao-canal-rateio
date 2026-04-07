@@ -87,7 +87,7 @@ export default function ClientFormsDashboard({ onLogout }: { onLogout?: () => vo
 
   const deleteLink = async (id: string) => {
     try {
-      await supabase.from("purchase_links").delete().eq("id", id);
+      await apiFetch(`/api/purchase/links/${id}`, { method: "DELETE" });
       toast.success("Link removido");
       await loadData();
     } catch {
