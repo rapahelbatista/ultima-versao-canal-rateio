@@ -2506,12 +2506,10 @@ instalar_painel_monitor() {
   printf "${WHITE}   Este instalador vai configurar automaticamente:\n"
   printf "${CYAN}   ✔ PostgreSQL${WHITE} (banco de dados local)\n"
   printf "${CYAN}   ✔ API Express${WHITE} (backend na porta 3200)\n"
-  printf "${CYAN}   ✔ Frontend React${WHITE} (pré-compilado, sem build necessário)\n"
+  printf "${CYAN}   ✔ Frontend React${WHITE} (painel web)\n"
   printf "${CYAN}   ✔ Nginx${WHITE} (proxy reverso + SSL)\n"
   printf "${CYAN}   ✔ PM2${WHITE} (gerenciador de processos)\n"
   printf "${CYAN}   ✔ Admin inicial${WHITE} (usuário administrador)\n"
-  echo
-  printf "${GREEN}   ✅ Instalação LOCAL — Não precisa de Git ou GitHub!${WHITE}\n"
   echo
   printf "${YELLOW}   Pré-requisitos:\n"
   printf "${WHITE}   • VPS com Ubuntu 20+ e acesso root\n"
@@ -2526,6 +2524,69 @@ instalar_painel_monitor() {
     printf "${GREEN} >> Operação cancelada. Voltando ao menu...${WHITE}\n"
     sleep 2
     return
+  fi
+
+  # --- Escolha do modo de instalação ---
+  banner
+  printf "${CYAN}══════════════════════════════════════════════════════════════════${WHITE}\n"
+  printf "${CYAN}   📦 ESCOLHA O MODO DE INSTALAÇÃO${WHITE}\n"
+  printf "${CYAN}══════════════════════════════════════════════════════════════════${WHITE}\n"
+  echo
+  printf "   [${GREEN}1${WHITE}] Instalação ${GREEN}LOCAL${WHITE} (embutido no script — ${GREEN}sem Git${WHITE})\n"
+  printf "       ${WHITE}Tudo já vem dentro do instalador. Mais rápido.\n"
+  echo
+  printf "   [${BLUE}2${WHITE}] Instalação via ${BLUE}GIT${WHITE} (clone de repositório GitHub)\n"
+  printf "       ${WHITE}Precisa de URL do repositório. Permite atualizações via git pull.\n"
+  echo
+  read -p "> " modo_instalacao
+
+  if [ "$modo_instalacao" != "1" ] && [ "$modo_instalacao" != "2" ]; then
+    printf "${RED}Opção inválida. Voltando ao menu...${WHITE}\n"
+    sleep 2
+    return
+  fi
+
+  # Se modo Git, coletar dados do repositório
+  monitor_repo_url=""
+  monitor_git_token=""
+  if [ "$modo_instalacao" == "2" ]; then
+    echo
+    printf "${WHITE} >> Digite a URL do repositório GitHub:\n"
+    printf "${YELLOW}    Exemplo: https://github.com/usuario/monitor-painel.git${WHITE}\n"
+    echo
+    read -p "> " monitor_repo_url
+    echo
+
+    if [ -z "$monitor_repo_url" ]; then
+      printf "${RED}❌ URL do repositório é obrigatória no modo Git.${WHITE}\n"
+      sleep 2
+      return
+    fi
+
+    printf "${WHITE} >> O repositório é privado? (S/N):${WHITE}\n"
+    echo
+    read -p "> " repo_privado
+    repo_privado=$(echo "${repo_privado}" | tr '[:lower:]' '[:upper:]')
+
+    if [ "${repo_privado}" == "S" ]; then
+      printf "${WHITE} >> Digite o token de acesso pessoal (GitHub PAT):${WHITE}\n"
+      echo
+      read -s -p "> " monitor_git_token
+      echo
+      echo
+
+      if [ -z "$monitor_git_token" ]; then
+        printf "${RED}❌ Token é obrigatório para repositórios privados.${WHITE}\n"
+        sleep 2
+        return
+      fi
+
+      # Injetar token na URL
+      monitor_repo_url=$(echo "$monitor_repo_url" | sed "s|https://|https://${monitor_git_token}@|")
+    fi
+
+    printf "${YELLOW}⚠️  O modo Git requer ~1GB de RAM para o build do frontend.${WHITE}\n"
+    sleep 2
   fi
 
   # --- Coleta de dados ---
@@ -2618,7 +2679,11 @@ instalar_painel_monitor() {
   printf "${CYAN}   📋 RESUMO DA INSTALAÇÃO${WHITE}\n"
   printf "${CYAN}══════════════════════════════════════════════════════════════════${WHITE}\n"
   echo
-  printf "${WHITE}   Modo:           ${GREEN}LOCAL (embutido no instalador)${WHITE}\n"
+  if [ "$modo_instalacao" == "1" ]; then
+    printf "${WHITE}   Modo:           ${GREEN}LOCAL (embutido no instalador)${WHITE}\n"
+  else
+    printf "${WHITE}   Modo:           ${BLUE}GIT (clone de repositório)${WHITE}\n"
+  fi
   printf "${WHITE}   Frontend:       ${GREEN}https://${monitor_frontend_domain}${WHITE}\n"
   printf "${WHITE}   API:            ${GREEN}https://${monitor_api_domain}${WHITE}\n"
   printf "${WHITE}   Admin:          ${YELLOW}${monitor_admin_email}${WHITE}\n"
@@ -2645,7 +2710,7 @@ instalar_painel_monitor() {
   export DEBIAN_FRONTEND=noninteractive
 
   apt-get update -y
-  apt-get install -y curl wget nginx certbot python3-certbot-nginx dnsutils build-essential
+  apt-get install -y curl wget nginx certbot python3-certbot-nginx dnsutils build-essential git
 
   # Node.js 20
   if ! command -v node &>/dev/null || [[ $(node -v | cut -d'.' -f1 | tr -d 'v') -lt 20 ]]; then
@@ -2685,22 +2750,67 @@ instalar_painel_monitor() {
   echo
 
   # ============================================================
-  # ETAPA 3: Extrair arquivos embutidos (SEM GIT)
+  # ETAPA 3: Obter arquivos do projeto
   # ============================================================
-  printf "${BLUE} >> [3/9] Extraindo arquivos do painel (embutido no instalador)...${WHITE}\n"
-  echo
-
   mkdir -p /home/deploy
   rm -rf /home/deploy/monitor
 
-  echo "$MONITOR_ARCHIVE_B64" | base64 -d | tar xz -C /home/deploy
+  if [ "$modo_instalacao" == "1" ]; then
+    # --- MODO LOCAL: extrair arquivos embutidos ---
+    printf "${BLUE} >> [3/9] Extraindo arquivos do painel (embutido no instalador)...${WHITE}\n"
+    echo
 
-  if [ -d /home/deploy/monitor/dist ] && [ -d /home/deploy/monitor/monitor-api ]; then
-    printf "${GREEN}✅ Arquivos extraídos com sucesso.${WHITE}\n"
+    echo "$MONITOR_ARCHIVE_B64" | base64 -d | tar xz -C /home/deploy
+
+    if [ -d /home/deploy/monitor/dist ] && [ -d /home/deploy/monitor/monitor-api ]; then
+      printf "${GREEN}✅ Arquivos extraídos com sucesso.${WHITE}\n"
+    else
+      printf "${RED}❌ Erro ao extrair arquivos. Instalação abortada.${WHITE}\n"
+      sleep 3
+      return
+    fi
+
+    # Salvar modo de instalação
+    echo "local" > /home/deploy/monitor/.install-mode
+
   else
-    printf "${RED}❌ Erro ao extrair arquivos. Instalação abortada.${WHITE}\n"
-    sleep 3
-    return
+    # --- MODO GIT: clonar repositório ---
+    printf "${BLUE} >> [3/9] Clonando repositório GitHub...${WHITE}\n"
+    echo
+
+    git clone "$monitor_repo_url" /home/deploy/monitor
+
+    if [ ! -d /home/deploy/monitor ]; then
+      printf "${RED}❌ Erro no git clone. Verifique a URL e o token. Instalação abortada.${WHITE}\n"
+      sleep 3
+      return
+    fi
+
+    printf "${GREEN}✅ Repositório clonado.${WHITE}\n"
+    echo
+
+    # Instalar dependências e buildar frontend
+    printf "${BLUE} >> Instalando dependências do frontend e fazendo build...${WHITE}\n"
+    echo
+
+    cd /home/deploy/monitor
+
+    # Criar .env com a URL da API antes do build
+    echo "VITE_API_URL=https://${monitor_api_domain}" > .env
+
+    npm install
+    npm run build
+
+    if [ ! -d /home/deploy/monitor/dist ]; then
+      printf "${RED}❌ Erro no build do frontend. Instalação abortada.${WHITE}\n"
+      sleep 3
+      return
+    fi
+
+    printf "${GREEN}✅ Frontend compilado com sucesso.${WHITE}\n"
+
+    # Salvar modo de instalação
+    echo "git" > /home/deploy/monitor/.install-mode
   fi
   echo
 
@@ -2747,15 +2857,19 @@ ENVAPI
   echo
 
   # ============================================================
-  # ETAPA 6: Injetar URL da API no frontend pré-compilado
+  # ETAPA 6: Injetar URL da API no frontend
   # ============================================================
   printf "${BLUE} >> [6/9] Configurando frontend com URL da API...${WHITE}\n"
   echo
 
-  # Substituir placeholder __MONITOR_API_URL__ pela URL real da API
-  find /home/deploy/monitor/dist -type f \( -name "*.js" -o -name "*.html" \) -exec sed -i "s|__MONITOR_API_URL__|https://${monitor_api_domain}|g" {} +
-
-  printf "${GREEN}✅ Frontend configurado para https://${monitor_api_domain}.${WHITE}\n"
+  if [ "$modo_instalacao" == "1" ]; then
+    # Modo local: substituir placeholder nos arquivos pré-compilados
+    find /home/deploy/monitor/dist -type f \( -name "*.js" -o -name "*.html" \) -exec sed -i "s|__MONITOR_API_URL__|https://${monitor_api_domain}|g" {} +
+    printf "${GREEN}✅ Placeholder substituído no frontend pré-compilado.${WHITE}\n"
+  else
+    # Modo Git: o build já usou VITE_API_URL do .env
+    printf "${GREEN}✅ Frontend já compilado com a URL da API.${WHITE}\n"
+  fi
   echo
 
   # ============================================================
@@ -2843,6 +2957,11 @@ NGINXAPI
   # CLI de manutenção
   cat > /usr/local/bin/monitor-cli <<'CLIMONITOR'
 #!/bin/bash
+INSTALL_MODE="local"
+if [ -f /home/deploy/monitor/.install-mode ]; then
+  INSTALL_MODE=$(cat /home/deploy/monitor/.install-mode)
+fi
+
 case "$1" in
   status)
     echo "=== Monitor API ==="
@@ -2853,6 +2972,8 @@ case "$1" in
     echo ""
     echo "=== PostgreSQL ==="
     systemctl status postgresql --no-pager -l | head -5
+    echo ""
+    echo "=== Modo de instalação: $INSTALL_MODE ==="
     ;;
   logs)
     pm2 logs monitor-api --lines 50
@@ -2862,8 +2983,23 @@ case "$1" in
     echo "✅ API reiniciada."
     ;;
   update)
-    echo ">> Para atualizar, execute o instalador novamente com a versão mais recente."
-    echo ">> Seus dados no banco serão preservados."
+    if [ "$INSTALL_MODE" == "git" ]; then
+      echo ">> Atualizando via Git..."
+      cd /home/deploy/monitor
+      git pull
+      echo ">> Reinstalando dependências do frontend..."
+      npm install
+      npm run build
+      echo ">> Reinstalando dependências da API..."
+      cd /home/deploy/monitor/monitor-api
+      npm install --production
+      pm2 restart monitor-api
+      echo "✅ Atualização concluída!"
+    else
+      echo ">> Modo LOCAL detectado."
+      echo ">> Para atualizar, execute o instalador novamente com a versão mais recente."
+      echo ">> Seus dados no banco serão preservados."
+    fi
     ;;
   *)
     echo "Uso: monitor-cli {status|logs|restart|update}"
@@ -2901,6 +3037,11 @@ CLIMONITOR
   printf "${GREEN}   ✅ PAINEL MONITOR INSTALADO COM SUCESSO!${WHITE}\n"
   printf "${GREEN}══════════════════════════════════════════════════════════════════${WHITE}\n"
   echo
+  if [ "$modo_instalacao" == "1" ]; then
+    printf "${WHITE}   📦 Modo:        ${GREEN}LOCAL (embutido)${WHITE}\n"
+  else
+    printf "${WHITE}   📦 Modo:        ${BLUE}GIT (repositório clonado)${WHITE}\n"
+  fi
   printf "${WHITE}   🌐 Painel:    ${GREEN}https://${monitor_frontend_domain}${WHITE}\n"
   printf "${WHITE}   🔗 API:       ${GREEN}https://${monitor_api_domain}${WHITE}\n"
   printf "${WHITE}   👤 Admin:     ${YELLOW}${monitor_admin_email}${WHITE}\n"
@@ -2910,7 +3051,7 @@ CLIMONITOR
   printf "${WHITE}   • ${BLUE}monitor-cli status${WHITE}   — Ver status dos serviços\n"
   printf "${WHITE}   • ${BLUE}monitor-cli logs${WHITE}     — Ver logs da API\n"
   printf "${WHITE}   • ${BLUE}monitor-cli restart${WHITE}  — Reiniciar API\n"
-  printf "${WHITE}   • ${BLUE}monitor-cli update${WHITE}   — Info de atualização\n"
+  printf "${WHITE}   • ${BLUE}monitor-cli update${WHITE}   — Atualizar (git pull ou reinstalar)\n"
   echo
   printf "${GREEN}══════════════════════════════════════════════════════════════════${WHITE}\n"
   echo
