@@ -155,11 +155,12 @@ export default function WhatsAppPanel({ onLogout }: { onLogout?: () => void }) {
   };
 
   const toggleActive = async (tpl: Template) => {
-    const { error } = await supabase
-      .from("whatsapp_templates")
-      .update({ is_active: !tpl.is_active })
-      .eq("id", tpl.id);
-    if (error) { toast.error("Erro ao atualizar."); return; }
+    try {
+      await apiFetch(`/api/templates/${tpl.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ is_active: !tpl.is_active }),
+      });
+    } catch { toast.error("Erro ao atualizar."); return; }
     toast.success(tpl.is_active ? `"${tpl.title}" desativada` : `"${tpl.title}" ativada`);
     loadTemplates();
   };
