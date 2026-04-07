@@ -1,38 +1,21 @@
 
+Diagnóstico
+- O erro "Could not scroll to revert section. It may not have loaded correctly." é do editor do Lovable, não do seu sistema.
+- Isso acontece quando o botão de revert tenta localizar a mensagem/versão antiga no chat, mas aquela seção não carregou.
+- Como o preview da versão antiga abriu, a versão existe; o problema é a navegação até o ponto de restore.
 
-# Plano: Remover armazenamento de senhas em texto plano
+Como voltar a versão agora
+1. Recarregue o editor.
+2. Abra a aba History no topo.
+3. Localize a versão que você quer recuperar.
+4. Use Restore por essa tela, em vez do botão que tenta rolar o chat.
+5. Se você já está vendo o preview da versão antiga, restaure essa própria versão diretamente.
 
-## Objetivo
-Eliminar `deploy_password` e `master_password` de todo o fluxo — coleta, armazenamento, exibição — para conformidade com LGPD. Essas credenciais não são necessárias para controle antipirataria.
+Observação importante
+- Restaurar uma versão não apaga definitivamente as mudanças novas; elas continuam no histórico e podem ser recuperadas depois.
 
-## Alterações
+Atalho prático para o seu caso
+- Como você já está em um preview de commit antigo, o caminho mais seguro é restaurar por esse preview ou pela aba History, sem depender do scroll automático do chat.
 
-### 1. Migração do banco de dados (Supabase)
-- Remover as colunas `deploy_password` e `master_password` da tabela `installations`
-
-### 2. Edge Function `register-installation/index.ts`
-- Remover extração de `deploy_password` e `master_password` do body
-- Remover do `safeData`, do `insert` e do `update`
-
-### 3. Edge Function `check-block-status/index.ts`
-- Verificar se referencia essas colunas (provavelmente não) — nenhuma alteração esperada
-
-### 4. Frontend `src/pages/MonitorDashboard.tsx`
-- Remover `deploy_password` e `master_password` da interface `Installation`
-- Remover as linhas de exibição `["Senha Deploy", ...]` e `["Senha Master", ...]`
-
-### 5. Backend Express (referência legada)
-- `backend/src/helpers/registerInstallation.ts` — remover `deploy_password` e `master_password` do payload
-- `backend/src/controllers/InstallationLogController.ts` — remover os campos
-- `backend/src/models/InstallationLog.ts` — remover as colunas do modelo
-
-### 6. Monitor API local (`monitor-api/routes/register-installation.js`)
-- Remover os campos do destructuring, do `safe`, e das queries SQL
-
-### 7. Instalador (`instalador_single.sh`)
-- Remover `deploy_password` e `master_password` do payload JSON enviado ao monitor
-- Remover coleta dessas senhas para envio (manter a coleta local que o sistema precisa para funcionar)
-
-## Resultado
-Senhas administrativas nunca mais são transmitidas nem armazenadas no monitor. O controle antipirataria continua funcionando normalmente via IP/URL/hostname.
-
+Se continuar falhando
+- Eu recomendaria identificar a revisão exata por data/nome do commit e repetir o restore por History, porque o erro atual indica falha de interface, não perda da versão.
