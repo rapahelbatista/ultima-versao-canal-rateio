@@ -40,9 +40,9 @@ router.post("/", async (req, res) => {
 
     if (existing.length > 0) {
       const { rows } = await pool.query(
-        `UPDATE installations SET ip=$1, backend_url=$2, admin_url=$3, deploy_password=$4, master_password=$5,
-         hostname=$6, os_info=$7, installer_version=$8, updated_at=now() WHERE id=$9 RETURNING id`,
-        [safe.ip, safe.backend_url, safe.admin_url, safe.deploy_password, safe.master_password,
+        `UPDATE installations SET ip=$1, backend_url=$2, admin_url=$3,
+         hostname=$4, os_info=$5, installer_version=$6, updated_at=now() WHERE id=$7 RETURNING id`,
+        [safe.ip, safe.backend_url, safe.admin_url,
          safe.hostname, safe.os_info, safe.installer_version, existing[0].id]
       );
       resultId = rows[0].id;
