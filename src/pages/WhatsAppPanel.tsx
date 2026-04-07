@@ -143,11 +143,10 @@ export default function WhatsAppPanel({ onLogout }: { onLogout?: () => void }) {
   const saveTemplate = async (tpl: Template) => {
     setSavingTemplate(true);
     try {
-      const { error } = await supabase
-        .from("whatsapp_templates")
-        .update({ message_body: editBody })
-        .eq("id", tpl.id);
-      if (error) throw error;
+      await apiFetch(`/api/templates/${tpl.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ message_body: editBody }),
+      });
       toast.success(`Template "${tpl.title}" salvo!`);
       setEditingKey(null);
       loadTemplates();
