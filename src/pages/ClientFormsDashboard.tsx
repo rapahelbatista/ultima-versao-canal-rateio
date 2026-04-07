@@ -35,7 +35,7 @@ interface PurchaseRequest {
   link_id: string | null;
 }
 
-export default function ClientFormsDashboard() {
+export default function ClientFormsDashboard({ onLogout }: { onLogout?: () => void }) {
   const navigate = useNavigate();
   const [links, setLinks] = useState<PurchaseLink[]>([]);
   const [requests, setRequests] = useState<PurchaseRequest[]>([]);
