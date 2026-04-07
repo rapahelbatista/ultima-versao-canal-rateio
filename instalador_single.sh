@@ -2974,9 +2974,9 @@ ENVAPI
   echo
 
   # ============================================================
-  # ETAPA 6: Injetar URL da API no frontend
+  # ETAPA 7/11: Injetar URL da API no frontend
   # ============================================================
-  printf "${BLUE} >> [6/9] Configurando frontend com URL da API...${WHITE}\n"
+  printf "${BLUE} >> [7/11] Configurando frontend com URL da API...${WHITE}\n"
   echo
 
   if [ "$modo_instalacao" == "1" ]; then
