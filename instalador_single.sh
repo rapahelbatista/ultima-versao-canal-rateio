@@ -2867,14 +2867,14 @@ ENVZAP
   echo
 
   # ============================================================
-  # ETAPA 3: Obter arquivos do projeto
+  # ETAPA 4/11: Obter arquivos do projeto
   # ============================================================
   mkdir -p /home/deploy
   rm -rf /home/deploy/monitor
 
   if [ "$modo_instalacao" == "1" ]; then
     # --- MODO LOCAL: extrair arquivos embutidos ---
-    printf "${BLUE} >> [3/9] Extraindo arquivos do painel (embutido no instalador)...${WHITE}\n"
+    printf "${BLUE} >> [4/11] Extraindo arquivos do painel (embutido no instalador)...${WHITE}\n"
     echo
 
     echo "$MONITOR_ARCHIVE_B64" | base64 -d | tar xz -C /home/deploy
