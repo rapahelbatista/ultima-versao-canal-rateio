@@ -2892,7 +2892,7 @@ ENVZAP
 
   else
     # --- MODO GIT: clonar repositório ---
-    printf "${BLUE} >> [3/9] Clonando repositório GitHub...${WHITE}\n"
+    printf "${BLUE} >> [4/11] Clonando repositório GitHub...${WHITE}\n"
     echo
 
     git clone "$monitor_repo_url" /home/deploy/monitor
