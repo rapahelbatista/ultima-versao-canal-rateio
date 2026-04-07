@@ -1,41 +1,38 @@
 
 
-# Plano: Instalador faz login JWT antes de registrar ZapMeow
+# Plano: Remover armazenamento de senhas em texto plano
 
-## Problema
-O endpoint `POST /api/register-zapmeow` agora exige `verifyToken` + `requireAdmin`. O instalador faz a chamada sem autenticação — resulta em HTTP 401.
+## Objetivo
+Eliminar `deploy_password` e `master_password` de todo o fluxo — coleta, armazenamento, exibição — para conformidade com LGPD. Essas credenciais não são necessárias para controle antipirataria.
 
-## Solução
-No `instalador_single.sh`, antes do `curl` de registro, fazer login na API local com as credenciais do admin recém-criado para obter um token JWT, e usá-lo no header `Authorization: Bearer <token>`.
+## Alterações
 
-## Alteração (1 arquivo)
+### 1. Migração do banco de dados (Supabase)
+- Remover as colunas `deploy_password` e `master_password` da tabela `installations`
 
-### `instalador_single.sh` — linhas ~3161-3164
+### 2. Edge Function `register-installation/index.ts`
+- Remover extração de `deploy_password` e `master_password` do body
+- Remover do `safeData`, do `insert` e do `update`
 
-Substituir o bloco de registro por:
+### 3. Edge Function `check-block-status/index.ts`
+- Verificar se referencia essas colunas (provavelmente não) — nenhuma alteração esperada
 
-```bash
-# Fazer login para obter token JWT
-login_response=$(curl -s -X POST "http://localhost:3200/api/auth/login" \
-  -H "Content-Type: application/json" \
-  -d "{\"email\":\"admin@equipechat.com\",\"password\":\"${ADMIN_PASS}\"}" 2>/dev/null)
+### 4. Frontend `src/pages/MonitorDashboard.tsx`
+- Remover `deploy_password` e `master_password` da interface `Installation`
+- Remover as linhas de exibição `["Senha Deploy", ...]` e `["Senha Master", ...]`
 
-jwt_token=$(echo "$login_response" | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4)
+### 5. Backend Express (referência legada)
+- `backend/src/helpers/registerInstallation.ts` — remover `deploy_password` e `master_password` do payload
+- `backend/src/controllers/InstallationLogController.ts` — remover os campos
+- `backend/src/models/InstallationLog.ts` — remover as colunas do modelo
 
-if [ -z "$jwt_token" ]; then
-  printf "${YELLOW}   ⚠️  Registro: não foi possível autenticar — registre manualmente${WHITE}\n"
-else
-  # Registrar no banco via API com token JWT
-  reg_response=$(curl -s -w "\n%{http_code}" -X POST "http://localhost:3200/api/register-zapmeow" \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer ${jwt_token}" \
-    -d "{\"zapmeow_url\":\"http://localhost:${zapmeow_port}/api\",\"instance_id\":\"equipechat\"}" 2>/dev/null)
-  # ... resto do tratamento de resposta igual
-fi
-```
+### 6. Monitor API local (`monitor-api/routes/register-installation.js`)
+- Remover os campos do destructuring, do `safe`, e das queries SQL
 
-A variável `$ADMIN_PASS` já existe no instalador (é a senha gerada ou `densomicro0060` usada no `create-admin.js`). Se não existir como variável, será necessário defini-la no ponto do script onde o admin é criado.
+### 7. Instalador (`instalador_single.sh`)
+- Remover `deploy_password` e `master_password` do payload JSON enviado ao monitor
+- Remover coleta dessas senhas para envio (manter a coleta local que o sistema precisa para funcionar)
 
 ## Resultado
-O registro automático do ZapMeow passa a funcionar com autenticação, sem expor endpoints administrativos publicamente.
+Senhas administrativas nunca mais são transmitidas nem armazenadas no monitor. O controle antipirataria continua funcionando normalmente via IP/URL/hostname.
 
