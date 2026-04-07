@@ -385,8 +385,6 @@ function DetailDrawer({
             ["URL Admin", inst.admin_url ? <a href={inst.admin_url} target="_blank" rel="noreferrer"
               className="text-xs flex items-center gap-1 hover:underline break-all" style={{ color: "hsl(var(--warning))" }}>
               {inst.admin_url} <ExternalLink className="w-3 h-3 flex-shrink-0" /></a> : <span className="text-xs text-muted-foreground">—</span>],
-            ["Senha Deploy", <SensitiveField value={inst.deploy_password} />],
-            ["Senha Master", <SensitiveField value={inst.master_password} />],
             ["Data de Instalação", <span className="text-xs text-foreground">
               {format(new Date(inst.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
             </span>],
