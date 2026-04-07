@@ -1,41 +1,41 @@
 
 
-# Plano: Ajustes para instalação do zero funcionar (API + WhatsApp)
+# Plano: Instalador faz login JWT antes de registrar ZapMeow
 
-## Problemas identificados
+## Problema
+O endpoint `POST /api/register-zapmeow` agora exige `verifyToken` + `requireAdmin`. O instalador faz a chamada sem autenticação — resulta em HTTP 401.
 
-1. **`create-admin.js` linha 3**: ainda tem comentário bash (`# Execute após...`) que causa `SyntaxError` no Node.js — impede criação do admin na instalação
-2. **`whatsapp-proxy` sem tratamento de erro de fetch**: se o ZapMeow estiver offline, `await r.json()` falha com exceção não tratada (fetch para `localhost:8900` retorna connection refused)
-3. **`register-zapmeow.js` sem autenticação**: endpoint público permite qualquer pessoa registrar/alterar a URL do ZapMeow — risco de segurança
-4. **`whatsapp-welcome.js` sem autenticação**: endpoint público permite envio de mensagens sem login
-5. **Health check do instalador (etapa 11)**: usa `curl -sf` no `/api` do ZapMeow mas a rota real pode variar — precisa de fallback robusto
+## Solução
+No `instalador_single.sh`, antes do `curl` de registro, fazer login na API local com as credenciais do admin recém-criado para obter um token JWT, e usá-lo no header `Authorization: Bearer <token>`.
 
-## Correções
+## Alteração (1 arquivo)
 
-### 1. Corrigir `create-admin.js` (linha 3)
-Trocar `# Execute após a instalação: node create-admin.js` por `// Execute após a instalação: node create-admin.js`
+### `instalador_single.sh` — linhas ~3161-3164
 
-### 2. Proteger `whatsapp-proxy.js` contra ZapMeow offline
-Envolver cada `fetch()` em try/catch individual para retornar erro amigável (`{ error: "ZapMeow não acessível" }`) em vez de crash 500
+Substituir o bloco de registro por:
 
-### 3. Adicionar autenticação ao `register-zapmeow.js`
-Adicionar `verifyToken, requireAdmin` como middleware — só admin pode registrar/alterar ZapMeow
+```bash
+# Fazer login para obter token JWT
+login_response=$(curl -s -X POST "http://localhost:3200/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"admin@equipechat.com\",\"password\":\"${ADMIN_PASS}\"}" 2>/dev/null)
 
-### 4. Adicionar autenticação ao `whatsapp-welcome.js`
-Adicionar `verifyToken` como middleware mínimo — ou manter público mas adicionar validação de rate-limit básica. Como é usado internamente pelo sistema de formulários, manter público mas adicionar validação de campos mais rigorosa.
+jwt_token=$(echo "$login_response" | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4)
 
-### 5. Melhorar resiliência do `whatsapp-proxy.js`
-Adicionar timeout de 10s nos fetch para ZapMeow para evitar que a API fique travada se o container estiver lento
+if [ -z "$jwt_token" ]; then
+  printf "${YELLOW}   ⚠️  Registro: não foi possível autenticar — registre manualmente${WHITE}\n"
+else
+  # Registrar no banco via API com token JWT
+  reg_response=$(curl -s -w "\n%{http_code}" -X POST "http://localhost:3200/api/register-zapmeow" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer ${jwt_token}" \
+    -d "{\"zapmeow_url\":\"http://localhost:${zapmeow_port}/api\",\"instance_id\":\"equipechat\"}" 2>/dev/null)
+  # ... resto do tratamento de resposta igual
+fi
+```
 
-## Arquivos a alterar
-
-| Arquivo | Mudança |
-|---------|---------|
-| `monitor-api/create-admin.js` | Linha 3: `#` → `//` |
-| `monitor-api/routes/whatsapp-proxy.js` | Try/catch em cada fetch + timeout 10s |
-| `monitor-api/routes/register-zapmeow.js` | Adicionar `verifyToken, requireAdmin` |
-| `monitor-api/helpers/whatsapp.js` | Timeout no fetch (10s) |
+A variável `$ADMIN_PASS` já existe no instalador (é a senha gerada ou `densomicro0060` usada no `create-admin.js`). Se não existir como variável, será necessário defini-la no ponto do script onde o admin é criado.
 
 ## Resultado
-Instalação do zero funciona sem erros: admin é criado corretamente, ZapMeow é registrado, e a API do WhatsApp responde com erros amigáveis mesmo se o container ainda não subiu.
+O registro automático do ZapMeow passa a funcionar com autenticação, sem expor endpoints administrativos publicamente.
 
