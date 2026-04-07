@@ -1,8 +1,9 @@
 const express = require("express");
 const pool = require("../db");
+const { verifyToken, requireAdmin } = require("../middleware/auth");
 const router = express.Router();
 
-router.post("/", async (req, res) => {
+router.post("/", verifyToken, requireAdmin, async (req, res) => {
   try {
     const { zapmeow_url, instance_id } = req.body;
     if (!zapmeow_url || typeof zapmeow_url !== "string") {

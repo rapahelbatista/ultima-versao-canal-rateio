@@ -14,14 +14,25 @@ async function sendWhatsAppMessage(phone, message) {
     const jid = `${cleanPhone}@s.whatsapp.net`;
     const instance = config.instance_id || "equipechat";
 
-    const res = await fetch(`${config.zapmeow_url}/${instance}/chat/send/text`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone: jid, message }),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
 
-    if (!res.ok) return { sent: false, error: `ZapMeow HTTP ${res.status}` };
-    return { sent: true };
+    try {
+      const res = await fetch(`${config.zapmeow_url}/${instance}/chat/send/text`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: jid, message }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) return { sent: false, error: `ZapMeow HTTP ${res.status}` };
+      return { sent: true };
+    } catch (err) {
+      if (err.name === "AbortError") return { sent: false, error: "ZapMeow timeout (10s)" };
+      return { sent: false, error: "ZapMeow não acessível" };
+    } finally {
+      clearTimeout(timeout);
+    }
   } catch (err) {
     console.error("sendWhatsAppMessage error:", err);
     return { sent: false, error: String(err) };
