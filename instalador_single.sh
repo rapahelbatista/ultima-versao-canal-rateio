@@ -2744,10 +2744,10 @@ instalar_painel_monitor() {
   fi
 
   # ============================================================
-  # ETAPA 1: Dependências do sistema
+  # ETAPA 1/11: Dependências do sistema
   # ============================================================
   banner
-  printf "${BLUE} >> [1/9] Instalando dependências do sistema...${WHITE}\n"
+  printf "${BLUE} >> [1/11] Instalando dependências do sistema...${WHITE}\n"
   echo
 
   export DEBIAN_FRONTEND=noninteractive
@@ -2777,6 +2777,80 @@ instalar_painel_monitor() {
     systemctl start postgresql
   fi
   printf "${GREEN}✅ PostgreSQL instalado.${WHITE}\n"
+  echo
+
+  # ============================================================
+  # ETAPA 2/11: Docker + ZapMeow
+  # ============================================================
+  printf "${BLUE} >> [2/11] Instalando Docker e ZapMeow...${WHITE}\n"
+  echo
+
+  if ! command -v docker &>/dev/null; then
+    printf "${WHITE} >> Instalando Docker...${WHITE}\n"
+    curl -fsSL https://get.docker.com | bash > /dev/null 2>&1
+    systemctl enable docker
+    systemctl start docker
+    printf "${GREEN}✅ Docker instalado.${WHITE}\n"
+  else
+    printf "${GREEN}✅ Docker já instalado: $(docker --version)${WHITE}\n"
+  fi
+
+  if ! command -v docker-compose &>/dev/null && ! docker compose version &>/dev/null; then
+    printf "${WHITE} >> Instalando Docker Compose plugin...${WHITE}\n"
+    apt-get install -y -qq docker-compose-plugin > /dev/null 2>&1
+  fi
+
+  ZAPMEOW_DIR="/opt/zapmeow"
+  mkdir -p "$ZAPMEOW_DIR"
+
+  cat > "$ZAPMEOW_DIR/docker-compose.yml" <<YAMLZAP
+version: '3.8'
+
+services:
+  zapmeow:
+    image: ghcr.io/capsulbrasil/zapmeow:latest
+    container_name: zapmeow
+    restart: always
+    ports:
+      - "${zapmeow_port}:8900"
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env
+    environment:
+      - PORT=8900
+    networks:
+      - zapmeow-net
+
+networks:
+  zapmeow-net:
+    driver: bridge
+YAMLZAP
+
+  cat > "$ZAPMEOW_DIR/.env" <<ENVZAP
+PORT=8900
+DATABASE_URL=file:./data/zapmeow.db
+ZAPMEOW_PORT=${zapmeow_port}
+ENVZAP
+
+  mkdir -p "$ZAPMEOW_DIR/data"
+
+  printf "${WHITE} >> Iniciando container ZapMeow...${WHITE}\n"
+  cd "$ZAPMEOW_DIR"
+  docker compose up -d 2>/dev/null || docker-compose up -d 2>/dev/null
+
+  printf "${WHITE} >> Aguardando ZapMeow iniciar...${WHITE}\n"
+  for i in $(seq 1 30); do
+    if curl -s "http://localhost:${zapmeow_port}/api" > /dev/null 2>&1; then
+      break
+    fi
+    sleep 2
+  done
+
+  if curl -s "http://localhost:${zapmeow_port}/api" > /dev/null 2>&1; then
+    printf "${GREEN}✅ ZapMeow rodando na porta ${zapmeow_port}.${WHITE}\n"
+  else
+    printf "${YELLOW}⚠️  ZapMeow pode demorar mais para iniciar. Verifique depois com: docker logs zapmeow${WHITE}\n"
+  fi
   echo
 
   # ============================================================
