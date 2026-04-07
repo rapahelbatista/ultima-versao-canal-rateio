@@ -495,8 +495,7 @@ export default function MonitorDashboard({ onLogout }: { onLogout?: () => void }
     }
     setPasswordLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
+      await changePassword(newPassword);
       toast.success("Senha atualizada com sucesso!");
       setShowPasswordReset(false);
       setNewPassword("");
