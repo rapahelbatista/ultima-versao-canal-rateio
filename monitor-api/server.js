@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const pool = require("./db");
 
 const authRoutes = require("./routes/auth");
 const checkBlockStatus = require("./routes/check-block-status");
@@ -18,8 +19,16 @@ const PORT = process.env.PORT || 3200;
 app.use(cors({ origin: "*" }));
 app.use(express.json({ limit: "10kb" }));
 
-// Health check
-app.get("/api/health", (_, res) => res.json({ status: "ok" }));
+// Health check (testa conexão real com o banco)
+app.get("/api/health", async (_, res) => {
+  try {
+    await pool.query("SELECT 1 AS ok");
+    res.json({ status: "ok", db: "connected" });
+  } catch (err) {
+    console.error("Health check DB error:", err.message);
+    res.status(500).json({ status: "error", db: "disconnected", detail: err.message });
+  }
+});
 
 // Routes
 app.use("/api/auth", authRoutes);
