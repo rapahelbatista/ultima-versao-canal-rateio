@@ -2609,6 +2609,18 @@ instalar_painel_monitor() {
   read -p "> " monitor_email_ssl
   echo
 
+  printf "${WHITE} >> Porta do ZapMeow (WhatsApp API) [8900]:\n"
+  echo
+  read -p "> " zapmeow_port
+  zapmeow_port="${zapmeow_port:-8900}"
+  echo
+
+  printf "${WHITE} >> Subdomínio para o ZapMeow (opcional, Enter para usar IP:porta):\n"
+  printf "${YELLOW}    Exemplo: zap.seudominio.com.br${WHITE}\n"
+  echo
+  read -p "> " zapmeow_domain
+  echo
+
   printf "${WHITE} >> Digite o e-mail do administrador do painel:\n"
   printf "${YELLOW}    (será usado para login)${WHITE}\n"
   echo
