@@ -70,10 +70,10 @@ export default function ClientFormsDashboard({ onLogout }: { onLogout?: () => vo
     if (!newLabel.trim()) return;
     setCreating(true);
     try {
-      const { error } = await supabase
-        .from("purchase_links")
-        .insert({ client_label: newLabel.trim() });
-      if (error) throw error;
+      await apiFetch("/api/purchase/links", {
+        method: "POST",
+        body: JSON.stringify({ client_label: newLabel.trim() }),
+      });
       toast.success("Link criado com sucesso!");
       setNewLabel("");
       setShowCreate(false);
