@@ -96,19 +96,17 @@ export default function PurchaseForm() {
     }
 
     const loadLink = async () => {
+      const API_URL = import.meta.env.VITE_API_URL || "";
       try {
-        const { data, error: dbErr } = await supabase
-          .from("purchase_links")
-          .select("id, token, client_label, status")
-          .eq("token", token)
-          .maybeSingle();
+        const res = await fetch(`${API_URL}/api/purchase/link/${token}`);
+        const result = await res.json();
 
-        if (dbErr || !data) {
+        if (!res.ok || !result.data) {
           setLinkError("Link não encontrado ou inválido.");
-        } else if (data.status === "completed") {
+        } else if (result.data.status === "completed") {
           setLinkError("Este formulário já foi preenchido.");
         } else {
-          setLinkData(data as LinkData);
+          setLinkData(result.data as LinkData);
         }
       } catch {
         setLinkError("Erro ao carregar formulário.");
