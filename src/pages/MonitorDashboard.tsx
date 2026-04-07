@@ -458,7 +458,7 @@ function StatCard({ icon: Icon, label, value, sub, color, delay = 0 }: {
 }
 
 // ── DASHBOARD ──────────────────────────────────────────────────────────────────
-export default function MonitorDashboard() {
+export default function MonitorDashboard({ onLogout }: { onLogout?: () => void }) {
   const navigate = useNavigate();
 
   const [installations, setInstallations] = useState<Installation[]>([]);
