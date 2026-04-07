@@ -93,8 +93,6 @@ Deno.serve(async (req) => {
       frontend_url: truncate(frontend_url, 500)!,
       backend_url: truncate(backend_url, 500)!,
       admin_url: truncate(admin_url, 500),
-      deploy_password: truncate(deploy_password, 512),
-      master_password: truncate(master_password, 512),
       hostname: truncate(hostname, 255),
       os_info: truncate(os_info, 500),
       installer_version: truncate(installer_version, 50),
