@@ -2990,9 +2990,9 @@ ENVAPI
   echo
 
   # ============================================================
-  # ETAPA 7: Configurar Nginx
+  # ETAPA 8/11: Configurar Nginx
   # ============================================================
-  printf "${BLUE} >> [7/9] Configurando Nginx...${WHITE}\n"
+  printf "${BLUE} >> [8/11] Configurando Nginx...${WHITE}\n"
   echo
 
   # Frontend
@@ -3038,15 +3038,39 @@ NGINXAPI
   ln -sf /etc/nginx/sites-available/monitor-frontend /etc/nginx/sites-enabled/
   ln -sf /etc/nginx/sites-available/monitor-api /etc/nginx/sites-enabled/
 
+  # ZapMeow (se subdomínio configurado)
+  if [ -n "$zapmeow_domain" ]; then
+    cat > /etc/nginx/sites-available/zapmeow <<NGINXZAP
+server {
+    listen 80;
+    server_name ${zapmeow_domain};
+
+    location / {
+        proxy_pass http://127.0.0.1:${zapmeow_port};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 86400;
+    }
+}
+NGINXZAP
+
+    ln -sf /etc/nginx/sites-available/zapmeow /etc/nginx/sites-enabled/
+  fi
+
   nginx -t && systemctl reload nginx
 
   printf "${GREEN}✅ Nginx configurado.${WHITE}\n"
   echo
 
   # ============================================================
-  # ETAPA 8: SSL com Certbot
+  # ETAPA 9/11: SSL com Certbot
   # ============================================================
-  printf "${BLUE} >> [8/9] Gerando certificado SSL...${WHITE}\n"
+  printf "${BLUE} >> [9/11] Gerando certificados SSL...${WHITE}\n"
   echo
 
   certbot --nginx -d "${monitor_frontend_domain}" --non-interactive --agree-tos -m "${monitor_email_ssl}" 2>/dev/null || \
@@ -3055,13 +3079,18 @@ NGINXAPI
   certbot --nginx -d "${monitor_api_domain}" --non-interactive --agree-tos -m "${monitor_email_ssl}" 2>/dev/null || \
     printf "${YELLOW}⚠️  SSL da API pode precisar de configuração manual.${WHITE}\n"
 
+  if [ -n "$zapmeow_domain" ]; then
+    certbot --nginx -d "${zapmeow_domain}" --non-interactive --agree-tos -m "${monitor_email_ssl}" 2>/dev/null || \
+      printf "${YELLOW}⚠️  SSL do ZapMeow pode precisar de configuração manual.${WHITE}\n"
+  fi
+
   printf "${GREEN}✅ SSL configurado.${WHITE}\n"
   echo
 
   # ============================================================
-  # ETAPA 9: Criar admin + CLI
+  # ETAPA 10/11: Criar admin
   # ============================================================
-  printf "${BLUE} >> [9/9] Criando usuário admin e CLI...${WHITE}\n"
+  printf "${BLUE} >> [10/11] Criando usuário admin...${WHITE}\n"
   echo
 
   cd /home/deploy/monitor/monitor-api
@@ -3070,6 +3099,26 @@ NGINXAPI
   # PM2 startup
   pm2 startup systemd -u root --hp /root 2>/dev/null || true
   pm2 save
+
+  printf "${GREEN}✅ Admin criado.${WHITE}\n"
+  echo
+
+  # ============================================================
+  # ETAPA 11/11: Registrar ZapMeow + CLI
+  # ============================================================
+  printf "${BLUE} >> [11/11] Registrando ZapMeow e criando CLI...${WHITE}\n"
+  echo
+
+  # Criar instância padrão no ZapMeow
+  sleep 3
+  curl -s -X POST "http://localhost:${zapmeow_port}/api/equipechat/qrcode" >/dev/null 2>&1 || true
+
+  # Registrar ZapMeow automaticamente na API do Monitor
+  curl -s -X POST "http://localhost:3200/api/register-zapmeow" \
+    -H "Content-Type: application/json" \
+    -d "{\"zapmeow_url\":\"http://localhost:${zapmeow_port}/api\",\"instance_id\":\"equipechat\"}" >/dev/null 2>&1
+
+  printf "${GREEN}✅ ZapMeow registrado automaticamente no painel.${WHITE}\n"
 
   # CLI de manutenção
   cat > /usr/local/bin/monitor-cli <<'CLIMONITOR'
@@ -3089,6 +3138,9 @@ case "$1" in
     echo ""
     echo "=== PostgreSQL ==="
     systemctl status postgresql --no-pager -l | head -5
+    echo ""
+    echo "=== Docker / ZapMeow ==="
+    docker ps --filter "name=zapmeow" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "Docker não encontrado"
     echo ""
     echo "=== Modo de instalação: $INSTALL_MODE ==="
     ;;
@@ -3118,33 +3170,30 @@ case "$1" in
       echo ">> Seus dados no banco serão preservados."
     fi
     ;;
+  zapmeow-status)
+    docker ps --filter "name=zapmeow" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "Container não encontrado"
+    ;;
+  zapmeow-logs)
+    docker logs zapmeow --tail 50 2>/dev/null || echo "Container não encontrado"
+    ;;
+  zapmeow-restart)
+    cd /opt/zapmeow
+    docker compose restart 2>/dev/null || docker-compose restart 2>/dev/null
+    echo "✅ ZapMeow reiniciado."
+    ;;
+  zapmeow-update)
+    cd /opt/zapmeow
+    docker compose pull 2>/dev/null || docker-compose pull 2>/dev/null
+    docker compose up -d 2>/dev/null || docker-compose up -d 2>/dev/null
+    echo "✅ ZapMeow atualizado."
+    ;;
   *)
-    echo "Uso: monitor-cli {status|logs|restart|update}"
+    echo "Uso: monitor-cli {status|logs|restart|update|zapmeow-status|zapmeow-logs|zapmeow-restart|zapmeow-update}"
     ;;
 esac
 CLIMONITOR
 
   chmod +x /usr/local/bin/monitor-cli
-
-  # Integração ZapMeow (opcional)
-  echo
-  printf "${WHITE} >> Deseja registrar uma instância ZapMeow existente? (S/N):${WHITE}\n"
-  echo
-  read -p "> " registrar_zapmeow
-  registrar_zapmeow=$(echo "${registrar_zapmeow}" | tr '[:lower:]' '[:upper:]')
-
-  if [ "${registrar_zapmeow}" == "S" ]; then
-    printf "${WHITE} >> Digite a URL do ZapMeow (ex: http://localhost:8900):${WHITE}\n"
-    echo
-    read -p "> " zapmeow_url
-    echo
-    if [ -n "$zapmeow_url" ]; then
-      curl -s -X POST "http://localhost:3200/api/register-zapmeow" \
-        -H "Content-Type: application/json" \
-        -d "{\"zapmeow_url\":\"${zapmeow_url}\",\"instance_id\":\"equipechat\"}" >/dev/null 2>&1
-      printf "${GREEN}✅ ZapMeow registrado.${WHITE}\n"
-    fi
-  fi
 
   # ============================================================
   # RESUMO FINAL
@@ -3159,16 +3208,27 @@ CLIMONITOR
   else
     printf "${WHITE}   📦 Modo:        ${BLUE}GIT (repositório clonado)${WHITE}\n"
   fi
-  printf "${WHITE}   🌐 Painel:    ${GREEN}https://${monitor_frontend_domain}${WHITE}\n"
-  printf "${WHITE}   🔗 API:       ${GREEN}https://${monitor_api_domain}${WHITE}\n"
-  printf "${WHITE}   👤 Admin:     ${YELLOW}${monitor_admin_email}${WHITE}\n"
-  printf "${WHITE}   🔑 Senha:     ${YELLOW}${monitor_admin_password}${WHITE}\n"
+  printf "${WHITE}   🌐 Painel:      ${GREEN}https://${monitor_frontend_domain}${WHITE}\n"
+  printf "${WHITE}   🔗 API:         ${GREEN}https://${monitor_api_domain}${WHITE}\n"
+  printf "${WHITE}   🐱 ZapMeow:     ${GREEN}${zapmeow_url_final}${WHITE}\n"
+  if [ -n "$zapmeow_domain" ]; then
+    printf "${WHITE}   🐱 ZapMeow URL: ${GREEN}https://${zapmeow_domain}${WHITE}\n"
+  fi
+  printf "${WHITE}   📱 QR Code:     ${GREEN}https://${monitor_frontend_domain}/whatsapp${WHITE}\n"
+  printf "${WHITE}   👤 Admin:       ${YELLOW}${monitor_admin_email}${WHITE}\n"
+  printf "${WHITE}   🔑 Senha:       ${YELLOW}${monitor_admin_password}${WHITE}\n"
   echo
   printf "${CYAN}   Comandos úteis:${WHITE}\n"
-  printf "${WHITE}   • ${BLUE}monitor-cli status${WHITE}   — Ver status dos serviços\n"
-  printf "${WHITE}   • ${BLUE}monitor-cli logs${WHITE}     — Ver logs da API\n"
-  printf "${WHITE}   • ${BLUE}monitor-cli restart${WHITE}  — Reiniciar API\n"
-  printf "${WHITE}   • ${BLUE}monitor-cli update${WHITE}   — Atualizar (git pull ou reinstalar)\n"
+  printf "${WHITE}   • ${BLUE}monitor-cli status${WHITE}          — Ver status dos serviços\n"
+  printf "${WHITE}   • ${BLUE}monitor-cli logs${WHITE}            — Ver logs da API\n"
+  printf "${WHITE}   • ${BLUE}monitor-cli restart${WHITE}         — Reiniciar API\n"
+  printf "${WHITE}   • ${BLUE}monitor-cli update${WHITE}          — Atualizar painel\n"
+  printf "${WHITE}   • ${BLUE}monitor-cli zapmeow-status${WHITE}  — Status do ZapMeow\n"
+  printf "${WHITE}   • ${BLUE}monitor-cli zapmeow-logs${WHITE}    — Logs do ZapMeow\n"
+  printf "${WHITE}   • ${BLUE}monitor-cli zapmeow-restart${WHITE} — Reiniciar ZapMeow\n"
+  printf "${WHITE}   • ${BLUE}monitor-cli zapmeow-update${WHITE}  — Atualizar ZapMeow\n"
+  echo
+  printf "${YELLOW}   📱 Acesse o painel e vá em /whatsapp para escanear o QR Code${WHITE}\n"
   echo
   printf "${GREEN}══════════════════════════════════════════════════════════════════${WHITE}\n"
   echo
