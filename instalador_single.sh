@@ -2932,9 +2932,9 @@ ENVZAP
   echo
 
   # ============================================================
-  # ETAPA 4: Executar schema SQL
+  # ETAPA 5/11: Executar schema SQL
   # ============================================================
-  printf "${BLUE} >> [4/9] Executando schema do banco...${WHITE}\n"
+  printf "${BLUE} >> [5/11] Executando schema do banco...${WHITE}\n"
   echo
 
   if [ -f /home/deploy/monitor/monitor-api/schema.sql ]; then
