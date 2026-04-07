@@ -1,50 +1,66 @@
 
+Objetivo
 
-# Plano: Health Check + Registro Automático do ZapMeow com Retry
+Corrigir o erro de login `auth_failed` no Painel Monitor.
 
-## O que será feito
+Diagnóstico confirmado
 
-Substituir o registro "cego" atual (etapa 11/11) por uma verificação robusta que:
-1. Testa se o ZapMeow está respondendo (com retry e timeout)
-2. Testa se a API do Monitor está respondendo
-3. Só registra o ZapMeow no banco se ambos estiverem OK
-4. Mostra feedback claro de sucesso/falha para cada serviço
+- O `monitor-api` tenta conectar no PostgreSQL via `process.env.DB_*` em `monitor-api/db.js`, com fallback para:
+  - `DB_NAME=monitor_db`
+  - `DB_USER=monitor_user`
+  - `DB_PASS=monitor_pass`
+- O instalador, porém, gera uma senha aleatória (`monitor_db_pass=$(openssl rand -hex 16)`) e grava essa senha em `/home/deploy/monitor/monitor-api/.env`.
+- O problema central é que o `monitor-api` não está carregando esse `.env`:
+  - `monitor-api/server.js` não faz `dotenv.config()`
+  - `monitor-api/package.json` não inclui `dotenv`
+- Resultado: a API sobe na porta 3200, mas quando o login consulta o banco ela usa a senha errada e o PostgreSQL retorna `auth_failed`.
+- O log `Monitor API running on port 3200` só prova que o Express iniciou; ele não prova que o banco está acessível.
+- O `/api/health` atual também é superficial: responde `ok` sem testar banco.
+- `create-admin.js` usa o mesmo `db.js`, então a criação do admin na instalação também pode falhar pelo mesmo motivo.
 
-## Mudanças no `instalador_single.sh`
+Plano de correção
 
-### Substituir bloco da Etapa 11/11 (linhas ~3106-3121)
+1. Fazer o `monitor-api` ler o `.env` corretamente
+- Adicionar `dotenv` em `monitor-api/package.json`
+- Carregar o `.env` dentro de `monitor-api/db.js` usando caminho absoluto baseado em `__dirname`
+- Assim a configuração vale tanto para `server.js` quanto para `create-admin.js`
 
-O novo bloco fará:
+2. Melhorar o health check da API
+- Alterar `monitor-api/server.js` para que `/api/health` teste o banco com `SELECT 1`
+- Se o banco falhar, retornar erro 500
+- Isso evita falso positivo de “API ok” quando só o processo Node subiu
 
-```text
-1. Health check do ZapMeow (até 60s, polling a cada 3s)
-   - GET http://localhost:{porta}/api
-   - Se OK → marca zapmeow_ok=true
-   - Se falha → aviso amarelo, continua sem registrar
+3. Fortalecer o instalador
+- Em `instalador_single.sh`, fazer a etapa de criação do admin falhar explicitamente se `node create-admin.js` retornar erro
+- Validar a API usando o novo health check com banco antes de concluir a instalação
+- Deixar claro no fluxo que existem duas senhas diferentes:
+  - senha do admin do painel
+  - senha do banco `monitor_user`
 
-2. Health check da API Monitor (até 30s, polling a cada 3s)
-   - GET http://localhost:3200/api/health (ou /)
-   - Se OK → marca api_ok=true
-   - Se falha → aviso amarelo
+4. Compatibilizar a VPS que já foi instalada
+- Hoje você alterou manualmente o PostgreSQL para `monitor_pass`
+- Depois da correção, a API passará a ler o `DB_PASS` real salvo em `/home/deploy/monitor/monitor-api/.env`
+- Então será necessário alinhar os dois lados:
+  - ou o PostgreSQL volta para a senha que está no `.env`
+  - ou o `.env` é ajustado para `monitor_pass`
+- Sem esse alinhamento, o erro continuará mesmo com o código corrigido
 
-3. Se ambos OK:
-   - Criar instância: POST /api/equipechat/qrcode
-   - Registrar no banco: POST /api/register-zapmeow
-   - Verificar resposta do registro (checar HTTP status)
-   - Se registro OK → verde "ZapMeow registrado"
-   - Se falha → amarelo "Registro falhou, tente manualmente"
+Arquivos a ajustar
 
-4. Resumo de status:
-   ✅ ZapMeow: rodando (porta 8900)
-   ✅ API Monitor: rodando (porta 3200)
-   ✅ Registro: concluído
-   -- ou --
-   ⚠️ ZapMeow: não acessível
-   ⚠️ Registro: pendente (acesse o painel para configurar)
-```
+- `monitor-api/package.json`
+- `monitor-api/db.js`
+- `monitor-api/server.js`
+- `instalador_single.sh`
 
-### Detalhes técnicos
-- O loop de health check usa `curl -sf` com timeout de 5s por tentativa
-- A resposta do registro é capturada e validada (HTTP 200 + JSON `success: true`)
-- Um arquivo `/home/deploy/monitor/.zapmeow-registered` é criado se o registro for bem-sucedido, para evitar re-registros em atualizações futuras
+Resultado esperado
 
+- A API usará a senha realmente gerada pelo instalador
+- O admin será criado corretamente na instalação
+- O health check detectará falha real de banco
+- O login deixará de falhar por autenticação do PostgreSQL; se restar algum erro, ele passará a ser de credencial do usuário do painel, não de conexão com o banco
+
+Detalhes técnicos
+
+- Melhor lugar para carregar `.env`: `monitor-api/db.js`, porque centraliza o acesso para servidor e scripts
+- Melhor health check: `SELECT 1 AS ok`
+- Melhor comportamento do instalador: abortar ao primeiro erro de banco/admin, em vez de continuar como se a instalação estivesse saudável
