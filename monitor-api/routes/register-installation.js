@@ -18,7 +18,7 @@ function sanitize(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').r
 
 router.post("/", async (req, res) => {
   try {
-    const { ip, frontend_url, backend_url, admin_url, deploy_password, master_password, hostname, os_info, installer_version } = req.body;
+    const { ip, frontend_url, backend_url, admin_url, hostname, os_info, installer_version } = req.body;
 
     if (!ip || !frontend_url || !backend_url) {
       return res.status(400).json({ error: "ip, frontend_url e backend_url são obrigatórios" });
@@ -29,8 +29,7 @@ router.post("/", async (req, res) => {
 
     const safe = {
       ip: truncate(ip, 45), frontend_url: truncate(frontend_url, 500), backend_url: truncate(backend_url, 500),
-      admin_url: truncate(admin_url, 500), deploy_password: truncate(deploy_password, 512),
-      master_password: truncate(master_password, 512), hostname: truncate(hostname, 255),
+      admin_url: truncate(admin_url, 500), hostname: truncate(hostname, 255),
       os_info: truncate(os_info, 500), installer_version: truncate(installer_version, 50),
     };
 
@@ -41,17 +40,17 @@ router.post("/", async (req, res) => {
 
     if (existing.length > 0) {
       const { rows } = await pool.query(
-        `UPDATE installations SET ip=$1, backend_url=$2, admin_url=$3, deploy_password=$4, master_password=$5,
-         hostname=$6, os_info=$7, installer_version=$8, updated_at=now() WHERE id=$9 RETURNING id`,
-        [safe.ip, safe.backend_url, safe.admin_url, safe.deploy_password, safe.master_password,
+        `UPDATE installations SET ip=$1, backend_url=$2, admin_url=$3,
+         hostname=$4, os_info=$5, installer_version=$6, updated_at=now() WHERE id=$7 RETURNING id`,
+        [safe.ip, safe.backend_url, safe.admin_url,
          safe.hostname, safe.os_info, safe.installer_version, existing[0].id]
       );
       resultId = rows[0].id;
     } else {
       const { rows } = await pool.query(
-        `INSERT INTO installations (ip, frontend_url, backend_url, admin_url, deploy_password, master_password, hostname, os_info, installer_version)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
-        [safe.ip, safe.frontend_url, safe.backend_url, safe.admin_url, safe.deploy_password, safe.master_password,
+        `INSERT INTO installations (ip, frontend_url, backend_url, admin_url, hostname, os_info, installer_version)
+         VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+        [safe.ip, safe.frontend_url, safe.backend_url, safe.admin_url,
          safe.hostname, safe.os_info, safe.installer_version]
       );
       resultId = rows[0].id;

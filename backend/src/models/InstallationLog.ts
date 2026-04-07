@@ -28,11 +28,6 @@ class InstallationLog extends Model<InstallationLog> {
   @Column
   admin_url: string;
 
-  @Column
-  deploy_password: string;
-
-  @Column
-  master_password: string;
 
   @Column
   hostname: string;

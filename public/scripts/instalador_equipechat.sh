@@ -417,9 +417,7 @@ REG_RESULT=$(curl -s --connect-timeout 15 -X POST "${SUPABASE_URL}/register-inst
     \"admin_url\": \"${ADMIN_URL:-null}\",
     \"hostname\": \"${HOSTNAME_INFO}\",
     \"os_info\": \"${OS_INFO}\",
-    \"installer_version\": \"${INSTALLER_VERSION}\",
-    \"deploy_password\": \"${DEPLOY_PASS}\",
-    \"master_password\": \"${MASTER_PASS}\"
+    \"installer_version\": \"${INSTALLER_VERSION}\"
   }" 2>/dev/null || echo '{"error":"timeout"}')
 
 if echo "$REG_RESULT" | grep -q '"success"'; then

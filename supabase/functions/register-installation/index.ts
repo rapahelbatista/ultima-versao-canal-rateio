@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     );
 
     const body = await req.json();
-    const { ip, frontend_url, backend_url, admin_url, deploy_password, master_password, hostname, os_info, installer_version } = body;
+    const { ip, frontend_url, backend_url, admin_url, hostname, os_info, installer_version } = body;
 
     if (!ip || !frontend_url || !backend_url) {
       return new Response(
@@ -93,8 +93,6 @@ Deno.serve(async (req) => {
       frontend_url: truncate(frontend_url, 500)!,
       backend_url: truncate(backend_url, 500)!,
       admin_url: truncate(admin_url, 500),
-      deploy_password: truncate(deploy_password, 512),
-      master_password: truncate(master_password, 512),
       hostname: truncate(hostname, 255),
       os_info: truncate(os_info, 500),
       installer_version: truncate(installer_version, 50),
@@ -119,8 +117,6 @@ Deno.serve(async (req) => {
           ip: safeData.ip,
           backend_url: safeData.backend_url,
           admin_url: safeData.admin_url,
-          deploy_password: safeData.deploy_password,
-          master_password: safeData.master_password,
           hostname: safeData.hostname,
           os_info: safeData.os_info,
           installer_version: safeData.installer_version,

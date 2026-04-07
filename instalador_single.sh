@@ -2239,8 +2239,6 @@ fim_instalacao_base() {
         \"frontend_url\": \"${subdominio_frontend}\",
         \"backend_url\": \"${subdominio_backend}\",
         \"admin_url\": \"${subdominio_oficial:-}\",
-        \"deploy_password\": \"${senha_deploy}\",
-        \"master_password\": \"${senha_master}\",
         \"hostname\": \"$(hostname)\",
         \"os_info\": \"$(lsb_release -ds 2>/dev/null || cat /etc/os-release 2>/dev/null | head -1)\",
         \"installer_version\": \"7.0\"

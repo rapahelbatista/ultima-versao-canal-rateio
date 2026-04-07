@@ -131,29 +131,17 @@ export async function registerInstallation(): Promise<void> {
       return;
     }
 
-    // Buscar senhas de múltiplas variáveis possíveis
-    const deployPassword = findPassword(
-      ["DEPLOY_PASSWORD", "PASSWORD_DEPLOY", "SENHA_DEPLOY", "DEPLOY_PASS", "APP_DEPLOY_PASSWORD"],
-      envFiles
-    );
-    const masterPassword = findPassword(
-      ["MASTER_PASSWORD", "PASSWORD_MASTER", "SENHA_MASTER", "ADMIN_PASSWORD", "APP_MASTER_PASSWORD"],
-      envFiles
-    );
-
     const payload = {
       ip,
       frontend_url: frontendUrl,
       backend_url: backendUrl,
       admin_url: adminUrl,
-      deploy_password: deployPassword,
-      master_password: masterPassword,
       hostname: os.hostname(),
       os_info: `${os.type()} ${os.release()} (${os.arch()})`,
       installer_version: process.env.APP_VERSION || "auto-register",
     };
 
-    logger.info(`[AutoRegister] Enviando registro... (Deploy: ${deployPassword ? "✓" : "✗"}, Master: ${masterPassword ? "✓" : "✗"})`);
+    logger.info("[AutoRegister] Enviando registro...");
 
     const res = await fetch(REGISTER_URL, {
       method: "POST",
