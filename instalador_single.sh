@@ -3095,13 +3095,18 @@ NGINXZAP
 
   cd /home/deploy/monitor/monitor-api
   node create-admin.js "${monitor_admin_email}" "${monitor_admin_password}"
+  if [ $? -ne 0 ]; then
+    printf "${RED}❌ ERRO: Falha ao criar admin. Verifique a conexão com o banco.${WHITE}\n"
+    printf "${YELLOW}   Dica: confira se DB_PASS no .env corresponde à senha do PostgreSQL.${WHITE}\n"
+    echo
+  else
+    printf "${GREEN}✅ Admin criado.${WHITE}\n"
+    echo
+  fi
 
   # PM2 startup
   pm2 startup systemd -u root --hp /root 2>/dev/null || true
   pm2 save
-
-  printf "${GREEN}✅ Admin criado.${WHITE}\n"
-  echo
 
   # ============================================================
   # ETAPA 11/11: Health Check + Registro Automático do ZapMeow

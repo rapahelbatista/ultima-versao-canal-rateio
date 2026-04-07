@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const pool = require("./db");
 
 const authRoutes = require("./routes/auth");
 const checkBlockStatus = require("./routes/check-block-status");
