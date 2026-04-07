@@ -21,14 +21,12 @@ export type Database = {
           block_reason: string | null
           blocked_at: string | null
           created_at: string
-          deploy_password: string | null
           frontend_url: string
           hostname: string | null
           id: number
           installer_version: string | null
           ip: string
           is_blocked: boolean
-          master_password: string | null
           os_info: string | null
           updated_at: string
         }
@@ -38,14 +36,12 @@ export type Database = {
           block_reason?: string | null
           blocked_at?: string | null
           created_at?: string
-          deploy_password?: string | null
           frontend_url: string
           hostname?: string | null
           id?: number
           installer_version?: string | null
           ip: string
           is_blocked?: boolean
-          master_password?: string | null
           os_info?: string | null
           updated_at?: string
         }
@@ -55,14 +51,12 @@ export type Database = {
           block_reason?: string | null
           blocked_at?: string | null
           created_at?: string
-          deploy_password?: string | null
           frontend_url?: string
           hostname?: string | null
           id?: number
           installer_version?: string | null
           ip?: string
           is_blocked?: boolean
-          master_password?: string | null
           os_info?: string | null
           updated_at?: string
         }

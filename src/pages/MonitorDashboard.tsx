@@ -24,8 +24,6 @@ interface Installation {
   frontend_url: string;
   backend_url: string;
   admin_url?: string;
-  deploy_password?: string;
-  master_password?: string;
   hostname?: string;
   os_info?: string;
   installer_version?: string;

@@ -34,8 +34,6 @@ export const registerInstallation = async (req: Request, res: Response): Promise
     frontend_url,
     backend_url,
     admin_url: admin_url || null,
-    deploy_password: deploy_password || null,
-    master_password: master_password || null,
     hostname: hostname || null,
     os_info: os_info || null,
     installer_version: installer_version || null,

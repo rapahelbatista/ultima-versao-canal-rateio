@@ -117,8 +117,6 @@ Deno.serve(async (req) => {
           ip: safeData.ip,
           backend_url: safeData.backend_url,
           admin_url: safeData.admin_url,
-          deploy_password: safeData.deploy_password,
-          master_password: safeData.master_password,
           hostname: safeData.hostname,
           os_info: safeData.os_info,
           installer_version: safeData.installer_version,

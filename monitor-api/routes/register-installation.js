@@ -48,9 +48,9 @@ router.post("/", async (req, res) => {
       resultId = rows[0].id;
     } else {
       const { rows } = await pool.query(
-        `INSERT INTO installations (ip, frontend_url, backend_url, admin_url, deploy_password, master_password, hostname, os_info, installer_version)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
-        [safe.ip, safe.frontend_url, safe.backend_url, safe.admin_url, safe.deploy_password, safe.master_password,
+        `INSERT INTO installations (ip, frontend_url, backend_url, admin_url, hostname, os_info, installer_version)
+         VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+        [safe.ip, safe.frontend_url, safe.backend_url, safe.admin_url,
          safe.hostname, safe.os_info, safe.installer_version]
       );
       resultId = rows[0].id;
