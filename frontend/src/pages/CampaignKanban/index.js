@@ -459,6 +459,101 @@ const parseMessage = (raw) => {
 
 // Sentinela para infinite scroll: dispara `onReach` quando o elemento entra
 // no viewport do container scrollável (rootMargin grande = pré-carrega antes do fim).
+// Card memoizado a nível de módulo: evita remount/rerender em listas grandes.
+// O comparador customizado só re-renderiza quando algo realmente visível mudou.
+const KanbanCard = React.memo(
+  function KanbanCard({ item, index, checked, classes, onOpen, onToggleSelect, selectedCount }) {
+    const draggableId = `ship-${item.id ?? `virtual-${item.number}`}`;
+    const isVirtual = !item.id;
+    const parsed = parseMessage(item.message);
+    const status = inferStatus(item);
+
+    const handleCardClick = (e) => {
+      if (e.ctrlKey || e.metaKey || e.shiftKey) {
+        e.preventDefault();
+        onToggleSelect(item.id);
+        return;
+      }
+      onOpen(item);
+    };
+
+    const cardClassName = [
+      classes.card,
+      checked ? classes.cardSelected : "",
+      isVirtual ? classes.cardVirtual : "",
+    ].filter(Boolean).join(" ");
+
+    return (
+      <Draggable draggableId={draggableId} index={index} isDragDisabled={isVirtual}>
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            onClick={(e) => !snapshot.isDragging && handleCardClick(e)}
+            className={`${cardClassName} ${snapshot.isDragging ? classes.cardDragging : ""}`}
+          >
+            {snapshot.isDragging && checked && selectedCount > 1 && (
+              <span className={classes.cardBadgeMulti}>+{selectedCount - 1}</span>
+            )}
+            <div className={classes.cardRow}>
+              {!isVirtual && (
+                <span
+                  onClick={(e) => { e.stopPropagation(); onToggleSelect(item.id); }}
+                  className={`${classes.cardCheck} ${checked ? classes.cardCheckActive : ""}`}
+                >
+                  {checked && <CheckCircle2 size={12} />}
+                </span>
+              )}
+              <span className={classes.cardAvatar}>
+                {(item.contact?.name || item.number || "?").slice(0, 2).toUpperCase()}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className={classes.cardName}>{item.contact?.name || "Sem nome"}</div>
+                <div className={classes.cardNumber}>{item.number}</div>
+              </div>
+              {status === "failed" && (
+                <AlertCircle size={14} style={{ color: "#f43f5e", flexShrink: 0 }} />
+              )}
+            </div>
+            {parsed.message && (
+              <div className={classes.cardMessage}>{parsed.message}</div>
+            )}
+            {parsed.notes && (
+              <div className={classes.cardNotes}>📝 {parsed.notes}</div>
+            )}
+            <div className={classes.cardFooter}>
+              <span>
+                {item.deliveredAt
+                  ? new Date(item.deliveredAt).toLocaleString("pt-BR")
+                  : item.createdAt
+                  ? new Date(item.createdAt).toLocaleString("pt-BR")
+                  : "Aguardando"}
+              </span>
+              {isVirtual && (
+                <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 4 }}>
+                  Virtual
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </Draggable>
+    );
+  },
+  (prev, next) => {
+    // Re-renderiza apenas quando muda algo visível para este card.
+    if (prev.item !== next.item) return false;
+    if (prev.index !== next.index) return false;
+    if (prev.checked !== next.checked) return false;
+    if (prev.classes !== next.classes) return false;
+    // selectedCount só importa enquanto o card está selecionado (badge no drag)
+    if (prev.checked && prev.selectedCount !== next.selectedCount) return false;
+    // onOpen / onToggleSelect são estáveis (useCallback no pai)
+    return true;
+  }
+);
+
 const InfiniteSentinel = ({ onReach, disabled, rootRef }) => {
   const ref = useRef(null);
   useEffect(() => {
