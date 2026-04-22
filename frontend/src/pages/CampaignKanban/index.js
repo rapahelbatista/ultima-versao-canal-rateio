@@ -2412,10 +2412,8 @@ const CampaignKanban = () => {
           {COLUMNS.filter((col) => visibleStatuses.has(col.id)).map((col) => {
             const tokens = columnColorTokens[col.color] || columnColorTokens.amber;
             const Icon = col.icon;
-            const colState = columnsState[col.id] || { items: [], total: 0, hasMore: false, loading: false };
-            const allItems = colState.items;
-            const items = quickFilter ? allItems.filter(matchesQuickFilter) : allItems;
-            const allSelected = items.filter((i) => i.id).every((i) => isSelected(i.id));
+            const view = columnViews[col.id] || { colState: { items: [], total: 0, hasMore: false, loading: false }, allItems: [], items: [], allSelected: false, hasAnyId: false };
+            const { colState, allItems, items, allSelected, hasAnyId } = view;
             return (
               <div key={col.id} className={headerClasses.column}>
                 <div
@@ -2434,7 +2432,7 @@ const CampaignKanban = () => {
                     </span>
                   </div>
                   <div className={headerClasses.columnHeaderLeft}>
-                    {items.some((i) => i.id) && (
+                    {hasAnyId && (
                       <Button
                         size="small"
                         onClick={() => selectAllInColumn(items)}
@@ -2450,8 +2448,8 @@ const CampaignKanban = () => {
                       style={{ background: tokens.chipBg, color: tokens.chipText }}
                     >
                       {items.length}
-                      {(quickFilter ? allItems.length : colState.total) > items.length
-                        ? `/${quickFilter ? allItems.length : colState.total}`
+                      {(quickFilterNorm ? allItems.length : colState.total) > items.length
+                        ? `/${quickFilterNorm ? allItems.length : colState.total}`
                         : ""}
                     </span>
                   </div>
@@ -2467,21 +2465,26 @@ const CampaignKanban = () => {
                         <div className={headerClasses.emptyState}>Sem envios</div>
                       )}
                       {items.map((item, idx) => (
-                        <Card
+                        <KanbanCard
                           key={item.id ?? `virtual-${item.number}-${idx}`}
                           item={item}
                           index={idx}
+                          checked={!!item.id && selectedIds.has(item.id)}
                           classes={headerClasses}
+                          onOpen={openDetails}
+                          onToggleSelect={toggleSelect}
+                          selectedCount={selectedIds.size}
                         />
                       ))}
                       {provided.placeholder}
-                      {colState.hasMore && !quickFilter && (
+                      {colState.hasMore && !quickFilterNorm && (
                         <InfiniteSentinel
                           rootRef={getColumnScrollRef(col.id)}
                           disabled={colState.loading}
                           onReach={() => loadColumn(col.id)}
                         />
                       )}
+
                       {colState.hasMore && (
                         <Button
                           variant="outlined"
