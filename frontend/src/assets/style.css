@@ -4,6 +4,18 @@
 	box-sizing: border-box;
 }
 
+/* Util mínimo: animação de rotação usada por ícones de loading
+   (substitui o utilitário Tailwind `animate-spin` em telas que
+   não dependem de Tailwind). */
+@keyframes lv-spin {
+	from { transform: rotate(0deg); }
+	to   { transform: rotate(360deg); }
+}
+.animate-spin {
+	animation: lv-spin 1s linear infinite;
+	transform-origin: center;
+}
+
 body{
     font-family: 'Poppins', sans-serif;
     overflow: hidden;
