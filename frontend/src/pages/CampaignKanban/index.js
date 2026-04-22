@@ -17,6 +17,9 @@ import {
   Hash,
   AlertCircle,
   Filter,
+  History,
+  User as UserIcon,
+  ExternalLink,
 } from "lucide-react";
 import api from "../../services/api";
 import { toast } from "react-toastify";
@@ -106,6 +109,47 @@ const CampaignKanban = () => {
   const [saving, setSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
+
+  // Histórico de atualizações em massa
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyRecords, setHistoryRecords] = useState([]);
+  const [historyScope, setHistoryScope] = useState("campaign"); // "campaign" | "all"
+  const [historyDetail, setHistoryDetail] = useState(null); // { log, shippings }
+  const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
+
+  const fetchHistory = useCallback(async (scope = historyScope) => {
+    setHistoryLoading(true);
+    try {
+      const params = { pageSize: 50, pageNumber: 1 };
+      if (scope === "campaign" && campaignId) params.campaignId = campaignId;
+      const { data } = await api.get("/campaigns/bulk-updates/history", { params });
+      setHistoryRecords(data?.records || []);
+    } catch (e) {
+      toast.error("Falha ao carregar histórico");
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [campaignId, historyScope]);
+
+  const openHistory = () => {
+    setHistoryOpen(true);
+    fetchHistory(historyScope);
+  };
+
+  const openHistoryDetail = async (logId) => {
+    setHistoryDetailLoading(true);
+    setHistoryDetail({ log: null, shippings: [] });
+    try {
+      const { data } = await api.get(`/campaigns/bulk-updates/${logId}`);
+      setHistoryDetail(data);
+    } catch (e) {
+      toast.error("Falha ao carregar detalhes");
+      setHistoryDetail(null);
+    } finally {
+      setHistoryDetailLoading(false);
+    }
+  };
 
   const isSelected = (id) => selectedIds.has(id);
   const hasSelection = selectedIds.size > 0;
