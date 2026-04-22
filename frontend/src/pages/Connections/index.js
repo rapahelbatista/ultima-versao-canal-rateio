@@ -861,6 +861,12 @@ const Connections = () => {
 
   return (
     <MainContainer>
+      <PageHeader
+        icon={<Smartphone size={22} />}
+        title="Dispositivos de WhatsApp"
+        subtitle="Gerencie suas instâncias conectadas"
+      />
+      <div style={{ height: 16 }} />
       <ConfirmationModal
         title={confirmModalInfo.title}
         open={confirmModalOpen}
