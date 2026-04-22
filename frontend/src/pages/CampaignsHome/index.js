@@ -286,16 +286,16 @@ const QuickAction = ({ icon: Icon, label, onClick, accent = "emerald" }) => {
   const classes = useStyles();
   const palette = PALETTES[accent];
   return (
-    <button onClick={onClick} className={classes.quick}>
+    <button onClick={onClick} className={classes.quick} type="button">
       <div
         className={classes.quickIcon}
         style={{ background: palette.bg, color: palette.text }}
       >
         <Icon size={18} />
       </div>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>{label}</div>
-        <div style={{ fontSize: 11, color: "#94a3b8" }}>Acessar →</div>
+      <div style={{ minWidth: 0 }}>
+        <div className={classes.quickLabel}>{label}</div>
+        <div className={classes.quickHint}>Acessar →</div>
       </div>
     </button>
   );
