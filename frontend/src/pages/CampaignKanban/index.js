@@ -715,6 +715,13 @@ const CampaignKanban = () => {
             Mostrar todos
           </button>
         )}
+        <button
+          onClick={selectAllLoaded}
+          title="Marca todos os envios já carregados (página atual) das colunas visíveis"
+          className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-50"
+        >
+          ✓ Selecionar página
+        </button>
       </div>
 
       {/* Board */}
