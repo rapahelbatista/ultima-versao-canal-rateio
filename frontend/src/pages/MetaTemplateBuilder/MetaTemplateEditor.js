@@ -23,12 +23,14 @@ import {
   ArrowLeft,
   Send,
   Play,
+  History,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import SectionCard from "../../components/SectionCard";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import useAutoSaveFlush from "../../hooks/useAutoSaveFlush";
+import MetaTemplateVersionsDialog from "./MetaTemplateVersionsDialog";
 
 const STEPS = [
   "Informações Básicas",
