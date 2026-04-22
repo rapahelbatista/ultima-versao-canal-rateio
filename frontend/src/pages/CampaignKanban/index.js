@@ -1184,6 +1184,44 @@ const CampaignKanban = () => {
             attempt={reconnectAttempt}
             onRetry={reconnectSocket}
           />
+          <div className="relative">
+            <button
+              onClick={() => setExportMenuOpen((v) => !v)}
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              title="Exportar envios visíveis"
+            >
+              <Download size={14} />
+              Exportar
+              <ChevronDown size={12} className={exportMenuOpen ? "rotate-180 transition-transform" : "transition-transform"} />
+            </button>
+            {exportMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setExportMenuOpen(false)} />
+                <div className="absolute right-0 z-20 mt-1 w-56 rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
+                  <button
+                    onClick={exportCSV}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-emerald-50"
+                  >
+                    <FileSpreadsheet size={14} className="text-emerald-600" />
+                    <div className="flex-1 text-left">
+                      <div className="font-semibold">CSV (Excel)</div>
+                      <div className="text-[10px] text-slate-500">Planilha com todas as colunas</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={exportPDF}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-emerald-50 border-t border-slate-100"
+                  >
+                    <FileText size={14} className="text-rose-600" />
+                    <div className="flex-1 text-left">
+                      <div className="font-semibold">PDF</div>
+                      <div className="text-[10px] text-slate-500">Relatório formatado para impressão</div>
+                    </div>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
           <button
             onClick={fetchShipping}
             disabled={loading}
