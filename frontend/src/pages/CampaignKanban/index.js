@@ -237,20 +237,43 @@ const CampaignKanban = () => {
   const [historyScope, setHistoryScope] = useState("campaign"); // "campaign" | "all"
   const [historyDetail, setHistoryDetail] = useState(null); // { log, shippings }
   const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyHasMore, setHistoryHasMore] = useState(false);
+  const [historyTotal, setHistoryTotal] = useState(0);
+  const [historyLoadingMore, setHistoryLoadingMore] = useState(false);
+  const HISTORY_PAGE_SIZE = 30;
+  const historyListRef = useRef(null);
 
-  const fetchHistory = useCallback(async (scope = historyScope) => {
-    setHistoryLoading(true);
+  const fetchHistory = useCallback(async (scope = historyScope, opts = {}) => {
+    const { append = false, page = 1 } = opts;
+    if (append) setHistoryLoadingMore(true); else setHistoryLoading(true);
     try {
-      const params = { pageSize: 50, pageNumber: 1 };
+      const params = { pageSize: HISTORY_PAGE_SIZE, pageNumber: page };
       if (scope === "campaign" && campaignId) params.campaignId = campaignId;
       const { data } = await api.get("/campaigns/bulk-updates/history", { params });
-      setHistoryRecords(data?.records || []);
+      const records = data?.records || [];
+      const count = Number(data?.count ?? data?.total ?? 0);
+      setHistoryRecords((prev) => {
+        const merged = append ? [...prev, ...records] : records;
+        // Dedup por id (segurança contra registros novos chegando entre páginas)
+        const seen = new Set();
+        return merged.filter((r) => (r.id != null && seen.has(r.id)) ? false : (seen.add(r.id), true));
+      });
+      setHistoryTotal(count);
+      setHistoryPage(page);
+      const loadedSoFar = (append ? historyRecords.length : 0) + records.length;
+      setHistoryHasMore(records.length >= HISTORY_PAGE_SIZE && (count === 0 || loadedSoFar < count));
     } catch (e) {
-      toast.error("Falha ao carregar histórico");
+      toast.error(append ? "Falha ao carregar mais" : "Falha ao carregar histórico");
     } finally {
-      setHistoryLoading(false);
+      if (append) setHistoryLoadingMore(false); else setHistoryLoading(false);
     }
-  }, [campaignId, historyScope]);
+  }, [campaignId, historyScope, historyRecords.length]);
+
+  const loadMoreHistory = useCallback(() => {
+    if (historyLoading || historyLoadingMore || !historyHasMore) return;
+    fetchHistory(historyScope, { append: true, page: historyPage + 1 });
+  }, [historyLoading, historyLoadingMore, historyHasMore, fetchHistory, historyScope, historyPage]);
 
   const openHistory = () => {
     setHistoryOpen(true);
