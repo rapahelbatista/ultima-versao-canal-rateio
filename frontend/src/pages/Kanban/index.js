@@ -120,6 +120,7 @@ const Kanban = () => {
   };
 
   useEffect(() => {
+    if (!socket || !user?.companyId) return;
     const companyId = user.companyId;
 
     const onAppMessage = data => {
@@ -136,7 +137,7 @@ const Kanban = () => {
       socket.off(`company-${companyId}-appMessage`, onAppMessage);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [socket, user.companyId]);
+  }, [socket, user?.companyId]);
 
   const handleSearchClick = () => {
     fetchTickets();

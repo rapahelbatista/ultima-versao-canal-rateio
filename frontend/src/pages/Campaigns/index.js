@@ -167,6 +167,7 @@ const Campaigns = () => {
   }, [searchParam, pageNumber, statusFilter, recurrenceFilter, pageSize]);
 
   useEffect(() => {
+    if (!socket || !user?.companyId) return;
     const companyId = user.companyId;
     const onCompanyCampaign = (data) => {
       if (data.action === "update" || data.action === "create") {
@@ -178,7 +179,7 @@ const Campaigns = () => {
     };
     socket.on(`company-${companyId}-campaign`, onCompanyCampaign);
     return () => { socket.off(`company-${companyId}-campaign`, onCompanyCampaign); };
-  }, [user]);
+  }, [user, socket]);
 
   const fetchCampaigns = async () => {
     try {
