@@ -3245,24 +3245,30 @@ const InfoRow = ({ icon: Icon, label, value }) => (
   </div>
 );
 
-// Indicador de "ao vivo" — pulsa quando recebe um evento, mostra estado de conexão e botão de retry
+// Indicador de "ao vivo" — sem Tailwind.
+// Estados visuais:
+//   connected  + tick recente -> dot com `kanban-ping` (onda)
+//   connected  + idle         -> dot estático
+//   reconnecting              -> dot com `kanban-ping` contínuo + botão com `kanban-spin`
+//   disconnected              -> dot com `kanban-pulse` (atenção) + botão estático
 const LiveBadge = ({ tick, state = "disconnected", attempt = 0, onRetry }) => {
-  const [pulsing, setPulsing] = useState(false);
+  const [recentTick, setRecentTick] = useState(false);
   useEffect(() => {
     if (!tick) return;
-    setPulsing(true);
-    const t = setTimeout(() => setPulsing(false), 800);
+    setRecentTick(true);
+    const t = setTimeout(() => setRecentTick(false), 800);
     return () => clearTimeout(t);
   }, [tick]);
 
   const isConnected = state === "connected";
   const isReconnecting = state === "reconnecting";
+  const isDisconnected = !isConnected && !isReconnecting;
 
   const tone = isConnected
-    ? { border: "#a7f3d0", bg: "#ecfdf5", text: "#047857", dot: "#10b981" }
+    ? { border: "#a7f3d0", bg: "#ecfdf5", text: "#047857", dot: "#10b981", ping: "#34d399" }
     : isReconnecting
-    ? { border: "#fde68a", bg: "#fffbeb", text: "#b45309", dot: "#f59e0b" }
-    : { border: "#fecdd3", bg: "#fff1f2", text: "#be123c", dot: "#f43f5e" };
+    ? { border: "#fde68a", bg: "#fffbeb", text: "#b45309", dot: "#f59e0b", ping: "#fbbf24" }
+    : { border: "#fecdd3", bg: "#fff1f2", text: "#be123c", dot: "#f43f5e", ping: "#f43f5e" };
 
   const label = isConnected
     ? "AO VIVO"
@@ -3276,6 +3282,11 @@ const LiveBadge = ({ tick, state = "disconnected", attempt = 0, onRetry }) => {
     ? `Tentando reconectar${attempt ? ` (tentativa ${attempt})` : "..."}`
     : "Conexão em tempo real perdida — clique para tentar novamente";
 
+  // Quando exibir a onda de ping no dot
+  const showPing = (isConnected && recentTick) || isReconnecting;
+  // Quando o próprio dot deve pulsar (sinal de alerta sem ping)
+  const dotAnimClass = isDisconnected ? "kanban-pulse" : "";
+
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
       <div
@@ -3285,22 +3296,29 @@ const LiveBadge = ({ tick, state = "disconnected", attempt = 0, onRetry }) => {
           borderRadius: 12, border: `1px solid ${tone.border}`,
           padding: "6px 10px", fontSize: 11, fontWeight: 700,
           backgroundColor: tone.bg, color: tone.text,
-          transition: "background-color 200ms, color 200ms",
+          transition: "background-color 200ms, color 200ms, border-color 200ms",
         }}
       >
         <span style={{ position: "relative", display: "inline-flex", height: 8, width: 8 }}>
-          {((isConnected && pulsing) || isReconnecting) && (
+          {showPing && (
             <span
               className="kanban-ping"
               style={{
                 position: "absolute", display: "inline-flex",
                 height: "100%", width: "100%",
                 borderRadius: "50%",
-                backgroundColor: isReconnecting ? "#fbbf24" : "#34d399",
+                backgroundColor: tone.ping,
               }}
             />
           )}
-          <span style={{ position: "relative", display: "inline-flex", height: 8, width: 8, borderRadius: "50%", backgroundColor: tone.dot }} />
+          <span
+            className={dotAnimClass}
+            style={{
+              position: "relative", display: "inline-flex",
+              height: 8, width: 8, borderRadius: "50%",
+              backgroundColor: tone.dot,
+            }}
+          />
         </span>
         {label}
       </div>
