@@ -218,20 +218,104 @@ const CampaignKanban = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Carrega mais uma página de uma coluna específica
+  const loadColumn = useCallback(async (status) => {
+    if (!campaignId) return;
+    let nextPage = 1;
+    setColumnsState((prev) => {
+      const cur = prev[status];
+      if (cur.loading || !cur.hasMore) { nextPage = -1; return prev; }
+      nextPage = (cur.page || 0) + 1;
+      return { ...prev, [status]: { ...cur, loading: true } };
+    });
+    if (nextPage === -1) return;
+
+    try {
+      const term = (filterPhone || search || "").trim();
+      const { data } = await api.get(`/campaigns/${campaignId}/shipping`, {
+        params: {
+          page: nextPage,
+          pageSize,
+          status,
+          searchParam: term || undefined,
+          startDate: filterStartDate || undefined,
+          endDate: filterEndDate || undefined,
+        },
+      });
+      const items = data?.shipping || [];
+      const total = data?.count ?? 0;
+      setColumnsState((prev) => {
+        const baseItems = [...prev[status].items, ...items];
+        return {
+          ...prev,
+          [status]: {
+            items: baseItems,
+            page: nextPage,
+            total,
+            hasMore: baseItems.length < total,
+            loading: false,
+          },
+        };
+      });
+      setShipping((cur) => {
+        const ids = new Set(items.filter((i) => i.id).map((i) => i.id));
+        const merged = cur.filter((s) => !s.id || !ids.has(s.id));
+        return [...merged, ...items];
+      });
+    } catch (e) {
+      toast.error(`Erro ao carregar mais (${status})`);
+      setColumnsState((prev) => ({ ...prev, [status]: { ...prev[status], loading: false } }));
+    }
+  }, [campaignId, filterPhone, search, pageSize, filterStartDate, filterEndDate]);
+
+  // Recarrega todas as colunas em paralelo
   const fetchShipping = useCallback(async () => {
     if (!campaignId) return;
     setLoading(true);
     try {
-      const { data } = await api.get(`/campaigns/${campaignId}/shipping`, {
-        params: { page: 1, pageSize: 500, searchParam: search || undefined },
+      setColumnsState({
+        pending: { items: [], page: 0, total: 0, hasMore: true, loading: true },
+        delivered: { items: [], page: 0, total: 0, hasMore: true, loading: true },
+        confirmed: { items: [], page: 0, total: 0, hasMore: true, loading: true },
+        failed: { items: [], page: 0, total: 0, hasMore: true, loading: true },
       });
-      setShipping(data?.shipping || []);
+      const term = (filterPhone || search || "").trim();
+      const results = await Promise.all(
+        ["pending", "delivered", "confirmed", "failed"].map((status) =>
+          api.get(`/campaigns/${campaignId}/shipping`, {
+            params: {
+              page: 1,
+              pageSize,
+              status,
+              searchParam: term || undefined,
+              startDate: filterStartDate || undefined,
+              endDate: filterEndDate || undefined,
+            },
+          }).then((r) => ({ status, data: r.data }))
+        )
+      );
+      const newCols = {};
+      const flat = [];
+      results.forEach(({ status, data }) => {
+        const items = data?.shipping || [];
+        const total = data?.count ?? items.length;
+        newCols[status] = {
+          items,
+          page: 1,
+          total,
+          hasMore: items.length < total,
+          loading: false,
+        };
+        flat.push(...items);
+      });
+      setColumnsState(newCols);
+      setShipping(flat);
     } catch (e) {
       toast.error("Erro ao buscar envios");
     } finally {
       setLoading(false);
     }
-  }, [campaignId, search]);
+  }, [campaignId, search, filterPhone, filterStartDate, filterEndDate, pageSize]);
 
   useEffect(() => {
     fetchShipping();
