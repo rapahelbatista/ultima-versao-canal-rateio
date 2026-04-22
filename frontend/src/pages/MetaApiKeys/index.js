@@ -229,4 +229,18 @@ const MetaApiKeys = () => {
   );
 };
 
-export default MetaApiKeys;
+const MetaApiKeysGuarded = (props) => {
+  const { allowed } = useCanManageMeta();
+  if (!allowed) {
+    return (
+      <LockedPage
+        title="Vincular Meta WhatsApp bloqueado"
+        description="As chaves de API da Meta são sensíveis. Apenas super usuários ou administradores podem visualizar e gerenciar."
+        resource="Meta API Keys"
+      />
+    );
+  }
+  return <MetaApiKeys {...props} />;
+};
+
+export default MetaApiKeysGuarded;

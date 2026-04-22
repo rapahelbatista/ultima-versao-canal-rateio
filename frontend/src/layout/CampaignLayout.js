@@ -43,7 +43,9 @@ import {
   Bot,
   Megaphone,
   QrCode,
+  Lock,
 } from "lucide-react";
+import useCanManageMeta from "../hooks/useCanManageMeta";
 
 const drawerWidth = 260;
 const collapsedWidth = 72;
@@ -57,14 +59,14 @@ const NAV_GROUPS = [
     label: "WhatsApp QR Plugin",
     items: [
       { to: "/connections", label: "Adicionar WhatsApp por QR", icon: QrCode },
-      { to: "/whatsapp-warmer", label: "Aquecedor de WhatsApp", icon: Flame },
+      { to: "/whatsapp-warmer", label: "Aquecedor de WhatsApp", icon: Flame, restricted: true },
       { to: "/messages-api", label: "Rest API", icon: Code2 },
     ],
   },
   {
     label: "Conexão WA Meta",
     items: [
-      { to: "/meta-api-keys", label: "Vincular Meta WhatsApp", icon: Facebook },
+      { to: "/meta-api-keys", label: "Vincular Meta WhatsApp", icon: Facebook, restricted: true },
     ],
   },
   {
@@ -77,7 +79,7 @@ const NAV_GROUPS = [
   {
     label: "Transmissão",
     items: [
-      { to: "/create-meta-template", label: "Create Meta Template", icon: FileText },
+      { to: "/create-meta-template", label: "Create Meta Template", icon: FileText, restricted: true },
       { to: "/campaigns", label: "Nova Campanha", icon: Send },
       { to: "/campaigns-config", label: "Listas & Config", icon: ListChecks },
       { to: "/contact-lists", label: "Phonebook", icon: Users },
@@ -322,6 +324,7 @@ const CampaignLayout = ({ children }) => {
   const location = useLocation();
   const history = useHistory();
   const [collapsed, setCollapsed] = useState(false);
+  const { allowed: canManageMeta } = useCanManageMeta();
 
   const initials = useMemo(() => {
     const name = user?.name || "U";
@@ -341,20 +344,38 @@ const CampaignLayout = ({ children }) => {
   const renderItem = (item) => {
     const Icon = item.icon;
     const active = isActive(item);
+    const locked = item.restricted && !canManageMeta;
     const node = (
       <Link
         to={item.to}
         className={`${classes.navItem} ${active ? classes.navItemActive : ""}`}
-        style={collapsed ? { justifyContent: "center" } : undefined}
+        style={{
+          ...(collapsed ? { justifyContent: "center" } : {}),
+          ...(locked ? { opacity: 0.65 } : {}),
+        }}
       >
         <span className={`${classes.navIcon} ${active ? classes.navIconActive : ""}`}>
           <Icon size={16} />
         </span>
-        {!collapsed && <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{item.label}</span>}
+        {!collapsed && (
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>
+            {item.label}
+          </span>
+        )}
+        {!collapsed && locked && (
+          <Lock size={12} style={{ color: "#94a3b8", marginLeft: "auto" }} />
+        )}
       </Link>
     );
+    const tooltipLabel = locked
+      ? `${item.label} — acesso restrito`
+      : item.label;
     return collapsed ? (
-      <Tooltip title={item.label} placement="right" key={item.to}>
+      <Tooltip title={tooltipLabel} placement="right" key={item.to}>
+        <div>{node}</div>
+      </Tooltip>
+    ) : locked ? (
+      <Tooltip title="Apenas super usuários ou administradores" placement="right" key={item.to}>
         <div>{node}</div>
       </Tooltip>
     ) : (

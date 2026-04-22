@@ -14,6 +14,8 @@ import SectionCard from "../../components/SectionCard";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import MetaTemplateEditor from "./MetaTemplateEditor";
+import useCanManageMeta from "../../hooks/useCanManageMeta";
+import LockedPage from "../../components/LockedPage";
 
 const STATUS_TONES = {
   draft: { bg: "#e2e8f0", color: "#475569", label: "Rascunho" },
@@ -196,4 +198,18 @@ const MetaTemplateBuilder = () => {
   );
 };
 
-export default MetaTemplateBuilder;
+const MetaTemplateBuilderGuarded = (props) => {
+  const { allowed } = useCanManageMeta();
+  if (!allowed) {
+    return (
+      <LockedPage
+        title="Modelos da Meta bloqueados"
+        description="A criação e o envio de modelos para aprovação da Meta são restritos a super usuários e administradores da empresa."
+        resource="Create Meta Template"
+      />
+    );
+  }
+  return <MetaTemplateBuilder {...props} />;
+};
+
+export default MetaTemplateBuilderGuarded;

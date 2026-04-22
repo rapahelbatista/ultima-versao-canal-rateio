@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "react-toastify";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
+import useCanManageMeta from "../../hooks/useCanManageMeta";
+import LockedPage from "../../components/LockedPage";
 import { makeStyles } from "@material-ui/core/styles";
 import {
   Button,
@@ -415,4 +417,18 @@ const WhatsAppWarmer = () => {
   );
 };
 
-export default WhatsAppWarmer;
+const WhatsAppWarmerGuarded = (props) => {
+  const { allowed } = useCanManageMeta();
+  if (!allowed) {
+    return (
+      <LockedPage
+        title="Aquecedor de WhatsApp bloqueado"
+        description="Apenas super usuários ou administradores da empresa podem configurar e operar o aquecedor de números."
+        resource="Aquecedor (Warmer)"
+      />
+    );
+  }
+  return <WhatsAppWarmer {...props} />;
+};
+
+export default WhatsAppWarmerGuarded;
