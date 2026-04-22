@@ -151,29 +151,80 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const DEFAULT_CONFIG = {
+  minIntervalSec: 20,
+  maxIntervalSec: 60,
+  dailyLimit: 50,
+  startTime: "09:00",
+  endTime: "18:00",
+};
+
 const WhatsAppWarmer = () => {
   const classes = useStyles();
   const [tab, setTab] = useState("script");
-  const [messages, setMessages] = useState([
-    "hey there",
-    "hey there",
-    "hey",
-    "hey man",
-    "how are you",
-    "i am good",
-    "how are you doi",
-    "hey",
-    "yoa",
-    "new",
-    "message",
-  ]);
+  const [messages, setMessages] = useState([]);
+  const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [draft, setDraft] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const skipNextSave = useRef(true);
+  const saveTimer = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const { data } = await api.get("/warmer-settings");
+        if (!active) return;
+        setMessages(Array.isArray(data?.messages) ? data.messages : []);
+        setConfig({ ...DEFAULT_CONFIG, ...(data?.config || {}) });
+      } catch (err) {
+        if (active) toastError(err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    if (skipNextSave.current) { skipNextSave.current = false; return; }
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        setSaving(true);
+        await api.put("/warmer-settings", { messages, config });
+      } catch (err) {
+        toastError(err);
+      } finally {
+        setSaving(false);
+      }
+    }, 600);
+    return () => saveTimer.current && clearTimeout(saveTimer.current);
+  }, [messages, config, loading]);
 
   const addMsg = () => {
     const v = draft.trim();
     if (!v) return;
     setMessages((m) => [...m, v]);
     setDraft("");
+  };
+
+  const updateConfig = useCallback((patch) => {
+    setConfig((c) => ({ ...c, ...patch }));
+  }, []);
+
+  const handleSaveConfig = async () => {
+    try {
+      setSaving(true);
+      await api.put("/warmer-settings", { messages, config });
+      toast.success("Configurações salvas");
+    } catch (err) {
+      toastError(err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
