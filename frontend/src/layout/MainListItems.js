@@ -575,6 +575,10 @@ const MainListItems = ({ collapsed, drawerClose }) => {
 
   return (
     <div onClick={drawerClose}>
+      {FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && (
+        <ListSubheader inset>Campanhas</ListSubheader>
+      )}
+
       {(user.showDashboard === "enabled" || user.allowRealTime === "enabled") && (
           <>
             <Tooltip
