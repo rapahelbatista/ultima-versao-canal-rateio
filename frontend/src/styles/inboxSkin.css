@@ -1,0 +1,193 @@
+/* ============================================================
+   Inbox Skin — Restyling visual da Caixa de Entrada
+   Aplicado APENAS dentro de .inbox-skin para não vazar para o
+   resto da aplicação. Não altera nenhuma lógica.
+   ============================================================ */
+
+.inbox-skin {
+  --inbox-green: #10b981;
+  --inbox-green-dark: #0d9488;
+  --inbox-green-light: #d1fae5;
+  --inbox-green-soft: #ecfdf5;
+  --inbox-bg: #f8fafc;
+  --inbox-card: #ffffff;
+  --inbox-border: #e5e7eb;
+  --inbox-text: #0f172a;
+  --inbox-muted: #64748b;
+  --inbox-tag-whatsapp: #d1fae5;
+  --inbox-tag-whatsapp-fg: #047857;
+  --inbox-tag-meta: #dbeafe;
+  --inbox-tag-meta-fg: #1d4ed8;
+  --inbox-tag-telegram: #e0f2fe;
+  --inbox-tag-telegram-fg: #0369a1;
+  --inbox-tag-important: #fee2e2;
+  --inbox-tag-important-fg: #b91c1c;
+
+  background: var(--inbox-bg) !important;
+}
+
+/* ----------- HEADER "CAIXA DE ENTRADA" ----------- */
+.inbox-skin .MuiAppBar-root,
+.inbox-skin .MuiPaper-root[class*="tabsHeader"],
+.inbox-skin [class*="tabsHeader"] {
+  background: linear-gradient(180deg, #ffffff 0%, var(--inbox-green-soft) 100%) !important;
+  box-shadow: none !important;
+  border-bottom: 1px solid var(--inbox-border) !important;
+}
+
+.inbox-skin .MuiTab-root {
+  text-transform: none !important;
+  font-weight: 600 !important;
+  color: var(--inbox-muted) !important;
+  min-height: 44px !important;
+  border-radius: 999px !important;
+  margin: 4px 4px !important;
+  padding: 4px 14px !important;
+  min-width: auto !important;
+}
+
+.inbox-skin .MuiTab-root.Mui-selected {
+  background: var(--inbox-green-light) !important;
+  color: var(--inbox-green-dark) !important;
+}
+
+.inbox-skin .MuiTabs-indicator {
+  display: none !important;
+}
+
+/* ----------- LISTA DE TICKETS ----------- */
+.inbox-skin .MuiListItem-root,
+.inbox-skin [class*="ticketCustom"] {
+  background: var(--inbox-card) !important;
+  border-bottom: 1px solid var(--inbox-border) !important;
+  transition: background .15s ease;
+}
+
+.inbox-skin .MuiListItem-root:hover {
+  background: var(--inbox-green-soft) !important;
+}
+
+.inbox-skin .MuiListItem-root.Mui-selected,
+.inbox-skin .MuiListItem-root[class*="selected"] {
+  background: var(--inbox-green-soft) !important;
+  border-left: 3px solid var(--inbox-green) !important;
+}
+
+/* Avatares circulares verdes */
+.inbox-skin .MuiAvatar-root {
+  background: var(--inbox-green) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+
+.inbox-skin .MuiAvatar-root img {
+  background: transparent !important;
+}
+
+/* Chips/tags coloridos */
+.inbox-skin .MuiChip-root {
+  height: 20px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+}
+
+.inbox-skin .MuiChip-root[class*="WhatsApp" i],
+.inbox-skin .MuiChip-label:contains("WhatsApp") {
+  background: var(--inbox-tag-whatsapp) !important;
+  color: var(--inbox-tag-whatsapp-fg) !important;
+}
+
+/* Badge de não lidas (verde com número) */
+.inbox-skin .MuiBadge-badge {
+  background: var(--inbox-green) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+
+/* Campo de busca arredondado */
+.inbox-skin .MuiInputBase-root[class*="search"],
+.inbox-skin .MuiOutlinedInput-root {
+  border-radius: 999px !important;
+  background: #fff !important;
+}
+
+.inbox-skin .MuiOutlinedInput-notchedOutline {
+  border-color: var(--inbox-border) !important;
+}
+
+/* ----------- CONVERSA / CHAT ----------- */
+.inbox-skin [class*="messagesList"],
+.inbox-skin [class*="ticketsListContainer"] {
+  background: var(--inbox-bg) !important;
+}
+
+/* Bolhas: enviado por mim (à direita) — verde claro */
+.inbox-skin [class*="messageRight"],
+.inbox-skin [class*="messageOut"] {
+  background: var(--inbox-green-light) !important;
+  color: var(--inbox-text) !important;
+  border-radius: 14px 14px 4px 14px !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05) !important;
+}
+
+/* Bolhas: recebidas — branco */
+.inbox-skin [class*="messageLeft"],
+.inbox-skin [class*="messageIn"] {
+  background: #fff !important;
+  color: var(--inbox-text) !important;
+  border-radius: 14px 14px 14px 4px !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05) !important;
+}
+
+/* Separador de data */
+.inbox-skin [class*="dailyTimestamp"] {
+  background: transparent !important;
+  color: var(--inbox-muted) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+
+/* Header do ticket */
+.inbox-skin [class*="ticketHeader"],
+.inbox-skin [class*="TicketHeader"] {
+  background: #fff !important;
+  border-bottom: 1px solid var(--inbox-border) !important;
+}
+
+/* Input de mensagem */
+.inbox-skin [class*="mainWrapper"] [class*="newMessageBox"],
+.inbox-skin [class*="messageInputWrapper"] {
+  background: #fff !important;
+  border-top: 1px solid var(--inbox-border) !important;
+}
+
+/* ----------- CONTACT DRAWER (PAINEL DIREITO) ----------- */
+.inbox-skin [class*="drawer"] .MuiPaper-root,
+.inbox-skin .MuiDrawer-paper {
+  background: #fff !important;
+  border-left: 1px solid var(--inbox-border) !important;
+}
+
+.inbox-skin [class*="contactHeader"] {
+  background: linear-gradient(180deg, var(--inbox-green-soft) 0%, #fff 100%) !important;
+}
+
+/* Botões primários ficam verdes dentro da inbox */
+.inbox-skin .MuiButton-containedPrimary {
+  background: var(--inbox-green) !important;
+}
+.inbox-skin .MuiButton-containedPrimary:hover {
+  background: var(--inbox-green-dark) !important;
+}
+.inbox-skin .MuiButton-textPrimary,
+.inbox-skin .MuiButton-outlinedPrimary {
+  color: var(--inbox-green-dark) !important;
+  border-color: var(--inbox-green) !important;
+}
+
+/* Ícones primários */
+.inbox-skin .MuiIconButton-root[class*="primary"] svg,
+.inbox-skin .MuiSvgIcon-colorPrimary {
+  color: var(--inbox-green) !important;
+}
