@@ -20,6 +20,7 @@ import {
   History,
   User as UserIcon,
   ExternalLink,
+  Undo2,
 } from "lucide-react";
 import api from "../../services/api";
 import { toast } from "react-toastify";
@@ -110,6 +111,11 @@ const CampaignKanban = () => {
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
 
+  // Última atualização em massa (botão "Desfazer" temporário)
+  const [lastBulkUpdate, setLastBulkUpdate] = useState(null); // { id, status, count, expiresAt }
+  const [undoing, setUndoing] = useState(false);
+  const [undoTick, setUndoTick] = useState(0);
+
   // Histórico de atualizações em massa
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -148,6 +154,49 @@ const CampaignKanban = () => {
       setHistoryDetail(null);
     } finally {
       setHistoryDetailLoading(false);
+    }
+  };
+
+  // Tick a cada 1s p/ contador regressivo + auto-dismiss do banner de undo
+  useEffect(() => {
+    if (!lastBulkUpdate) return;
+    const t = setInterval(() => setUndoTick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, [lastBulkUpdate]);
+  useEffect(() => {
+    if (!lastBulkUpdate) return;
+    if (Date.now() >= lastBulkUpdate.expiresAt) setLastBulkUpdate(null);
+  }, [undoTick, lastBulkUpdate]);
+
+  const undoBulkUpdate = async (bulkId) => {
+    if (!bulkId || undoing) return;
+    setUndoing(true);
+    try {
+      const { data } = await api.post(`/campaigns/bulk-updates/${bulkId}/undo`);
+      const restored = data?.restored ?? 0;
+      const failed = data?.failed ?? 0;
+      if (restored > 0 && failed === 0) {
+        toast.success(`Atualização revertida — ${restored} envio(s) restaurado(s)`);
+      } else if (restored > 0) {
+        toast.warn(`${restored} restaurado(s), ${failed} falharam`);
+      } else {
+        toast.error("Não foi possível desfazer");
+      }
+      setLastBulkUpdate(null);
+      // Atualiza histórico aberto e board
+      if (historyOpen) fetchHistory(historyScope);
+      if (historyDetail?.log?.id === bulkId) {
+        try {
+          const { data: refreshed } = await api.get(`/campaigns/bulk-updates/${bulkId}`);
+          setHistoryDetail(refreshed);
+        } catch { /* ignore */ }
+      }
+      fetchShipping();
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.response?.data?.message || "Falha ao desfazer";
+      toast.error(msg);
+    } finally {
+      setUndoing(false);
     }
   };
 
@@ -211,6 +260,7 @@ const CampaignKanban = () => {
       );
       const ok = data?.successCount ?? ids.length;
       const fail = data?.failedCount ?? 0;
+      const bulkId = data?.bulkUpdateId;
       setBulkUpdating(false);
       if (fail === 0) {
         toast.success(`${ok} envio(s) atualizados para "${newStatus}"`);
@@ -220,6 +270,15 @@ const CampaignKanban = () => {
       } else {
         toast.warn(`${ok} atualizados, ${fail} falharam`);
         fetchShipping();
+      }
+      // Habilita botão "Desfazer" por 30s se houve sucesso
+      if (bulkId && ok > 0) {
+        setLastBulkUpdate({
+          id: bulkId,
+          status: newStatus,
+          count: ok,
+          expiresAt: Date.now() + 30_000
+        });
       }
       clearSelection();
     } catch (err) {
@@ -914,6 +973,43 @@ const CampaignKanban = () => {
         </div>
       </DragDropContext>
 
+      {/* Banner flutuante "Desfazer" — aparece após bulk update bem-sucedido (30s) */}
+      {lastBulkUpdate && (() => {
+        const remaining = Math.max(0, Math.ceil((lastBulkUpdate.expiresAt - Date.now()) / 1000));
+        const col = COLUMNS.find((c) => c.id === lastBulkUpdate.status);
+        return (
+          <div
+            className={`fixed left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-white shadow-2xl
+              ${hasSelection ? "bottom-24" : "bottom-6"}`}
+          >
+            <div className="flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-xs">
+                <Undo2 size={14} />
+              </span>
+              <div className="text-sm">
+                <span className="font-semibold">{lastBulkUpdate.count}</span> envio(s) movido(s) para{" "}
+                <span className="font-semibold">"{col?.label || lastBulkUpdate.status}"</span>
+              </div>
+            </div>
+            <button
+              onClick={() => undoBulkUpdate(lastBulkUpdate.id)}
+              disabled={undoing}
+              className="flex items-center gap-1.5 rounded-xl bg-white px-3 py-1.5 text-xs font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+            >
+              <Undo2 size={12} />
+              {undoing ? "Desfazendo..." : `Desfazer (${remaining}s)`}
+            </button>
+            <button
+              onClick={() => setLastBulkUpdate(null)}
+              className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white"
+              title="Fechar"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        );
+      })()}
+
       {/* Barra flutuante de ações em massa */}
       {hasSelection && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-2xl border border-emerald-200 bg-white px-4 py-3 shadow-2xl shadow-emerald-500/20">
@@ -1030,9 +1126,19 @@ const CampaignKanban = () => {
                                   </p>
                                 </div>
                               </div>
-                              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${cc.chip}`}>
-                                {col?.label || r.newStatus}
-                              </span>
+                              <div className="shrink-0 flex items-center gap-1">
+                                {r.undoneAt && (
+                                  <span
+                                    title={`Desfeito em ${new Date(r.undoneAt).toLocaleString("pt-BR")}`}
+                                    className="inline-flex items-center gap-0.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-500"
+                                  >
+                                    <Undo2 size={9} /> desfeito
+                                  </span>
+                                )}
+                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${cc.chip}`}>
+                                  {col?.label || r.newStatus}
+                                </span>
+                              </div>
                             </div>
                             <div className="mt-2 flex items-center gap-3 text-[11px] text-slate-500">
                               <span>📦 {total} envio(s)</span>
@@ -1061,15 +1167,47 @@ const CampaignKanban = () => {
                 ) : (
                   <div className="p-4">
                     <div className="mb-3 rounded-xl border border-slate-200 bg-white p-3 text-xs">
-                      <p className="font-bold text-slate-700">
-                        {historyDetail.log?.userName || "Usuário"} alterou {historyDetail.shippings?.length || 0} envio(s) para{" "}
-                        <span className="text-indigo-700">"{historyDetail.log?.newStatus}"</span>
-                      </p>
-                      <p className="mt-1 text-[11px] text-slate-500">
-                        {historyDetail.log && new Date(historyDetail.log.createdAt).toLocaleString("pt-BR")}
-                        {" · "}
-                        Origem: {historyDetail.log?.source || "—"}
-                      </p>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-700">
+                            {historyDetail.log?.userName || "Usuário"} alterou {historyDetail.shippings?.length || 0} envio(s) para{" "}
+                            <span className="text-indigo-700">"{historyDetail.log?.newStatus}"</span>
+                          </p>
+                          <p className="mt-1 text-[11px] text-slate-500">
+                            {historyDetail.log && new Date(historyDetail.log.createdAt).toLocaleString("pt-BR")}
+                            {" · "}
+                            Origem: {historyDetail.log?.source || "—"}
+                          </p>
+                        </div>
+                        {historyDetail.log?.undoneAt ? (
+                          <span
+                            className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600"
+                            title={`Desfeito por ${historyDetail.log.undoneByUserName || "—"} em ${new Date(historyDetail.log.undoneAt).toLocaleString("pt-BR")}`}
+                          >
+                            <Undo2 size={11} /> Desfeito
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => undoBulkUpdate(historyDetail.log.id)}
+                            disabled={undoing || !(historyDetail.log?.previousState?.length)}
+                            title={
+                              historyDetail.log?.previousState?.length
+                                ? "Reverter esta atualização"
+                                : "Snapshot anterior indisponível"
+                            }
+                            className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-slate-900 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <Undo2 size={11} />
+                            {undoing ? "Desfazendo..." : "Desfazer"}
+                          </button>
+                        )}
+                      </div>
+                      {historyDetail.log?.undoneAt && (
+                        <p className="mt-2 text-[10px] text-slate-400">
+                          Desfeito por {historyDetail.log.undoneByUserName || "—"} em{" "}
+                          {new Date(historyDetail.log.undoneAt).toLocaleString("pt-BR")}
+                        </p>
+                      )}
                     </div>
                     <ul className="space-y-1">
                       {(historyDetail.shippings || []).map((s) => (

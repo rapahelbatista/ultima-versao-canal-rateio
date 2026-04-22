@@ -47,6 +47,23 @@ class CampaignBulkUpdate extends Model<CampaignBulkUpdate> {
   @Column
   source: string;
 
+  @Column(DataType.JSONB)
+  previousState: Array<{
+    id: number;
+    deliveredAt: string | null;
+    confirmedAt: string | null;
+    message: string | null;
+  }>;
+
+  @Column
+  undoneAt: Date;
+
+  @Column
+  undoneByUserId: number;
+
+  @Column
+  undoneByUserName: string;
+
   @CreatedAt
   createdAt: Date;
 
