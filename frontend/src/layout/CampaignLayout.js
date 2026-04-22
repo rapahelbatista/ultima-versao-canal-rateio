@@ -44,6 +44,7 @@ import {
   Megaphone,
   QrCode,
   Lock,
+  BookOpen,
 } from "lucide-react";
 import useCanManageMeta from "../hooks/useCanManageMeta";
 
@@ -61,6 +62,7 @@ const NAV_GROUPS = [
       { to: "/connections", label: "Adicionar WhatsApp por QR", icon: QrCode },
       { to: "/whatsapp-warmer", label: "Aquecedor de WhatsApp", icon: Flame, restricted: true },
       { to: "/messages-api", label: "Rest API", icon: Code2 },
+      { to: "/api-docs", label: "Documentação API", icon: BookOpen },
     ],
   },
   {
