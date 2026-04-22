@@ -713,6 +713,50 @@ export const updateShippingStatus = async (
   }
 };
 
+// Edita conteúdo de um shipping (mensagem e/ou observações).
+// Observação: persistimos as notas no campo `message` como JSON quando há observações,
+// mantendo retrocompatibilidade — formato: "<msg>\n[NOTE]<obs>"
+export const updateShippingContent = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { id, shippingId } = req.params;
+  const { message, notes } = req.body as { message?: string; notes?: string };
+  const { companyId } = req.user;
+
+  try {
+    const campaign = await Campaign.findByPk(id);
+    if (!campaign || campaign.companyId !== Number(companyId)) {
+      throw new AppError("Campanha não encontrada", 404);
+    }
+
+    const shipping = await CampaignShipping.findByPk(shippingId);
+    if (!shipping || shipping.campaignId !== Number(id)) {
+      throw new AppError("Envio não encontrado", 404);
+    }
+
+    // Preserva prefixo [FAILED] quando aplicável
+    const wasFailed = (shipping.message || "").startsWith("[FAILED]");
+    const cleanMsg = (message ?? shipping.message ?? "").replace(/^\[FAILED\]\s*/, "");
+    const noteSegment = notes && notes.trim() ? `\n[NOTE]${notes.trim()}` : "";
+    const baseMsg = cleanMsg.split("\n[NOTE]")[0];
+    const finalMsg = `${wasFailed ? "[FAILED] " : ""}${baseMsg}${noteSegment}`.slice(0, 2000);
+
+    await shipping.update({ message: finalMsg });
+
+    const io = getIO();
+    io.of(String(companyId)).emit(`company-${companyId}-campaign`, {
+      action: "shipping-content-update",
+      campaignId: Number(id),
+      shippingId: Number(shippingId)
+    });
+
+    return res.status(200).json({ id: shipping.id, message: finalMsg });
+  } catch (err: any) {
+    throw new AppError(err.message || "Erro ao atualizar envio", 500);
+  }
+};
+
 // Novo endpoint para estatísticas da campanha
 export const getStats = async (req: Request, res: Response): Promise<Response> => {
   const { id } = req.params;

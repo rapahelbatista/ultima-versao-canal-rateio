@@ -16,6 +16,7 @@ routes.get("/campaigns", isAuth, CampaignController.index);
 routes.get("/campaigns/:id", isAuth, CampaignController.show);
 routes.get("/campaigns/:id/shipping", isAuth, CampaignController.getShipping);
 routes.patch("/campaigns/:id/shipping/:shippingId", isAuth, CampaignController.updateShippingStatus);
+routes.put("/campaigns/:id/shipping/:shippingId", isAuth, CampaignController.updateShippingContent);
 routes.get("/campaigns/:id/stats", isAuth, CampaignController.getStats);
 routes.post("/campaigns", isAuth, CampaignController.store);
 routes.put("/campaigns/:id", isAuth, CampaignController.update);
