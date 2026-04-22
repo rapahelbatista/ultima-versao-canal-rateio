@@ -1042,11 +1042,16 @@ const CampaignKanban = () => {
     const draggedId = Number(shippingId);
 
     // Se houver seleção e o card arrastado faz parte dela,
-    // movemos TODOS os selecionados em massa.
-    if (hasSelection && selectedIds.has(draggedId)) {
-      await bulkUpdateStatus(newStatus);
+    // pedimos confirmação antes de mover TODOS os selecionados em massa.
+    if (hasSelection && selectedIds.has(draggedId) && selectedIds.size > 1) {
+      setPendingBulkMove({
+        newStatus,
+        count: selectedIds.size,
+        sourceStatus: source.droppableId,
+      });
       return;
     }
+    // Caso degenerado: 1 card selecionado e arrastado — segue como single update normal abaixo.
 
     // Optimistic local: move o card imediatamente entre colunas (sem refetch)
     const prev = shipping;
