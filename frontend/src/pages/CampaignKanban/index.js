@@ -449,29 +449,57 @@ const CampaignKanban = () => {
     fetchShipping();
   }, [fetchShipping]);
 
-  // Real-time: escuta eventos do socket da empresa para refletir mudanças instantaneamente
+  // Ref síncrona com o campaignId atual — evita closures obsoletas em listeners de socket
+  const campaignIdRef = useRef(null);
+  useEffect(() => {
+    campaignIdRef.current = campaignId ? Number(campaignId) : null;
+  }, [campaignId]);
+
+  // Real-time: escuta eventos do socket da empresa para refletir mudanças instantaneamente.
+  // Garantias:
+  //  - Só processa eventos cujo `campaignId` bate EXATAMENTE com o atualmente aberto.
+  //  - Eventos sem `campaignId` são ignorados (não há como confirmar pertencimento).
+  //  - Se `campaignId` mudar entre o agendamento e a execução do refetch, o callback é descartado.
+  //  - Cada handler é "carimbado" com o id da campanha em que foi montado (boundCampaignId)
+  //    e qualquer divergência (ex.: troca rápida de campanha) descarta o evento.
   useEffect(() => {
     if (!socket || !user?.companyId || !campaignId) return;
     const channel = `company-${user.companyId}-campaign`;
+    const boundCampaignId = Number(campaignId);
 
     const scheduleRefetch = () => {
       if (refetchTimer.current) return;
       refetchTimer.current = setTimeout(() => {
         refetchTimer.current = null;
+        // Se a campanha mudou nesse meio tempo, descarta
+        if (campaignIdRef.current !== boundCampaignId) return;
         fetchShipping();
       }, 400); // debounce p/ rajadas de eventos
     };
 
-    const pulse = () => setLiveTick((t) => t + 1);
+    const pulse = () => {
+      if (campaignIdRef.current !== boundCampaignId) return;
+      setLiveTick((t) => t + 1);
+    };
 
     const onEvent = (data) => {
       if (!data) return;
-      // Só processa eventos da campanha ativa, quando a info estiver presente
-      if (data.campaignId && Number(data.campaignId) !== Number(campaignId)) return;
+
+      // 1. Handler obsoleto (campanha já foi trocada antes do cleanup)
+      if (campaignIdRef.current !== boundCampaignId) return;
+
+      // 2. Só aceita eventos com campaignId explícito que bata com a campanha atual.
+      //    Eventos sem campaignId podem pertencer a qualquer campanha — descartamos
+      //    para evitar refetch indevido durante transições.
+      const evtCampaignId = data.campaignId != null ? Number(data.campaignId) : null;
+      if (evtCampaignId == null) return;
+      if (evtCampaignId !== boundCampaignId) return;
 
       switch (data.action) {
         case "shipping-update":
         case "shipping-content-update":
+        case "shipping-bulk-update":
+        case "shipping-bulk-undo":
         case "delivered":
         case "confirmed":
         case "update":
@@ -481,7 +509,8 @@ const CampaignKanban = () => {
           scheduleRefetch();
           break;
         default:
-          // Ações de campanha (start/finish) também justificam refresh
+          // Outras ações de campanha (start/finish/etc.) — refresh somente se também
+          // estiverem marcadas com a campanha correta (já validado acima).
           pulse();
           scheduleRefetch();
       }
