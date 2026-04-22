@@ -191,6 +191,72 @@ const useStyles = makeStyles((theme) => ({
     color: "#64748b",
     gap: 8,
   },
+  summaryGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+    gap: 14,
+  },
+  summaryCard: {
+    background: "#fff",
+    border: "1px solid #e2e8f0",
+    borderRadius: 14,
+    padding: "16px 18px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+    position: "relative",
+    overflow: "hidden",
+    transition: "transform .2s, box-shadow .2s",
+    "&:hover": {
+      transform: "translateY(-2px)",
+      boxShadow: "0 10px 25px rgba(15,23,42,0.06)",
+    },
+  },
+  summaryIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#fff",
+    marginBottom: 4,
+  },
+  summaryLabel: {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    color: "#64748b",
+  },
+  summaryValue: {
+    fontSize: 20,
+    fontWeight: 800,
+    color: "#0f172a",
+    lineHeight: 1.1,
+  },
+  summaryHint: { fontSize: 11, color: "#94a3b8" },
+  statusDot: {
+    display: "inline-block",
+    width: 8,
+    height: 8,
+    borderRadius: "50%",
+    marginRight: 6,
+  },
+  limitsRow: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+    marginTop: 4,
+  },
+  limitItem: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    fontSize: 12,
+    color: "#334155",
+    fontWeight: 600,
+  },
 }));
 
 const TONE = {
@@ -356,6 +422,96 @@ const Financeiro = () => {
             </span>
           </div>
         </div>
+
+        {/* Painel de Resumo do Plano Atual */}
+        {(() => {
+          const price = Number(currentPlan?.value ?? currentPlan?.price ?? user?.company?.plan?.value ?? 0);
+          const dueDate = user?.company?.dueDate;
+          const daysLeft = dueDate ? moment(dueDate).startOf("day").diff(moment().startOf("day"), "days") : null;
+          const expired = daysLeft !== null && daysLeft < 0;
+          const trial = price === 0;
+
+          let statusColor = "#10b981";
+          let statusLabel = "Ativo";
+          if (expired) { statusColor = "#ef4444"; statusLabel = "Vencido"; }
+          else if (daysLeft !== null && daysLeft <= 5) { statusColor = "#f59e0b"; statusLabel = "Vence em breve"; }
+          else if (trial) { statusColor = "#6366f1"; statusLabel = "Plano gratuito"; }
+
+          const nextCycle = dueDate ? moment(dueDate).format("DD/MM/YYYY") : "—";
+          const nextCycleHint =
+            daysLeft === null
+              ? "Sem data definida"
+              : expired
+              ? `Venceu há ${Math.abs(daysLeft)} dia(s)`
+              : daysLeft === 0
+              ? "Vence hoje"
+              : `Em ${daysLeft} dia(s)`;
+
+          return (
+            <div className={classes.summaryGrid}>
+              <div className={classes.summaryCard}>
+                <div className={classes.summaryIcon} style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
+                  <CreditCard size={18} />
+                </div>
+                <span className={classes.summaryLabel}>Preço mensal</span>
+                <span className={classes.summaryValue}>{fmtMoney(price)}</span>
+                <span className={classes.summaryHint}>
+                  {currentPlan?.name ? `Plano ${currentPlan.name}` : "Mensalidade da assinatura"}
+                </span>
+              </div>
+
+              <div className={classes.summaryCard}>
+                <div className={classes.summaryIcon} style={{ background: `linear-gradient(135deg, ${statusColor}, ${statusColor}cc)` }}>
+                  <Sparkles size={18} />
+                </div>
+                <span className={classes.summaryLabel}>Status</span>
+                <span className={classes.summaryValue}>
+                  <span className={classes.statusDot} style={{ background: statusColor }} />
+                  {statusLabel}
+                </span>
+                <span className={classes.summaryHint}>
+                  {expired ? "Regularize para reativar" : "Sua assinatura está em ordem"}
+                </span>
+              </div>
+
+              <div className={classes.summaryCard}>
+                <div className={classes.summaryIcon} style={{ background: "linear-gradient(135deg,#0ea5e9,#22d3ee)" }}>
+                  <Calendar size={18} />
+                </div>
+                <span className={classes.summaryLabel}>Próximo ciclo</span>
+                <span className={classes.summaryValue}>{nextCycle}</span>
+                <span className={classes.summaryHint}>{nextCycleHint}</span>
+              </div>
+
+              <div className={classes.summaryCard}>
+                <div className={classes.summaryIcon} style={{ background: "linear-gradient(135deg,#10b981,#34d399)" }}>
+                  <Layers size={18} />
+                </div>
+                <span className={classes.summaryLabel}>Limites do plano</span>
+                <div className={classes.limitsRow}>
+                  <div className={classes.limitItem}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <UsersIcon size={13} style={{ color: "#64748b" }} /> Usuários
+                    </span>
+                    <span style={{ color: "#0f172a", fontWeight: 800 }}>{currentPlan?.users ?? "—"}</span>
+                  </div>
+                  <div className={classes.limitItem}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <Smartphone size={13} style={{ color: "#64748b" }} /> Conexões
+                    </span>
+                    <span style={{ color: "#0f172a", fontWeight: 800 }}>{currentPlan?.connections ?? "—"}</span>
+                  </div>
+                  <div className={classes.limitItem}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <Layers size={13} style={{ color: "#64748b" }} /> Filas
+                    </span>
+                    <span style={{ color: "#0f172a", fontWeight: 800 }}>{currentPlan?.queues ?? "—"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {isCompanyExpired && (
           <div className={classes.expiredBanner}>
