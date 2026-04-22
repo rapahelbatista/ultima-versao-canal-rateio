@@ -1936,6 +1936,22 @@ const CampaignKanban = () => {
                   </button>
                 </div>
                 <button
+                  onClick={exportHistoryCSV}
+                  disabled={filteredHistoryRecords.length === 0}
+                  title="Exportar histórico como CSV"
+                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <FileSpreadsheet size={13} /> CSV
+                </button>
+                <button
+                  onClick={exportHistoryPDF}
+                  disabled={filteredHistoryRecords.length === 0}
+                  title="Exportar histórico como PDF"
+                  className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <FileText size={13} /> PDF
+                </button>
+                <button
                   onClick={() => { setHistoryOpen(false); setHistoryDetail(null); }}
                   className="rounded-lg p-2 text-slate-400 hover:bg-white hover:text-slate-700"
                 >
