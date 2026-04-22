@@ -2374,9 +2374,12 @@ const CampaignKanban = () => {
                 const ids = [];
                 COLUMNS.forEach((c) => {
                   if (!visibleStatuses.has(c.id)) return;
-                  (columnsState[c.id]?.items || []).forEach((it) => {
-                    if (it.id && matchesQuickFilter(it)) ids.push(it.id);
-                  });
+                  const view = columnViews[c.id];
+                  if (!view) return;
+                  for (let i = 0; i < view.items.length; i++) {
+                    const it = view.items[i];
+                    if (it.id) ids.push(it.id);
+                  }
                 });
                 if (ids.length === 0) {
                   toast.info("Nenhum envio corresponde ao filtro");
