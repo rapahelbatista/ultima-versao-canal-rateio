@@ -58,6 +58,9 @@ import Floup from "../pages/Floup";
 import FloupDashboard from "../pages/FloupDashboard";
 import TemplateManager from "../pages/TemplateManager";
 import CampaignKanban from "../pages/CampaignKanban";
+import WhatsAppWarmer from "../pages/WhatsAppWarmer";
+import MetaApiKeys from "../pages/MetaApiKeys";
+import MetaTemplateBuilder from "../pages/MetaTemplateBuilder";
 
 const RoutesContent = () => {
   const [showCampaigns, setShowCampaigns] = useState(false);
@@ -301,6 +304,24 @@ const RoutesContent = () => {
                       exact
                       path="/campaigns-kanban"
                       component={CampaignKanban}
+                      isPrivate
+                    />
+                    <Route
+                      exact
+                      path="/whatsapp-warmer"
+                      component={WhatsAppWarmer}
+                      isPrivate
+                    />
+                    <Route
+                      exact
+                      path="/meta-api-keys"
+                      component={MetaApiKeys}
+                      isPrivate
+                    />
+                    <Route
+                      exact
+                      path="/create-meta-template"
+                      component={MetaTemplateBuilder}
                       isPrivate
                     />
                   </>

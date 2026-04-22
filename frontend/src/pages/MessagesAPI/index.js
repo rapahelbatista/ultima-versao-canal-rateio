@@ -19,6 +19,8 @@ import axios from "axios";
 import usePlans from "../../hooks/usePlans";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { i18n } from "../../translate/i18n";
+import PageHeader from "../../components/PageHeader";
+import { Code2 } from "lucide-react";
 
 const useStyles = makeStyles((theme) => ({
   mainPaper: {
@@ -285,8 +287,13 @@ const MessagesAPI = () => {
   );
 
   return (
-    <Paper className={classes.mainPaper} style={{ marginLeft: "5px" }} variant="outlined">
-      <Typography variant="h5">📡 Documentação para envio de mensagens</Typography>
+    <Paper className={classes.mainPaper} style={{ marginLeft: "5px", background: "transparent", border: "none", boxShadow: "none" }} variant="outlined">
+      <PageHeader
+        icon={<Code2 size={22} />}
+        title="REST API"
+        subtitle="Integre mensagens do WhatsApp na sua aplicação."
+      />
+      <div style={{ height: 16 }} />
 
       <Typography variant="h6" color="primary" className={classes.elementMargin}>
         Métodos de Envio

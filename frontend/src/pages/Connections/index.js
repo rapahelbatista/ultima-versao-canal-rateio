@@ -48,6 +48,8 @@ import {
   WhatsApp,
   Sync,
 } from "@material-ui/icons";
+import { Smartphone } from "lucide-react";
+import PageHeader from "../../components/PageHeader";
 import WebhookIcon from '@mui/icons-material/Webhook';
 import FacebookLogin from "react-facebook-login/dist/facebook-login-render-props";
 
@@ -859,6 +861,12 @@ const Connections = () => {
 
   return (
     <MainContainer>
+      <PageHeader
+        icon={<Smartphone size={22} />}
+        title="Dispositivos de WhatsApp"
+        subtitle="Gerencie suas instâncias conectadas"
+      />
+      <div style={{ height: 16 }} />
       <ConfirmationModal
         title={confirmModalInfo.title}
         open={confirmModalOpen}
