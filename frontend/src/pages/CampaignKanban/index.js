@@ -933,9 +933,41 @@ const CampaignKanban = () => {
       pulse();
 
       switch (data.action) {
+        case "shipping-bulk-undo": {
+          // Aplica mudança no board
+          const applied = tryApplyEventLocally(data);
+          if (!applied) scheduleRefetch();
+
+          // Feedback visual imediato (somente se veio de outro usuário/aba)
+          const ownUserId = Number(user?.id);
+          const evtUserId = data.undoneByUserId != null ? Number(data.undoneByUserId) : null;
+          const isOwnAction = evtUserId != null && ownUserId === evtUserId;
+          if (!isOwnAction) {
+            const who = data.undoneByUserName || "Outro usuário";
+            const count = Array.isArray(data.shippingIds) ? data.shippingIds.length : (data.restored ?? 0);
+            toast.info(
+              <div className="text-[12px] leading-snug">
+                <div className="font-bold">↩️ Undo aplicado por {who}</div>
+                <div className="text-slate-600">
+                  {count} envio(s) restaurado(s){data.bulkUpdateId ? ` — atualização #${data.bulkUpdateId}` : ""}
+                </div>
+              </div>,
+              { autoClose: 5000 }
+            );
+          }
+
+          // Atualiza histórico aberto e detalhe
+          if (historyOpenRef.current) fetchHistoryRef.current?.(historyScopeRef.current);
+          const detailLogId = historyDetailRef.current?.log?.id;
+          if (detailLogId && data.bulkUpdateId && Number(detailLogId) === Number(data.bulkUpdateId)) {
+            api.get(`/campaigns/bulk-updates/${detailLogId}`)
+              .then(({ data: refreshed }) => setHistoryDetail(refreshed))
+              .catch(() => { /* ignore */ });
+          }
+          break;
+        }
         case "shipping-update":
         case "shipping-bulk-update":
-        case "shipping-bulk-undo":
         case "delivered":
         case "confirmed":
         case "update": {
