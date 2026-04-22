@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useReducer, useState } from "react";
 import { Link as RouterLink, useLocation } from "react-router-dom";
+import { FEATURE_FLAGS } from "../config/featureFlags";
 import { makeStyles, useTheme } from "@material-ui/core/styles";
 import useHelps from "../hooks/useHelps";
 import ListItem from "@material-ui/core/ListItem";
@@ -574,7 +575,11 @@ const MainListItems = ({ collapsed, drawerClose }) => {
 
   return (
     <div onClick={drawerClose}>
-      {(user.showDashboard === "enabled" || user.allowRealTime === "enabled") && (
+      {FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && (
+        <ListSubheader inset>Campanhas</ListSubheader>
+      )}
+
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && (user.showDashboard === "enabled" || user.allowRealTime === "enabled") && (
           <>
             <Tooltip
               title={collapsed ? i18n.t("mainDrawer.listItems.management") : ""}
@@ -664,28 +669,34 @@ const MainListItems = ({ collapsed, drawerClose }) => {
             </Collapse>
           </>
       )}
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && (
       <ListItemLink
         to="/tickets"
         primary={i18n.t("mainDrawer.listItems.tickets")}
         icon={<WhatsAppIcon />}
         tooltip={collapsed}
       />
+      )}
 
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && (
       <ListItemLink
         to="/quick-messages"
         primary={i18n.t("mainDrawer.listItems.quickMessages")}
         icon={<FlashOnIcon />}
         tooltip={collapsed}
       />
+      )}
 
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && (
       <ListItemLink
         to="/template-manager"
         primary="Templates Meta"
         icon={<Description />}
         tooltip={collapsed}
       />
+      )}
 
-      {showKanban && (
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && showKanban && (
         <>
           <ListItemLink
             to="/kanban"
@@ -696,7 +707,7 @@ const MainListItems = ({ collapsed, drawerClose }) => {
         </>
       )}
 
-      {user.showContacts === "enabled" && (
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && user.showContacts === "enabled" && (
         <ListItemLink
           to="/contacts"
           primary={i18n.t("mainDrawer.listItems.contacts")}
@@ -716,14 +727,16 @@ const MainListItems = ({ collapsed, drawerClose }) => {
         </>
       )}
 
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && (
       <ListItemLink
         to="/tags"
         primary={i18n.t("mainDrawer.listItems.tags")}
         icon={<LocalOfferIcon />}
         tooltip={collapsed}
       />
+      )}
 
-      {showInternalChat && (
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && showInternalChat && (
         <>
           <ListItemLink
             to="/chats"
@@ -738,14 +751,6 @@ const MainListItems = ({ collapsed, drawerClose }) => {
         </>
       )}
 
-      {/* 
-      <ListItemLink
-        to="/todolist"
-        primary={i18n.t("ToDoList")}
-        icon={<EventAvailableIcon />}
-      /> 
-      */}
-
       {hasHelps && (
         <ListItemLink
           to="/helps"
@@ -755,17 +760,17 @@ const MainListItems = ({ collapsed, drawerClose }) => {
         />
       )}
 
-      {user?.showCampaign === "enabled" && showCampaigns && (
+      {(FEATURE_FLAGS.CAMPAIGN_ONLY_MODE || (user?.showCampaign === "enabled" && showCampaigns)) && (
         <ListItemLink
           to="/campaigns"
-          primary={i18n.t("mainDrawer.listItems.campaigns")}
+          primary={i18n.t("mainDrawer.listItems.campaigns") || "Campanhas"}
           icon={<EventAvailableIcon />}
           tooltip={collapsed}
         />
       )}
 
       {/* FLOWBUILDER */}
-      {user.showFlow === "enabled" && (
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && user.showFlow === "enabled" && (
         <>
           <Tooltip
             title={
@@ -883,7 +888,7 @@ const MainListItems = ({ collapsed, drawerClose }) => {
               />
             )}
 
-            {user.profile === "admin" && (
+            {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && user.profile === "admin" && (
               <ListItemLink
                 to="/queues"
                 primary={i18n.t("mainDrawer.listItems.queues")}
@@ -892,7 +897,7 @@ const MainListItems = ({ collapsed, drawerClose }) => {
               />
             )}
 
-            {user.profile === "admin" && (
+            {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && user.profile === "admin" && (
               <ListItemLink
                 to="/files"
                 primary={i18n.t("mainDrawer.listItems.files")}
@@ -901,7 +906,7 @@ const MainListItems = ({ collapsed, drawerClose }) => {
               />
             )}
 
-            {showOpenAi && user.profile === "admin" && (
+            {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && showOpenAi && user.profile === "admin" && (
               <ListItemLink
                 to="/prompts"
                 primary={i18n.t("mainDrawer.listItems.prompts")}
@@ -910,11 +915,20 @@ const MainListItems = ({ collapsed, drawerClose }) => {
               />
             )}
 
-            {showIntegrations && user.profile === "admin" && (
+            {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && showIntegrations && user.profile === "admin" && (
               <ListItemLink
                 to="/queue-integration"
                 primary={i18n.t("mainDrawer.listItems.queueIntegration")}
                 icon={<DeviceHubOutlined />}
+                tooltip={collapsed}
+              />
+            )}
+
+            {FEATURE_FLAGS.PUBLIC_API_V2 && user.profile === "admin" && (
+              <ListItemLink
+                to="/api-keys"
+                primary="API Keys"
+                icon={<CodeRoundedIcon />}
                 tooltip={collapsed}
               />
             )}
