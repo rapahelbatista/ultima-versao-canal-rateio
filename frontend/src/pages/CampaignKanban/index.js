@@ -3233,11 +3233,11 @@ const CampaignKanban = () => {
 };
 
 const InfoRow = ({ icon: Icon, label, value }) => (
-  <div className="flex items-start gap-2">
-    <Icon size={14} className="mt-0.5 text-slate-400 shrink-0" />
-    <div className="min-w-0">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</p>
-      <p className="text-sm text-slate-700 truncate">{value || "—"}</p>
+  <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+    <Icon size={14} style={{ marginTop: 2, color: "#94a3b8", flexShrink: 0 }} />
+    <div style={{ minWidth: 0 }}>
+      <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#94a3b8", margin: 0 }}>{label}</p>
+      <p style={{ fontSize: 14, color: "#334155", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value || "—"}</p>
     </div>
   </div>
 );
@@ -3255,17 +3255,11 @@ const LiveBadge = ({ tick, state = "disconnected", attempt = 0, onRetry }) => {
   const isConnected = state === "connected";
   const isReconnecting = state === "reconnecting";
 
-  const styles = isConnected
-    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+  const tone = isConnected
+    ? { border: "#a7f3d0", bg: "#ecfdf5", text: "#047857", dot: "#10b981" }
     : isReconnecting
-    ? "border-amber-200 bg-amber-50 text-amber-700"
-    : "border-rose-200 bg-rose-50 text-rose-600";
-
-  const dot = isConnected
-    ? "bg-emerald-500"
-    : isReconnecting
-    ? "bg-amber-500"
-    : "bg-rose-500";
+    ? { border: "#fde68a", bg: "#fffbeb", text: "#b45309", dot: "#f59e0b" }
+    : { border: "#fecdd3", bg: "#fff1f2", text: "#be123c", dot: "#f43f5e" };
 
   const label = isConnected
     ? "AO VIVO"
@@ -3280,19 +3274,31 @@ const LiveBadge = ({ tick, state = "disconnected", attempt = 0, onRetry }) => {
     : "Conexão em tempo real perdida — clique para tentar novamente";
 
   return (
-    <div className="flex items-center gap-1">
+    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
       <div
         title={title}
-        className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-bold transition-colors ${styles}`}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          borderRadius: 12, border: `1px solid ${tone.border}`,
+          padding: "6px 10px", fontSize: 11, fontWeight: 700,
+          backgroundColor: tone.bg, color: tone.text,
+          transition: "background-color 200ms, color 200ms",
+        }}
       >
-        <span className="relative flex h-2 w-2">
-          {isConnected && pulsing && (
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        <span style={{ position: "relative", display: "inline-flex", height: 8, width: 8 }}>
+          {((isConnected && pulsing) || isReconnecting) && (
+            <span
+              style={{
+                position: "absolute", display: "inline-flex",
+                height: "100%", width: "100%",
+                borderRadius: "50%",
+                backgroundColor: isReconnecting ? "#fbbf24" : "#34d399",
+                opacity: 0.75,
+                animation: "lv-spin 1.2s cubic-bezier(0,0,0.2,1) infinite",
+              }}
+            />
           )}
-          {isReconnecting && (
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-          )}
-          <span className={`relative inline-flex h-2 w-2 rounded-full ${dot}`} />
+          <span style={{ position: "relative", display: "inline-flex", height: 8, width: 8, borderRadius: "50%", backgroundColor: tone.dot }} />
         </span>
         {label}
       </div>
@@ -3300,7 +3306,11 @@ const LiveBadge = ({ tick, state = "disconnected", attempt = 0, onRetry }) => {
         <button
           onClick={onRetry}
           title="Reconectar agora"
-          className="flex items-center justify-center rounded-xl border border-slate-200 bg-white p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+          style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            borderRadius: 12, border: "1px solid #e2e8f0", backgroundColor: "#fff",
+            padding: 6, color: "#64748b", cursor: "pointer",
+          }}
         >
           <RefreshCcw size={12} className={isReconnecting ? "animate-spin" : ""} />
         </button>
