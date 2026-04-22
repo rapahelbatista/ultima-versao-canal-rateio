@@ -648,6 +648,23 @@ const CampaignKanban = () => {
     setFilterPresets(next);
     try { localStorage.setItem(presetsStorageKey, JSON.stringify(next)); } catch {}
   }, [presetsStorageKey]);
+  // Visibilidade por status (todos visíveis por padrão) — DEVE ficar antes de
+  // saveCurrentAsPreset/applyPreset porque eles referenciam `visibleStatuses`.
+  const [visibleStatuses, setVisibleStatuses] = useState(() => {
+    const saved = persistedFilters.visibleStatuses;
+    if (Array.isArray(saved) && saved.length) return new Set(saved);
+    return new Set(["pending", "delivered", "confirmed", "failed"]);
+  });
+  const toggleStatusVisible = (id) =>
+    setVisibleStatuses((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      // Sempre manter ao menos um visível
+      return n.size === 0 ? prev : n;
+    });
+  const showOnly = (id) => setVisibleStatuses(new Set([id]));
+  const showAll = () => setVisibleStatuses(new Set(["pending", "delivered", "confirmed", "failed"]));
+
   const saveCurrentAsPreset = useCallback(() => {
     const name = presetName.trim();
     if (!name) { toast.warn("Dê um nome ao preset"); return; }
