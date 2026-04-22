@@ -204,24 +204,28 @@ const CampaignKanban = () => {
     });
     setShipping(next);
 
-    const results = await Promise.allSettled(
-      ids.map((id) =>
-        api.patch(`/campaigns/${campaignId}/shipping/${id}`, { status: newStatus })
-      )
-    );
-    const failed = results.filter((r) => r.status === "rejected").length;
-    setBulkUpdating(false);
-
-    if (failed === 0) {
-      toast.success(`${ids.length} envio(s) atualizados para "${newStatus}"`);
+    try {
+      const { data } = await api.post(
+        `/campaigns/${campaignId}/shipping/bulk-status`,
+        { status: newStatus, shippingIds: ids, source: "kanban" }
+      );
+      const ok = data?.successCount ?? ids.length;
+      const fail = data?.failedCount ?? 0;
+      setBulkUpdating(false);
+      if (fail === 0) {
+        toast.success(`${ok} envio(s) atualizados para "${newStatus}"`);
+      } else if (ok === 0) {
+        setShipping(prev);
+        toast.error("Falha ao atualizar envios");
+      } else {
+        toast.warn(`${ok} atualizados, ${fail} falharam`);
+        fetchShipping();
+      }
       clearSelection();
-    } else if (failed === ids.length) {
+    } catch (err) {
+      setBulkUpdating(false);
       setShipping(prev);
       toast.error("Falha ao atualizar envios");
-    } else {
-      toast.warn(`${ids.length - failed} atualizados, ${failed} falharam`);
-      fetchShipping();
-      clearSelection();
     }
   };
 
