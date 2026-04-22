@@ -982,7 +982,13 @@ const CampaignKanban = () => {
         const { data } = await api.get("/campaigns/list");
         const list = Array.isArray(data) ? data : data?.records || [];
         setCampaigns(list);
-        if (list.length && !campaignId) setCampaignId(String(list[0].id));
+        // Mantém o campaignId persistido se ainda existir; senão, usa o primeiro
+        const ids = list.map((c) => String(c.id));
+        if (campaignId && !ids.includes(String(campaignId))) {
+          setCampaignId(list.length ? String(list[0].id) : "");
+        } else if (list.length && !campaignId) {
+          setCampaignId(String(list[0].id));
+        }
       } catch (e) {
         toast.error("Erro ao carregar campanhas");
       }
