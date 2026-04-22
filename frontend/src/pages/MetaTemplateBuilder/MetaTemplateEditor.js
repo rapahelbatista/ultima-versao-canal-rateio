@@ -28,6 +28,7 @@ import { toast } from "react-toastify";
 import SectionCard from "../../components/SectionCard";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
+import useAutoSaveFlush from "../../hooks/useAutoSaveFlush";
 
 const STEPS = [
   "Informações Básicas",
@@ -295,6 +296,19 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
     }, 700);
     return () => saveTimer.current && clearTimeout(saveTimer.current);
   }, [collectPayload, loading, templateId]);
+
+  // Flush ao sair da página (refresh, fechar aba, navegar) ou desmontar.
+  const payloadRef = useRef(collectPayload);
+  payloadRef.current = collectPayload;
+  useAutoSaveFlush(async () => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    try {
+      await api.put(`/meta-templates/${templateId}`, payloadRef.current());
+    } catch (_) { /* silencioso ao sair */ }
+  }, !loading);
 
   const next = () => setStep((s) => Math.min(STEPS.length - 1, s + 1));
   const prev = () => setStep((s) => Math.max(0, s - 1));
