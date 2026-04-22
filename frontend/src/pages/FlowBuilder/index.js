@@ -53,16 +53,15 @@ import ConfirmationModal from "../../components/ConfirmationModal";
 import FlowBuilderModal from "../../components/FlowBuilderModal";
 
 import { i18n } from "../../translate/i18n";
-import MainHeader from "../../components/MainHeader";
-import Title from "../../components/Title";
-import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
-import MainContainer from "../../components/MainContainer";
+import PageHeader from "../../components/PageHeader";
+import SectionCard from "../../components/SectionCard";
 import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { Can } from "../../components/Can";
 import ForbiddenPage from "../../components/ForbiddenPage";
 import NewTicketModal from "../../components/NewTicketModal";
 import { SocketContext } from "../../context/Socket/SocketContext";
+import { GitBranch } from "lucide-react";
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_CONTACTS") {
