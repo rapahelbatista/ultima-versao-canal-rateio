@@ -317,7 +317,30 @@ const CampaignKanban = () => {
   const bulkUpdateStatus = async (newStatus) => {
     if (!hasSelection || !campaignId) return;
     const ids = Array.from(selectedIds);
+    const total = ids.length;
     setBulkUpdating(true);
+
+    // Inicia indicador de progresso. Como o backend processa em lote sem streaming,
+    // simulamos avanço suave (assintótico até ~92%) e fechamos quando a resposta chega.
+    setBulkProgress({ total, processed: 0, status: newStatus, success: 0, failed: 0, phase: "processing" });
+    if (bulkProgressTimer.current) clearInterval(bulkProgressTimer.current);
+    const startedAt = Date.now();
+    bulkProgressTimer.current = setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      // Curva: ~80% em ~3s, satura em 92%; nunca passa para evitar falsa promessa
+      const ratio = 1 - Math.exp(-elapsed / 1500);
+      const projected = Math.min(0.92, ratio * 0.92);
+      setBulkProgress((p) => p && p.phase === "processing"
+        ? { ...p, processed: Math.max(p.processed, Math.floor(total * projected)) }
+        : p);
+    }, 120);
+
+    const stopProgress = () => {
+      if (bulkProgressTimer.current) {
+        clearInterval(bulkProgressTimer.current);
+        bulkProgressTimer.current = null;
+      }
+    };
 
     // Optimistic local: aplica imediatamente em columnsState (movendo os cards) e em shipping
     const prevShipping = shipping;
@@ -331,22 +354,22 @@ const CampaignKanban = () => {
       const ok = data?.successCount ?? ids.length;
       const fail = data?.failedCount ?? 0;
       const bulkId = data?.bulkUpdateId;
+      stopProgress();
+      setBulkProgress({ total, processed: total, status: newStatus, success: ok, failed: fail, phase: fail === total ? "error" : "done" });
+      // Auto-some após 2.2s
+      setTimeout(() => setBulkProgress(null), 2200);
       setBulkUpdating(false);
       if (fail === 0) {
         toast.success(`${ok} envio(s) atualizados para "${newStatus}"`);
-        // Reconciliação leve apenas (sem refetch eager)
         reconcileShipping(ids, newStatus);
       } else if (ok === 0) {
-        // Tudo falhou: reverte estado local
         setShipping(prevShipping);
         fetchShipping();
         toast.error("Falha ao atualizar envios");
       } else {
         toast.warn(`${ok} atualizados, ${fail} falharam`);
-        // Sucesso parcial: reconcilia para corrigir os que falharam
         reconcileShipping(ids, newStatus);
       }
-      // Habilita botão "Desfazer" por 30s se houve sucesso
       if (bulkId && ok > 0) {
         setLastBulkUpdate({
           id: bulkId,
@@ -357,6 +380,9 @@ const CampaignKanban = () => {
       }
       clearSelection();
     } catch (err) {
+      stopProgress();
+      setBulkProgress({ total, processed: total, status: newStatus, success: 0, failed: total, phase: "error" });
+      setTimeout(() => setBulkProgress(null), 2500);
       setBulkUpdating(false);
       setShipping(prevShipping);
       fetchShipping();
