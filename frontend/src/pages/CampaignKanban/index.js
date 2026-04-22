@@ -27,7 +27,6 @@ import {
 } from "lucide-react";
 import api from "../../services/api";
 import { toast } from "react-toastify";
-import "./CampaignKanban.dark.css";
 
 /**
  * Kanban de Campanha — visualiza e move shippings entre colunas de status.
@@ -1504,7 +1503,7 @@ const CampaignKanban = () => {
   };
 
   return (
-    <div className="ck-dark space-y-4">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div>
