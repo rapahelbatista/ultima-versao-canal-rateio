@@ -44,6 +44,7 @@ import {
   Megaphone,
   QrCode,
   Lock,
+  BookOpen,
 } from "lucide-react";
 import useCanManageMeta from "../hooks/useCanManageMeta";
 
