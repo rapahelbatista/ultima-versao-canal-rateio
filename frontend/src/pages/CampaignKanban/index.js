@@ -287,20 +287,45 @@ const CampaignKanban = () => {
     const isVirtual = !item.id;
     const parsed = parseMessage(item.message);
     const status = inferStatus(item);
+    const checked = !isVirtual && isSelected(item.id);
+
+    const handleCardClick = (e) => {
+      if (e.ctrlKey || e.metaKey || e.shiftKey) {
+        e.preventDefault();
+        toggleSelect(item.id);
+        return;
+      }
+      openDetails(item);
+    };
+
     return (
-      <Draggable draggableId={draggableId} index={index} isDragDisabled={isVirtual}>
+      <Draggable draggableId={draggableId} index={index} isDragDisabled={isVirtual || hasSelection}>
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
             {...provided.draggableProps}
             {...provided.dragHandleProps}
-            onClick={() => !snapshot.isDragging && openDetails(item)}
-            className={`mb-2 rounded-xl border bg-white p-3 shadow-sm transition-all cursor-pointer
+            onClick={(e) => !snapshot.isDragging && handleCardClick(e)}
+            className={`group relative mb-2 rounded-xl border bg-white p-3 shadow-sm transition-all cursor-pointer
               ${snapshot.isDragging ? "shadow-lg ring-2 ring-emerald-300" : "hover:shadow-md hover:border-emerald-300"}
+              ${checked ? "ring-2 ring-emerald-500 border-emerald-400 bg-emerald-50/40" : ""}
               ${isVirtual ? "opacity-60 cursor-not-allowed" : ""}
             `}
           >
             <div className="flex items-center gap-2">
+              {!isVirtual && (
+                <span
+                  onClick={(e) => { e.stopPropagation(); toggleSelect(item.id); }}
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-all cursor-pointer
+                    ${checked
+                      ? "bg-emerald-500 border-emerald-500 text-white"
+                      : "border-slate-300 bg-white text-transparent group-hover:border-emerald-400"}
+                    ${hasSelection || checked ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
+                  `}
+                >
+                  {checked && <CheckCircle2 size={12} />}
+                </span>
+              )}
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
                 {(item.contact?.name || item.number || "?").slice(0, 2).toUpperCase()}
               </div>
