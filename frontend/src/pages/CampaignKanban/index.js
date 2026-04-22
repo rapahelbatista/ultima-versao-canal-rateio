@@ -774,6 +774,7 @@ const CampaignKanban = () => {
 
   // Ref síncrona com o estado das colunas — usada em lookups dentro de handlers de socket
   const columnsStateRef = useRef(null);
+  useEffect(() => { columnsStateRef.current = columnsState; }, [columnsState]);
 
 
   // Estado de conexão do socket: "connected" | "reconnecting" | "disconnected"
