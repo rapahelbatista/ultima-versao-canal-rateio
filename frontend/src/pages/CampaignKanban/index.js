@@ -104,6 +104,61 @@ const CampaignKanban = () => {
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
   const [pageSize, setPageSize] = useState(50);
+  // Presets de filtros avançados (persistidos por usuário em localStorage)
+  const presetsStorageKey = useMemo(
+    () => `campaignKanban:filterPresets:${user?.id || "anon"}`,
+    [user?.id]
+  );
+  const [filterPresets, setFilterPresets] = useState([]);
+  const [presetName, setPresetName] = useState("");
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(presetsStorageKey);
+      setFilterPresets(raw ? JSON.parse(raw) : []);
+    } catch { setFilterPresets([]); }
+  }, [presetsStorageKey]);
+  const persistPresets = useCallback((next) => {
+    setFilterPresets(next);
+    try { localStorage.setItem(presetsStorageKey, JSON.stringify(next)); } catch {}
+  }, [presetsStorageKey]);
+  const saveCurrentAsPreset = useCallback(() => {
+    const name = presetName.trim();
+    if (!name) { toast.warn("Dê um nome ao preset"); return; }
+    const preset = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name,
+      filters: {
+        search,
+        filterPhone,
+        filterStartDate,
+        filterEndDate,
+        pageSize,
+        visibleStatuses: Array.from(visibleStatuses),
+      },
+    };
+    // Substitui se já existir um com mesmo nome (case-insensitive)
+    const without = filterPresets.filter(
+      (p) => p.name.toLowerCase() !== name.toLowerCase()
+    );
+    persistPresets([preset, ...without].slice(0, 20));
+    setPresetName("");
+    toast.success(`Preset "${name}" salvo`);
+  }, [presetName, search, filterPhone, filterStartDate, filterEndDate, pageSize, visibleStatuses, filterPresets, persistPresets]);
+  const applyPreset = useCallback((p) => {
+    if (!p?.filters) return;
+    setSearch(p.filters.search || "");
+    setFilterPhone(p.filters.filterPhone || "");
+    setFilterStartDate(p.filters.filterStartDate || "");
+    setFilterEndDate(p.filters.filterEndDate || "");
+    setPageSize(p.filters.pageSize || 50);
+    if (Array.isArray(p.filters.visibleStatuses) && p.filters.visibleStatuses.length) {
+      setVisibleStatuses(new Set(p.filters.visibleStatuses));
+    }
+    toast.success(`Preset "${p.name}" aplicado`);
+  }, []);
+  const deletePreset = useCallback((id) => {
+    persistPresets(filterPresets.filter((p) => p.id !== id));
+  }, [filterPresets, persistPresets]);
   // Visibilidade por status (todos visíveis por padrão)
   const [visibleStatuses, setVisibleStatuses] = useState(() => new Set(["pending", "delivered", "confirmed", "failed"]));
   const toggleStatusVisible = (id) =>
@@ -1066,6 +1121,69 @@ const CampaignKanban = () => {
             >
               Aplicar
             </button>
+          </div>
+
+          {/* Presets de filtros — salvar combinação atual e aplicar com 1 clique */}
+          <div className="mt-4 border-t border-slate-100 pt-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Presets salvos
+              </span>
+              <span className="text-[10px] text-slate-400">
+                {filterPresets.length}/20
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <input
+                value={presetName}
+                onChange={(e) => setPresetName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveCurrentAsPreset(); } }}
+                placeholder="Nome do preset (ex.: SP — últimos 7 dias)"
+                className="flex-1 min-w-[200px] rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm focus:border-emerald-400 focus:outline-none"
+              />
+              <button
+                onClick={saveCurrentAsPreset}
+                disabled={!presetName.trim()}
+                className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+              >
+                Salvar filtros atuais
+              </button>
+            </div>
+            {filterPresets.length === 0 ? (
+              <p className="text-xs text-slate-400 italic">
+                Nenhum preset salvo ainda. Configure filtros acima e dê um nome para salvar.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {filterPresets.map((p) => (
+                  <div
+                    key={p.id}
+                    className="group flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 pl-3 pr-1 py-1 text-xs hover:border-emerald-300 hover:bg-emerald-50 transition-colors"
+                  >
+                    <button
+                      onClick={() => applyPreset(p)}
+                      title={`Aplicar: ${[
+                        p.filters.search && `busca: ${p.filters.search}`,
+                        p.filters.filterPhone && `tel: ${p.filters.filterPhone}`,
+                        p.filters.filterStartDate && `de ${p.filters.filterStartDate}`,
+                        p.filters.filterEndDate && `até ${p.filters.filterEndDate}`,
+                        `${p.filters.pageSize}/pág`,
+                      ].filter(Boolean).join(" • ")}`}
+                      className="font-semibold text-slate-700 group-hover:text-emerald-700"
+                    >
+                      {p.name}
+                    </button>
+                    <button
+                      onClick={() => deletePreset(p.id)}
+                      title="Excluir preset"
+                      className="ml-1 flex h-5 w-5 items-center justify-center rounded-full text-slate-400 hover:bg-rose-100 hover:text-rose-600"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
