@@ -21,6 +21,9 @@ import {
   User as UserIcon,
   ExternalLink,
   Undo2,
+  Download,
+  FileText,
+  FileSpreadsheet,
 } from "lucide-react";
 import api from "../../services/api";
 import { toast } from "react-toastify";
