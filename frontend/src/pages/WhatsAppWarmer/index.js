@@ -238,18 +238,11 @@ const WhatsAppWarmer = () => {
     if (loading) return;
     if (skipNextSave.current) { skipNextSave.current = false; return; }
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
-      try {
-        setSaving(true);
-        await api.put("/warmer-settings", { messages, config });
-      } catch (err) {
-        toastError(err);
-      } finally {
-        setSaving(false);
-      }
+    saveTimer.current = setTimeout(() => {
+      persist({ messages, config }).catch(() => { /* erro já refletido no badge */ });
     }, 600);
     return () => saveTimer.current && clearTimeout(saveTimer.current);
-  }, [messages, config, loading]);
+  }, [messages, config, loading, persist]);
 
   const addMsg = () => {
     const v = draft.trim();
@@ -264,13 +257,10 @@ const WhatsAppWarmer = () => {
 
   const handleSaveConfig = async () => {
     try {
-      setSaving(true);
-      await api.put("/warmer-settings", { messages, config });
+      await persist({ messages, config });
       toast.success("Configurações salvas");
     } catch (err) {
       toastError(err);
-    } finally {
-      setSaving(false);
     }
   };
 
