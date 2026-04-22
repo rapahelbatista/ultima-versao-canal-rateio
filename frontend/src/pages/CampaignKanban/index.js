@@ -720,7 +720,8 @@ const CampaignKanban = () => {
             const c = colorMap[col.color];
             const Icon = col.icon;
             const colState = columnsState[col.id] || { items: [], total: 0, hasMore: false, loading: false };
-            const items = colState.items;
+            const allItems = colState.items;
+            const items = quickFilter ? allItems.filter(matchesQuickFilter) : allItems;
             return (
               <div
                 key={col.id}
@@ -737,14 +738,17 @@ const CampaignKanban = () => {
                     {items.some((i) => i.id) && (
                       <button
                         onClick={() => selectAllInColumn(items)}
-                        title="Selecionar todos desta coluna"
+                        title="Selecionar todos os visíveis nesta coluna"
                         className={`text-[10px] font-semibold underline-offset-2 hover:underline ${c.text} opacity-70 hover:opacity-100`}
                       >
                         {items.filter((i) => i.id).every((i) => isSelected(i.id)) ? "Limpar" : "Todos"}
                       </button>
                     )}
                     <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${c.chip}`}>
-                      {items.length}{colState.total > items.length ? `/${colState.total}` : ""}
+                      {items.length}
+                      {(quickFilter ? allItems.length : colState.total) > items.length
+                        ? `/${quickFilter ? allItems.length : colState.total}`
+                        : ""}
                     </span>
                   </div>
                 </div>
