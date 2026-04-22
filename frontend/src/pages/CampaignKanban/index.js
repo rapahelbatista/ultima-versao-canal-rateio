@@ -569,7 +569,11 @@ const CampaignKanban = () => {
     persistPresets(filterPresets.filter((p) => p.id !== id));
   }, [filterPresets, persistPresets]);
   // Visibilidade por status (todos visíveis por padrão)
-  const [visibleStatuses, setVisibleStatuses] = useState(() => new Set(["pending", "delivered", "confirmed", "failed"]));
+  const [visibleStatuses, setVisibleStatuses] = useState(() => {
+    const saved = persistedFilters.visibleStatuses;
+    if (Array.isArray(saved) && saved.length) return new Set(saved);
+    return new Set(["pending", "delivered", "confirmed", "failed"]);
+  });
   const toggleStatusVisible = (id) =>
     setVisibleStatuses((prev) => {
       const n = new Set(prev);
