@@ -418,8 +418,17 @@ const Users = () => {
   };
 
   const handleAddAgent = async () => {
-    if (!form.email || !form.password || !form.name) {
-      toast.warn("Preencha e-mail, senha e nome");
+    // marca todos como touched para revelar erros pendentes
+    setTouched({
+      email: true,
+      password: true,
+      name: true,
+      phone: true,
+      comments: true,
+    });
+    if (!isFormValid) {
+      const firstError = Object.values(formErrors)[0];
+      toast.warn(firstError || "Verifique os campos do formulário");
       return;
     }
     try {
@@ -447,6 +456,7 @@ const Users = () => {
         );
       }, 5000);
       setForm({ email: "", password: "", name: "", phone: "", comments: "" });
+      setTouched({});
       // Recarrega
       setPageNumber(1);
       dispatch({ type: "RESET" });
