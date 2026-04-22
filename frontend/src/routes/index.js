@@ -270,22 +270,18 @@ const RoutesContent = () => {
                   component={CampaignsPhrase}
                   isPrivate
                 />
-                {!campaignOnly && (
-                  <Route
-                    exact
-                    path="/flowbuilders"
-                    component={FlowBuilder}
-                    isPrivate
-                  />
-                )}
-                {!campaignOnly && (
-                  <Route
-                    exact
-                    path="/flowbuilder/:id?"
-                    component={FlowBuilderConfig}
-                    isPrivate
-                  />
-                )}
+                <Route
+                  exact
+                  path="/flowbuilders"
+                  component={FlowBuilder}
+                  isPrivate
+                />
+                <Route
+                  exact
+                  path="/flowbuilder/:id?"
+                  component={FlowBuilderConfig}
+                  isPrivate
+                />
 
                 {(showCampaigns || campaignOnly) && (
                   <>
