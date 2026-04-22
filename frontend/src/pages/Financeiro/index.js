@@ -382,8 +382,12 @@ const Financeiro = () => {
     <MainContainer>
       <SubscriptionModal
         open={contactModalOpen}
-        onClose={() => setContactModalOpen(false)}
+        onClose={() => {
+          setContactModalOpen(false);
+          setSelectedPlan(null);
+        }}
         Invoice={selectedInvoice}
+        selectedPlan={selectedPlan}
         contactId={null}
       />
 
@@ -666,6 +670,7 @@ const Financeiro = () => {
                             color="primary"
                             onClick={() => {
                               setSelectedInvoice(inv);
+                              setSelectedPlan(null); // pagar fatura existente, não trocar plano
                               setContactModalOpen(true);
                             }}
                           >
