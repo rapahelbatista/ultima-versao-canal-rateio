@@ -1136,7 +1136,14 @@ const CampaignKanban = () => {
           setCampaignId(String(list[0].id));
         }
       } catch (e) {
-        toast.error("Erro ao carregar campanhas");
+        // Não polui a tela se o backend estiver offline (já há indicador OFFLINE)
+        const status = e?.response?.status;
+        const isNetwork = !e?.response;
+        console.warn("[CampaignKanban] Falha ao listar campanhas:", status || e?.message);
+        if (!isNetwork && status !== 401 && status !== 403) {
+          toast.error("Erro ao carregar campanhas");
+        }
+        setCampaigns([]);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
