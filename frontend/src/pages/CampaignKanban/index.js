@@ -2595,7 +2595,8 @@ const CampaignKanban = () => {
           </div>
         );
       })()}
-    </div>
+      </div>
+    </MainContainer>
   );
 };
 
