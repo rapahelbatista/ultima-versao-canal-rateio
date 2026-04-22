@@ -13,6 +13,7 @@ import { CircularProgress } from "@material-ui/core";
 import { getBackendUrl } from "../../config";
 import logo from "../../assets/logo1.png";
 import logoDark from "../../assets/logo2.png";
+import "../../styles/inboxSkin.css";
 
 const Ticket = React.lazy(() => import("../../components/Ticket"));
 
@@ -162,7 +163,7 @@ const TicketsCustom = () => {
 
 	return (
 		<QueueSelectedProvider>
-			<div className={classes.chatContainer}>
+			<div className={`${classes.chatContainer} inbox-skin`}>
 				<div className={classes.chatPapper}>
 					<div
 						className={classes.contactsWrapper}
