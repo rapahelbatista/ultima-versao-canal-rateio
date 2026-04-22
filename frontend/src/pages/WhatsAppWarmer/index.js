@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { toast } from "react-toastify";
+import api from "../../services/api";
+import toastError from "../../errors/toastError";
 import { makeStyles } from "@material-ui/core/styles";
 import {
   Button,
@@ -148,29 +151,80 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const DEFAULT_CONFIG = {
+  minIntervalSec: 20,
+  maxIntervalSec: 60,
+  dailyLimit: 50,
+  startTime: "09:00",
+  endTime: "18:00",
+};
+
 const WhatsAppWarmer = () => {
   const classes = useStyles();
   const [tab, setTab] = useState("script");
-  const [messages, setMessages] = useState([
-    "hey there",
-    "hey there",
-    "hey",
-    "hey man",
-    "how are you",
-    "i am good",
-    "how are you doi",
-    "hey",
-    "yoa",
-    "new",
-    "message",
-  ]);
+  const [messages, setMessages] = useState([]);
+  const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [draft, setDraft] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const skipNextSave = useRef(true);
+  const saveTimer = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const { data } = await api.get("/warmer-settings");
+        if (!active) return;
+        setMessages(Array.isArray(data?.messages) ? data.messages : []);
+        setConfig({ ...DEFAULT_CONFIG, ...(data?.config || {}) });
+      } catch (err) {
+        if (active) toastError(err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    if (skipNextSave.current) { skipNextSave.current = false; return; }
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        setSaving(true);
+        await api.put("/warmer-settings", { messages, config });
+      } catch (err) {
+        toastError(err);
+      } finally {
+        setSaving(false);
+      }
+    }, 600);
+    return () => saveTimer.current && clearTimeout(saveTimer.current);
+  }, [messages, config, loading]);
 
   const addMsg = () => {
     const v = draft.trim();
     if (!v) return;
     setMessages((m) => [...m, v]);
     setDraft("");
+  };
+
+  const updateConfig = useCallback((patch) => {
+    setConfig((c) => ({ ...c, ...patch }));
+  }, []);
+
+  const handleSaveConfig = async () => {
+    try {
+      setSaving(true);
+      await api.put("/warmer-settings", { messages, config });
+      toast.success("Configurações salvas");
+    } catch (err) {
+      toastError(err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -209,7 +263,14 @@ const WhatsAppWarmer = () => {
 
           <SectionCard>
             <div className={classes.listHeader}>
-              <div className={classes.listTitle}>Mensagens</div>
+              <div className={classes.listTitle}>
+                Mensagens
+                {saving && (
+                  <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 500, color: "#10b981" }}>
+                    salvando…
+                  </span>
+                )}
+              </div>
               <Chip
                 size="small"
                 className={classes.countChip}
@@ -217,6 +278,16 @@ const WhatsAppWarmer = () => {
                 icon={<MessageSquare size={12} style={{ marginLeft: 6 }} />}
               />
             </div>
+
+            {loading ? (
+              <div style={{ padding: 24, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
+                Carregando…
+              </div>
+            ) : messages.length === 0 ? (
+              <div style={{ padding: 24, textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
+                Nenhuma mensagem ainda. Adicione a primeira abaixo.
+              </div>
+            ) : null}
 
             <div>
               {messages.map((m, i) => (
@@ -271,29 +342,61 @@ const WhatsAppWarmer = () => {
           <div className={classes.configGrid}>
             <div className={classes.field}>
               <span className={classes.fieldLabel}>Intervalo mínimo (s)</span>
-              <input className={classes.fieldInput} type="number" defaultValue={20} />
+              <input
+                className={classes.fieldInput}
+                type="number"
+                value={config.minIntervalSec}
+                onChange={(e) => updateConfig({ minIntervalSec: Number(e.target.value) || 0 })}
+              />
             </div>
             <div className={classes.field}>
               <span className={classes.fieldLabel}>Intervalo máximo (s)</span>
-              <input className={classes.fieldInput} type="number" defaultValue={60} />
+              <input
+                className={classes.fieldInput}
+                type="number"
+                value={config.maxIntervalSec}
+                onChange={(e) => updateConfig({ maxIntervalSec: Number(e.target.value) || 0 })}
+              />
             </div>
             <div className={classes.field}>
               <span className={classes.fieldLabel}>Mensagens por dia</span>
-              <input className={classes.fieldInput} type="number" defaultValue={50} />
+              <input
+                className={classes.fieldInput}
+                type="number"
+                value={config.dailyLimit}
+                onChange={(e) => updateConfig({ dailyLimit: Number(e.target.value) || 0 })}
+              />
             </div>
             <div className={classes.field}>
               <span className={classes.fieldLabel}>Horário inicial</span>
-              <input className={classes.fieldInput} type="time" defaultValue="09:00" />
+              <input
+                className={classes.fieldInput}
+                type="time"
+                value={config.startTime}
+                onChange={(e) => updateConfig({ startTime: e.target.value })}
+              />
             </div>
             <div className={classes.field}>
               <span className={classes.fieldLabel}>Horário final</span>
-              <input className={classes.fieldInput} type="time" defaultValue="18:00" />
+              <input
+                className={classes.fieldInput}
+                type="time"
+                value={config.endTime}
+                onChange={(e) => updateConfig({ endTime: e.target.value })}
+              />
             </div>
           </div>
 
-          <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12 }}>
+            {saving && (
+              <span style={{ fontSize: 12, color: "#10b981", fontWeight: 600 }}>
+                salvando…
+              </span>
+            )}
             <Button
               variant="contained"
+              disabled={saving || loading}
+              onClick={handleSaveConfig}
               style={{
                 background: "#10b981",
                 color: "#fff",
