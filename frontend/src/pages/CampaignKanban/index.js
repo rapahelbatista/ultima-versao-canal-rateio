@@ -659,10 +659,55 @@ const CampaignKanban = () => {
         </div>
       )}
 
+      {/* Filtros rápidos por status */}
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mr-1">
+          Status:
+        </span>
+        {COLUMNS.map((col) => {
+          const cc = colorMap[col.color];
+          const Icon = col.icon;
+          const active = visibleStatuses.has(col.id);
+          const total = columnsState[col.id]?.total ?? 0;
+          return (
+            <button
+              key={col.id}
+              onClick={() => toggleStatusVisible(col.id)}
+              onDoubleClick={() => showOnly(col.id)}
+              title="Clique para alternar • Duplo clique para isolar"
+              className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold transition-all
+                ${active
+                  ? `${cc.chip} border-transparent shadow-sm`
+                  : "border-slate-200 bg-slate-50 text-slate-400 hover:bg-slate-100"}
+              `}
+            >
+              <Icon size={12} />
+              {col.label}
+              <span className={`rounded-full px-1.5 text-[10px] ${active ? "bg-white/60" : "bg-slate-200"}`}>
+                {total}
+              </span>
+            </button>
+          );
+        })}
+        {visibleStatuses.size < 4 && (
+          <button
+            onClick={showAll}
+            className="ml-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100"
+          >
+            Mostrar todos
+          </button>
+        )}
+      </div>
+
       {/* Board */}
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          {COLUMNS.map((col) => {
+        <div className={`grid grid-cols-1 gap-4 ${
+          visibleStatuses.size === 1 ? "md:grid-cols-1" :
+          visibleStatuses.size === 2 ? "md:grid-cols-2" :
+          visibleStatuses.size === 3 ? "md:grid-cols-2 xl:grid-cols-3" :
+          "md:grid-cols-2 xl:grid-cols-4"
+        }`}>
+          {COLUMNS.filter((col) => visibleStatuses.has(col.id)).map((col) => {
             const c = colorMap[col.color];
             const Icon = col.icon;
             const colState = columnsState[col.id] || { items: [], total: 0, hasMore: false, loading: false };
