@@ -1584,6 +1584,60 @@ const CampaignKanban = () => {
         </div>
       </DragDropContext>
 
+      {/* Indicador de progresso do bulk update — barra flutuante no topo */}
+      {bulkProgress && (() => {
+        const pct = bulkProgress.total > 0
+          ? Math.min(100, Math.round((bulkProgress.processed / bulkProgress.total) * 100))
+          : 0;
+        const statusLabel = {
+          pending: "Pendente", delivered: "Entregue", confirmed: "Confirmado", failed: "Falhou",
+        }[bulkProgress.status] || bulkProgress.status;
+        const phase = bulkProgress.phase;
+        const tone = phase === "error"
+          ? { ring: "border-rose-200", bar: "bg-rose-500", text: "text-rose-700", bg: "bg-rose-50" }
+          : phase === "done"
+          ? { ring: "border-emerald-200", bar: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50" }
+          : { ring: "border-emerald-200", bar: "bg-emerald-500", text: "text-emerald-700", bg: "bg-white" };
+        return (
+          <div
+            className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[min(440px,calc(100vw-2rem))] rounded-2xl border ${tone.ring} ${tone.bg} shadow-xl shadow-emerald-500/10 px-4 py-3 animate-in fade-in slide-in-from-top-2`}
+            role="status"
+            aria-live="polite"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${tone.text}`}>
+                {phase === "processing" && <RefreshCcw size={12} className="animate-spin" />}
+                {phase === "done" && <CheckCheck size={12} />}
+                {phase === "error" && <AlertCircle size={12} />}
+                {phase === "processing" && `Atualizando para "${statusLabel}"`}
+                {phase === "done" && (bulkProgress.failed > 0
+                  ? `Concluído com ${bulkProgress.failed} falha(s)`
+                  : "Concluído")}
+                {phase === "error" && "Falha na atualização"}
+              </div>
+              <span className={`text-xs font-mono font-semibold ${tone.text}`}>
+                {bulkProgress.processed}/{bulkProgress.total}
+                <span className="ml-1 opacity-60">({pct}%)</span>
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+              <div
+                className={`h-full ${tone.bar} transition-all duration-200 ease-out ${phase === "processing" ? "" : ""}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            {phase === "done" && (
+              <div className="mt-2 flex gap-3 text-[11px] text-slate-600">
+                <span className="flex items-center gap-1"><CheckCircle2 size={11} className="text-emerald-500" /> {bulkProgress.success} sucesso</span>
+                {bulkProgress.failed > 0 && (
+                  <span className="flex items-center gap-1"><XCircle size={11} className="text-rose-500" /> {bulkProgress.failed} falha</span>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Banner flutuante "Desfazer" — aparece após bulk update bem-sucedido (30s) */}
       {lastBulkUpdate && (() => {
         const remaining = Math.max(0, Math.ceil((lastBulkUpdate.expiresAt - Date.now()) / 1000));
