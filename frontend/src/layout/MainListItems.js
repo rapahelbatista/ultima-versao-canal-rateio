@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useReducer, useState } from "react";
 import { Link as RouterLink, useLocation } from "react-router-dom";
+import { FEATURE_FLAGS } from "../config/featureFlags";
 import { makeStyles, useTheme } from "@material-ui/core/styles";
 import useHelps from "../hooks/useHelps";
 import ListItem from "@material-ui/core/ListItem";
