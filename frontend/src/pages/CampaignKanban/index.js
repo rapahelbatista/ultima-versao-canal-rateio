@@ -1112,15 +1112,19 @@ const CampaignKanban = () => {
 
     return (
       <Draggable draggableId={draggableId} index={index} isDragDisabled={isVirtual}>
-        {(provided, snapshot) => (
+        {(provided, snapshot) => {
+          const justMoved = !isVirtual && recentlyMovedIds.has(Number(item.id));
+          return (
           <div
             ref={provided.innerRef}
+            data-shipping-id={item.id ?? ""}
             {...provided.draggableProps}
             {...provided.dragHandleProps}
             onClick={(e) => !snapshot.isDragging && handleCardClick(e)}
             className={`group relative mb-2 rounded-xl border bg-white p-3 shadow-sm transition-all cursor-pointer
               ${snapshot.isDragging ? "shadow-lg ring-2 ring-emerald-300" : "hover:shadow-md hover:border-emerald-300"}
               ${checked ? "ring-2 ring-emerald-500 border-emerald-400 bg-emerald-50/40" : ""}
+              ${justMoved ? "ring-2 ring-amber-400 border-amber-300 shadow-amber-200/50 shadow-lg animate-in fade-in zoom-in-95" : ""}
               ${isVirtual ? "opacity-60 cursor-not-allowed" : ""}
             `}
           >
