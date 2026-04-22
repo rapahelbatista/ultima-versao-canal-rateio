@@ -1027,10 +1027,20 @@ const CampaignKanban = () => {
     }
   };
 
-  const openDetails = (item) => {
+  // Ref síncrona com selectedIds — permite handlers estáveis (sem deps).
+  const selectedIdsRef = useRef(selectedIds);
+  useEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
+
+  const openDetails = useCallback((item) => {
     // Em modo seleção, clique no card alterna seleção em vez de abrir modal
-    if (hasSelection) {
-      toggleSelect(item.id);
+    if (selectedIdsRef.current.size > 0) {
+      if (item.id) {
+        setSelectedIds((prev) => {
+          const n = new Set(prev);
+          n.has(item.id) ? n.delete(item.id) : n.add(item.id);
+          return n;
+        });
+      }
       return;
     }
     if (!item.id) {
@@ -1041,7 +1051,8 @@ const CampaignKanban = () => {
     setSelected(item);
     setEditMessage(parsed.message);
     setEditNotes(parsed.notes);
-  };
+  }, []);
+
 
   const closeDetails = () => {
     setSelected(null);
