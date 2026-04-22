@@ -36,7 +36,17 @@ import {
   Select as MuiSelect,
   MenuItem,
   Menu,
+  Paper,
+  Chip,
+  IconButton,
+  Tooltip,
+  InputAdornment,
+  Divider,
 } from "@material-ui/core";
+import HistoryIcon from "@material-ui/icons/History";
+import SearchIcon from "@material-ui/icons/Search";
+import ClearIcon from "@material-ui/icons/Clear";
+import SaveIcon from "@material-ui/icons/Save";
 import RefreshIcon from "@material-ui/icons/Refresh";
 import FilterListIcon from "@material-ui/icons/FilterList";
 import GetAppIcon from "@material-ui/icons/GetApp";
