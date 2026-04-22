@@ -61,6 +61,7 @@ import CampaignKanban from "../pages/CampaignKanban";
 import WhatsAppWarmer from "../pages/WhatsAppWarmer";
 import MetaApiKeys from "../pages/MetaApiKeys";
 import MetaTemplateBuilder from "../pages/MetaTemplateBuilder";
+import ApiDocs from "../pages/ApiDocs";
 
 const RoutesContent = () => {
   const [showCampaigns, setShowCampaigns] = useState(false);
@@ -322,6 +323,12 @@ const RoutesContent = () => {
                       exact
                       path="/create-meta-template"
                       component={MetaTemplateBuilder}
+                      isPrivate
+                    />
+                    <Route
+                      exact
+                      path="/api-docs"
+                      component={ApiDocs}
                       isPrivate
                     />
                   </>
