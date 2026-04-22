@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import SectionCard from "../../components/SectionCard";
+import useAutoSaveFlush from "../../hooks/useAutoSaveFlush";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -171,6 +172,18 @@ const WhatsAppWarmer = () => {
   const [saving, setSaving] = useState(false);
   const skipNextSave = useRef(true);
   const saveTimer = useRef(null);
+  const stateRef = useRef({ messages, config });
+  stateRef.current = { messages, config };
+
+  useAutoSaveFlush(async () => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    try {
+      await api.put("/warmer-settings", stateRef.current);
+    } catch (_) { /* silencioso ao sair */ }
+  }, !loading);
 
   useEffect(() => {
     let active = true;
