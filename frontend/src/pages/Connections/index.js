@@ -1205,32 +1205,40 @@ const Connections = () => {
         <ForbiddenPage />
         :
         <>
-          <MainHeader>
-            <Title>{i18n.t("connections.title")} ({whatsApps.length})</Title>
-            <MainHeaderButtonsWrapper>
+          <Box className={classes.toolbar}>
+            <Box className={classes.toolbarLeft}>
+              <Typography className={classes.toolbarTitle}>Conexões</Typography>
+              <Box className={classes.toolbarCount}>{whatsApps.length}</Box>
+            </Box>
+
+            <Box className={classes.toolbarRight}>
               <Button
-                variant="contained"
-                color="primary"
+                size="small"
                 onClick={handleOpenTransferModal}
+                className={classes.toolbarSecondary}
+                startIcon={<Sync style={{ fontSize: 16 }} />}
               >
                 Transferir Tickets
               </Button>
 
               <Button
-                variant="contained"
-                color="primary"
+                size="small"
                 onClick={restartWhatsapps}
+                className={classes.toolbarSecondary}
+                startIcon={<Autorenew style={{ fontSize: 16 }} />}
               >
                 {i18n.t("connections.restartConnections")}
               </Button>
 
               <Button
-                variant="contained"
-                color="primary"
+                size="small"
                 onClick={() => openInNewTab(`https://wa.me/${supportNumber}`)}
+                className={classes.toolbarSecondary}
+                startIcon={<HelpOutline style={{ fontSize: 16 }} />}
               >
                 {i18n.t("connections.callSupport")}
               </Button>
+
               <PopupState variant="popover" popupId="demo-popup-menu">
                 {(popupState) => (
                   <React.Fragment>
@@ -1240,8 +1248,9 @@ const Connections = () => {
                       yes={() => (
                         <>
                           <Button
-                            variant="contained"
-                            color="primary"
+                            size="small"
+                            className={classes.toolbarPrimary}
+                            startIcon={<Add style={{ fontSize: 16 }} />}
                             {...bindTrigger(popupState)}
                           >
                             {i18n.t("connections.newConnection")}
@@ -1340,8 +1349,8 @@ const Connections = () => {
                   </React.Fragment>
                 )}
               </PopupState>
-            </MainHeaderButtonsWrapper>
-          </MainHeader>
+            </Box>
+          </Box>
 
 
           <Paper className={classes.mainPaper} variant="outlined">
