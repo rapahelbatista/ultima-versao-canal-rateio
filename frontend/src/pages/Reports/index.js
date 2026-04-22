@@ -50,6 +50,7 @@ import useDashboard from "../../hooks/useDashboard";
 import QueueSelectCustom from "../../components/QueueSelectCustom";
 import moment from "moment";
 import ShowTicketLogModal from "../../components/ShowTicketLogModal";
+import ReportsDashboard from "./ReportsDashboard";
 
 import { blue, green } from "@material-ui/core/colors";
 import {
@@ -725,6 +726,7 @@ const Reports = () => {
           </Grid>
         </Paper>
       </MainHeader>
+      <ReportsDashboard tickets={tickets} />
       <Paper className={classes.mainPaperTable} variant="outlined">
         <Table size="small" id="grid-attendants">
           <TableHead>
