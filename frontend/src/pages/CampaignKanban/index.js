@@ -62,6 +62,29 @@ const parseMessage = (raw) => {
   return { message: m.slice(0, idx), notes: m.slice(idx + "\n[NOTE]".length) };
 };
 
+// Sentinela para infinite scroll: dispara `onReach` quando o elemento entra
+// no viewport do container scrollável (rootMargin grande = pré-carrega antes do fim).
+const InfiniteSentinel = ({ onReach, disabled, rootRef }) => {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (disabled) return;
+    const node = ref.current;
+    if (!node) return;
+    const root = rootRef?.current || null;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) { onReach(); break; }
+        }
+      },
+      { root, rootMargin: "400px 0px", threshold: 0 }
+    );
+    io.observe(node);
+    return () => io.disconnect();
+  }, [onReach, disabled, rootRef]);
+  return <div ref={ref} aria-hidden className="h-1 w-full" />;
+};
+
 const CampaignKanban = () => {
   const { user, socket } = useContext(AuthContext);
   const [liveTick, setLiveTick] = useState(0); // pulso visual ao receber evento
