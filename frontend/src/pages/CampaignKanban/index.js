@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useContext, useRef } from "react";
+import { AuthContext } from "../../context/Auth/AuthContext";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import {
   Clock,
@@ -57,6 +58,9 @@ const parseMessage = (raw) => {
 };
 
 const CampaignKanban = () => {
+  const { user, socket } = useContext(AuthContext);
+  const [liveTick, setLiveTick] = useState(0); // pulso visual ao receber evento
+  const refetchTimer = useRef(null);
   const [campaigns, setCampaigns] = useState([]);
   const [campaignId, setCampaignId] = useState("");
   const [shipping, setShipping] = useState([]);
@@ -219,6 +223,54 @@ const CampaignKanban = () => {
   useEffect(() => {
     fetchShipping();
   }, [fetchShipping]);
+
+  // Real-time: escuta eventos do socket da empresa para refletir mudanças instantaneamente
+  useEffect(() => {
+    if (!socket || !user?.companyId || !campaignId) return;
+    const channel = `company-${user.companyId}-campaign`;
+
+    const scheduleRefetch = () => {
+      if (refetchTimer.current) return;
+      refetchTimer.current = setTimeout(() => {
+        refetchTimer.current = null;
+        fetchShipping();
+      }, 400); // debounce p/ rajadas de eventos
+    };
+
+    const pulse = () => setLiveTick((t) => t + 1);
+
+    const onEvent = (data) => {
+      if (!data) return;
+      // Só processa eventos da campanha ativa, quando a info estiver presente
+      if (data.campaignId && Number(data.campaignId) !== Number(campaignId)) return;
+
+      switch (data.action) {
+        case "shipping-update":
+        case "shipping-content-update":
+        case "delivered":
+        case "confirmed":
+        case "update":
+        case "create":
+        case "delete":
+          pulse();
+          scheduleRefetch();
+          break;
+        default:
+          // Ações de campanha (start/finish) também justificam refresh
+          pulse();
+          scheduleRefetch();
+      }
+    };
+
+    socket.on(channel, onEvent);
+    return () => {
+      socket.off(channel, onEvent);
+      if (refetchTimer.current) {
+        clearTimeout(refetchTimer.current);
+        refetchTimer.current = null;
+      }
+    };
+  }, [socket, user?.companyId, campaignId, fetchShipping]);
 
   const grouped = useMemo(() => {
     const g = { pending: [], delivered: [], confirmed: [], failed: [] };
@@ -402,6 +454,7 @@ const CampaignKanban = () => {
               className="w-48 bg-transparent outline-none text-slate-700 placeholder:text-slate-400"
             />
           </div>
+          <LiveBadge tick={liveTick} connected={!!socket?.connected} />
           <button
             onClick={fetchShipping}
             disabled={loading}
@@ -653,5 +706,39 @@ const InfoRow = ({ icon: Icon, label, value }) => (
     </div>
   </div>
 );
+
+// Indicador de "ao vivo" — pulsa quando recebe um evento do socket
+const LiveBadge = ({ tick, connected }) => {
+  const [pulsing, setPulsing] = useState(false);
+  useEffect(() => {
+    if (!tick) return;
+    setPulsing(true);
+    const t = setTimeout(() => setPulsing(false), 800);
+    return () => clearTimeout(t);
+  }, [tick]);
+
+  return (
+    <div
+      title={connected ? "Atualizações em tempo real ativas" : "Conexão em tempo real indisponível"}
+      className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-bold transition-colors
+        ${connected
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : "border-slate-200 bg-slate-50 text-slate-400"}
+      `}
+    >
+      <span className="relative flex h-2 w-2">
+        {connected && pulsing && (
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        )}
+        <span
+          className={`relative inline-flex h-2 w-2 rounded-full ${
+            connected ? "bg-emerald-500" : "bg-slate-300"
+          }`}
+        />
+      </span>
+      {connected ? "AO VIVO" : "OFFLINE"}
+    </div>
+  );
+};
 
 export default CampaignKanban;
