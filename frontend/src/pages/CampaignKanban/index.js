@@ -36,7 +36,17 @@ import {
   Select as MuiSelect,
   MenuItem,
   Menu,
+  Paper,
+  Chip,
+  IconButton,
+  Tooltip,
+  InputAdornment,
+  Divider,
 } from "@material-ui/core";
+import HistoryIcon from "@material-ui/icons/History";
+import SearchIcon from "@material-ui/icons/Search";
+import ClearIcon from "@material-ui/icons/Clear";
+import SaveIcon from "@material-ui/icons/Save";
 import RefreshIcon from "@material-ui/icons/Refresh";
 import FilterListIcon from "@material-ui/icons/FilterList";
 import GetAppIcon from "@material-ui/icons/GetApp";
@@ -60,6 +70,61 @@ const useKanbanHeaderStyles = makeStyles((theme) => ({
   },
   button: {
     borderRadius: 10,
+  },
+  filtersPaper: {
+    padding: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+    borderRadius: 10,
+    border: `1px solid ${theme.palette.divider}`,
+  },
+  filterField: {
+    width: "100%",
+    "& .MuiOutlinedInput-root": { borderRadius: 10 },
+  },
+  filterActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: theme.spacing(1),
+    marginTop: theme.spacing(2),
+  },
+  presetsHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: theme.spacing(1),
+  },
+  presetInputRow: {
+    display: "flex",
+    gap: theme.spacing(1),
+    marginBottom: theme.spacing(1),
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+  presetChip: {
+    margin: theme.spacing(0.5),
+  },
+  statusBar: {
+    display: "flex",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: theme.spacing(1),
+    padding: theme.spacing(1, 1.5),
+    marginBottom: theme.spacing(2),
+    borderRadius: 10,
+  },
+  statusBarRight: {
+    marginLeft: "auto",
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1),
+  },
+  quickFilter: {
+    "& .MuiOutlinedInput-root": { borderRadius: 10 },
+    minWidth: 220,
+  },
+  statusChipActive: {
+    fontWeight: 700,
+    "&:hover": { opacity: 0.9 },
   },
 }));
 
@@ -1676,138 +1741,148 @@ const CampaignKanban = () => {
 
       {/* Painel de filtros avançados */}
       {showFilters && (
-        <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Telefone / mensagem</label>
-              <input
-                value={filterPhone}
-                onChange={(e) => setFilterPhone(e.target.value)}
-                placeholder="ex.: 5511..."
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Data inicial</label>
-              <input
-                type="date"
-                value={filterStartDate}
-                onChange={(e) => setFilterStartDate(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Data final</label>
-              <input
-                type="date"
-                value={filterEndDate}
-                onChange={(e) => setFilterEndDate(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Itens por página</label>
-              <select
+        <Paper variant="outlined" className={headerClasses.filtersPaper}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
+            <TextField
+              label="Telefone / mensagem"
+              variant="outlined"
+              size="small"
+              value={filterPhone}
+              onChange={(e) => setFilterPhone(e.target.value)}
+              placeholder="ex.: 5511..."
+              className={headerClasses.filterField}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="Data inicial"
+              type="date"
+              variant="outlined"
+              size="small"
+              value={filterStartDate}
+              onChange={(e) => setFilterStartDate(e.target.value)}
+              className={headerClasses.filterField}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="Data final"
+              type="date"
+              variant="outlined"
+              size="small"
+              value={filterEndDate}
+              onChange={(e) => setFilterEndDate(e.target.value)}
+              className={headerClasses.filterField}
+              InputLabelProps={{ shrink: true }}
+            />
+            <FormControl variant="outlined" size="small" className={headerClasses.filterField}>
+              <InputLabel id="page-size-label" shrink>Itens por página</InputLabel>
+              <MuiSelect
+                labelId="page-size-label"
+                label="Itens por página"
                 value={pageSize}
                 onChange={(e) => setPageSize(Number(e.target.value))}
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
               >
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-                <option value={200}>200</option>
-                <option value={500}>500</option>
-              </select>
-            </div>
+                <MenuItem value={25}>25</MenuItem>
+                <MenuItem value={50}>50</MenuItem>
+                <MenuItem value={100}>100</MenuItem>
+                <MenuItem value={200}>200</MenuItem>
+                <MenuItem value={500}>500</MenuItem>
+              </MuiSelect>
+            </FormControl>
           </div>
-          <div className="mt-3 flex items-center justify-end gap-2">
-            <button
+
+          <div className={headerClasses.filterActions}>
+            <Button
+              variant="outlined"
+              size="small"
+              className={headerClasses.button}
               onClick={() => {
                 setFilterPhone("");
                 setFilterStartDate("");
                 setFilterEndDate("");
                 setPageSize(50);
               }}
-              className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
             >
               Limpar
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              className={headerClasses.button}
               onClick={fetchShipping}
-              className="rounded-xl bg-emerald-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600"
             >
               Aplicar
-            </button>
+            </Button>
           </div>
 
-          {/* Presets de filtros — salvar combinação atual e aplicar com 1 clique */}
-          <div className="mt-4 border-t border-slate-100 pt-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                Presets salvos
-              </span>
-              <span className="text-[10px] text-slate-400">
-                {filterPresets.length}/20
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              <input
-                value={presetName}
-                onChange={(e) => setPresetName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveCurrentAsPreset(); } }}
-                placeholder="Nome do preset (ex.: SP — últimos 7 dias)"
-                className="flex-1 min-w-[200px] rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm focus:border-emerald-400 focus:outline-none"
-              />
-              <button
-                onClick={saveCurrentAsPreset}
-                disabled={!presetName.trim()}
-                className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-              >
-                Salvar filtros atuais
-              </button>
-            </div>
-            {filterPresets.length === 0 ? (
-              <p className="text-xs text-slate-400 italic">
-                Nenhum preset salvo ainda. Configure filtros acima e dê um nome para salvar.
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {filterPresets.map((p) => (
-                  <div
-                    key={p.id}
-                    className="group flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 pl-3 pr-1 py-1 text-xs hover:border-emerald-300 hover:bg-emerald-50 transition-colors"
-                  >
-                    <button
-                      onClick={() => applyPreset(p)}
-                      title={`Aplicar: ${[
-                        p.filters.search && `busca: ${p.filters.search}`,
-                        p.filters.filterPhone && `tel: ${p.filters.filterPhone}`,
-                        p.filters.filterStartDate && `de ${p.filters.filterStartDate}`,
-                        p.filters.filterEndDate && `até ${p.filters.filterEndDate}`,
-                        `${p.filters.pageSize}/pág`,
-                      ].filter(Boolean).join(" • ")}`}
-                      className="font-semibold text-slate-700 group-hover:text-emerald-700"
-                    >
-                      {p.name}
-                    </button>
-                    <button
-                      onClick={() => deletePreset(p.id)}
-                      title="Excluir preset"
-                      className="ml-1 flex h-5 w-5 items-center justify-center rounded-full text-slate-400 hover:bg-rose-100 hover:text-rose-600"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+          <Divider style={{ margin: "16px 0 12px" }} />
+
+          {/* Presets */}
+          <div className={headerClasses.presetsHeader}>
+            <Title>
+              <span style={{ fontSize: 14, fontWeight: 700 }}>Presets salvos</span>
+            </Title>
+            <span style={{ fontSize: 11, color: "#94a3b8" }}>{filterPresets.length}/20</span>
           </div>
-        </div>
+
+          <div className={headerClasses.presetInputRow}>
+            <TextField
+              variant="outlined"
+              size="small"
+              fullWidth
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveCurrentAsPreset(); } }}
+              placeholder="Nome do preset (ex.: SP — últimos 7 dias)"
+              style={{ flex: 1, minWidth: 200 }}
+              InputProps={{ style: { borderRadius: 10 } }}
+            />
+            <Button
+              variant="outlined"
+              color="primary"
+              size="small"
+              startIcon={<SaveIcon />}
+              disabled={!presetName.trim()}
+              onClick={saveCurrentAsPreset}
+              className={headerClasses.button}
+            >
+              Salvar filtros
+            </Button>
+          </div>
+
+          {filterPresets.length === 0 ? (
+            <p style={{ fontSize: 12, color: "#94a3b8", fontStyle: "italic", margin: 0 }}>
+              Nenhum preset salvo ainda. Configure filtros acima e dê um nome para salvar.
+            </p>
+          ) : (
+            <div style={{ display: "flex", flexWrap: "wrap" }}>
+              {filterPresets.map((p) => (
+                <Chip
+                  key={p.id}
+                  label={p.name}
+                  onClick={() => applyPreset(p)}
+                  onDelete={() => deletePreset(p.id)}
+                  variant="outlined"
+                  color="primary"
+                  size="small"
+                  className={headerClasses.presetChip}
+                  title={[
+                    p.filters.search && `busca: ${p.filters.search}`,
+                    p.filters.filterPhone && `tel: ${p.filters.filterPhone}`,
+                    p.filters.filterStartDate && `de ${p.filters.filterStartDate}`,
+                    p.filters.filterEndDate && `até ${p.filters.filterEndDate}`,
+                    `${p.filters.pageSize}/pág`,
+                  ].filter(Boolean).join(" • ")}
+                />
+              ))}
+            </div>
+          )}
+        </Paper>
       )}
 
       {/* Filtros rápidos por status */}
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mr-1">
+      <Paper variant="outlined" className={headerClasses.statusBar}>
+        <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#64748b", marginRight: 4 }}>
           Status:
         </span>
         {COLUMNS.map((col) => {
@@ -1815,57 +1890,73 @@ const CampaignKanban = () => {
           const Icon = col.icon;
           const active = visibleStatuses.has(col.id);
           const total = columnsState[col.id]?.total ?? 0;
+          const chipColors = {
+            amber: "#f59e0b",
+            sky: "#0ea5e9",
+            emerald: "#10b981",
+            rose: "#f43f5e",
+          };
           return (
-            <button
-              key={col.id}
-              onClick={() => toggleStatusVisible(col.id)}
-              onDoubleClick={() => showOnly(col.id)}
-              title="Clique para alternar • Duplo clique para isolar"
-              className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold transition-all
-                ${active
-                  ? `${cc.chip} border-transparent shadow-sm`
-                  : "border-slate-200 bg-slate-50 text-slate-400 hover:bg-slate-100"}
-              `}
-            >
-              <Icon size={12} />
-              {col.label}
-              <span className={`rounded-full px-1.5 text-[10px] ${active ? "bg-white/60" : "bg-slate-200"}`}>
-                {total}
-              </span>
-            </button>
+            <Tooltip key={col.id} title="Clique para alternar • Duplo clique para isolar">
+              <Chip
+                icon={<Icon size={14} />}
+                label={`${col.label} (${total})`}
+                clickable
+                onClick={() => toggleStatusVisible(col.id)}
+                onDoubleClick={() => showOnly(col.id)}
+                size="small"
+                className={headerClasses.statusChipActive}
+                style={{
+                  backgroundColor: active ? chipColors[col.color] : "transparent",
+                  color: active ? "#fff" : "#94a3b8",
+                  border: `1px solid ${active ? chipColors[col.color] : "#e2e8f0"}`,
+                  fontWeight: 700,
+                }}
+              />
+            </Tooltip>
           );
         })}
         {visibleStatuses.size < 4 && (
-          <button
+          <Button
+            size="small"
+            variant="outlined"
+            color="primary"
             onClick={showAll}
-            className="ml-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100"
+            className={headerClasses.button}
           >
             Mostrar todos
-          </button>
+          </Button>
         )}
 
-        {/* Busca rápida por contato (filtra cards já carregados) */}
-        <div className="ml-auto flex items-center gap-2">
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs">
-            <Search size={12} className="text-slate-400" />
-            <input
-              value={quickFilter}
-              onChange={(e) => setQuickFilter(e.target.value)}
-              placeholder="Filtrar por nome ou número..."
-              className="w-44 bg-transparent outline-none text-slate-700 placeholder:text-slate-400"
-            />
-            {quickFilter && (
-              <button
-                onClick={() => setQuickFilter("")}
-                title="Limpar filtro"
-                className="text-slate-400 hover:text-slate-700"
-              >
-                <X size={12} />
-              </button>
-            )}
-          </div>
+        <div className={headerClasses.statusBarRight}>
+          <TextField
+            variant="outlined"
+            size="small"
+            value={quickFilter}
+            onChange={(e) => setQuickFilter(e.target.value)}
+            placeholder="Filtrar por nome ou número..."
+            className={headerClasses.quickFilter}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" style={{ color: "#94a3b8" }} />
+                </InputAdornment>
+              ),
+              endAdornment: quickFilter ? (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => setQuickFilter("")} title="Limpar filtro">
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ) : null,
+            }}
+          />
           {quickFilter && (
-            <button
+            <Button
+              size="small"
+              variant="contained"
+              color="primary"
+              className={headerClasses.button}
               onClick={() => {
                 const ids = [];
                 COLUMNS.forEach((c) => {
@@ -1881,21 +1972,23 @@ const CampaignKanban = () => {
                 setSelectedIds(new Set(ids));
                 toast.success(`${ids.length} envio(s) selecionado(s)`);
               }}
-              className="rounded-xl bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-600 shadow-sm shadow-emerald-500/30"
             >
               Selecionar filtrados
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<HistoryIcon />}
             onClick={openHistory}
             title="Histórico de atualizações em massa"
-            className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
+            className={headerClasses.button}
+            style={{ color: "#4f46e5", borderColor: "#c7d2fe" }}
           >
-            <History size={12} />
             Histórico
-          </button>
+          </Button>
         </div>
-      </div>
+      </Paper>
 
       {/* Board */}
       <DragDropContext onDragEnd={onDragEnd}>
