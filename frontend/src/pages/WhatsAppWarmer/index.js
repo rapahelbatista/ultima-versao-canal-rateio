@@ -435,6 +435,19 @@ const WhatsAppWarmer = () => {
           </div>
         </SectionCard>
       )}
+
+      {tab === "history" && (
+        <WarmerHistory
+          messages={messages}
+          config={config}
+          onLoadDraft={({ messages: m, config: c }) => {
+            setMessages(Array.isArray(m) ? m : []);
+            setConfig({ ...DEFAULT_CONFIG, ...(c || {}) });
+            setTab("script");
+            toast.success("Rascunho carregado");
+          }}
+        />
+      )}
     </div>
   );
 };
