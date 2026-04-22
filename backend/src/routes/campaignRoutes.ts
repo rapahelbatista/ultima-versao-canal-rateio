@@ -11,6 +11,7 @@ const routes = express.Router();
 routes.get("/campaigns/:id/recurrence-preview", isAuth, CampaignController.previewRecurrence);
 routes.post("/campaigns/:id/stop-recurrence", isAuth, CampaignController.stopRecurrence);
 routes.get("/campaigns/list", isAuth, CampaignController.findList);
+routes.get("/campaigns/dashboard-stats", isAuth, CampaignController.dashboardStats);
 routes.get("/campaigns", isAuth, CampaignController.index);
 routes.get("/campaigns/:id", isAuth, CampaignController.show);
 routes.get("/campaigns/:id/shipping", isAuth, CampaignController.getShipping);

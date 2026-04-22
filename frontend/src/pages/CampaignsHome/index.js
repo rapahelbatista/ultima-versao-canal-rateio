@@ -77,32 +77,32 @@ const CampaignsHome = () => {
     sentMessages: 0,
     deliveryRate: 0,
     contacts: 0,
+    totalCampaigns: 0,
+    totalMessages: 0,
+    series: [],
   });
   const [loading, setLoading] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
 
   const fetchStats = async () => {
     setLoading(true);
     try {
-      // Best-effort: tenta buscar dados reais; se falhar, mantém zeros.
-      const [campaigns, contactLists] = await Promise.allSettled([
-        api.get("/campaigns?pageNumber=1"),
-        api.get("/contact-lists?pageNumber=1"),
-      ]);
-
-      const cs = campaigns.status === "fulfilled" ? campaigns.value.data?.records || [] : [];
-      const cl = contactLists.status === "fulfilled" ? contactLists.value.data?.records || [] : [];
-
-      const active = cs.filter((c) => ["EM_ANDAMENTO", "PROGRAMADA", "RUNNING"].includes(c.status)).length;
-      const sent = cs.reduce((sum, c) => sum + (c.delivered || c.completedAt ? c.contactsCount || 0 : 0), 0);
-
-      setStats({
-        activeCampaigns: active,
-        sentMessages: sent,
-        deliveryRate: sent ? Math.min(99, Math.round((sent / (sent + 1)) * 100)) : 0,
-        contacts: cl.reduce((sum, l) => sum + (l.contactsCount || 0), 0),
+      const { data } = await api.get("/campaigns/dashboard-stats", {
+        params: { days: 7 },
       });
+      setStats({
+        activeCampaigns: data.activeCampaigns || 0,
+        sentMessages: data.sentMessages || 0,
+        deliveryRate: data.deliveryRate || 0,
+        contacts: data.uniqueContacts || 0,
+        totalCampaigns: data.totalCampaigns || 0,
+        totalMessages: data.totalMessages || 0,
+        series: Array.isArray(data.series) ? data.series : [],
+      });
+      setLastUpdate(new Date(data.generatedAt || Date.now()));
     } catch (e) {
-      // silencioso
+      // mantém zeros — a home não deve quebrar
+      setLastUpdate(new Date());
     } finally {
       setLoading(false);
     }
@@ -110,16 +110,33 @@ const CampaignsHome = () => {
 
   useEffect(() => {
     fetchStats();
+    const interval = setInterval(fetchStats, 60000); // auto-refresh 1 min
+    return () => clearInterval(interval);
   }, []);
 
-  const now = new Date();
-  const formatted = now.toLocaleString("pt-BR", {
+  const formatted = (lastUpdate || new Date()).toLocaleString("pt-BR", {
     day: "2-digit",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  // Sparkline normalizado (últimos 7 dias) — preenche com 0 onde não houver dado
+  const sparkline = (() => {
+    const days = 7;
+    const today = new Date();
+    const map = new Map((stats.series || []).map(p => [p.date, p.sent]));
+    const arr = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      arr.push(map.get(key) || 0);
+    }
+    const max = Math.max(...arr, 1);
+    return arr.map(v => Math.round((v / max) * 100));
+  })();
 
   return (
     <div className="space-y-6">
@@ -133,7 +150,10 @@ const CampaignsHome = () => {
             <h1 className="text-xl font-bold text-slate-800">
               Bem-vindo de volta!
             </h1>
-            <p className="text-sm text-slate-500">Última atualização: {formatted}</p>
+            <p className="text-sm text-slate-500">
+              Última atualização: {formatted}
+              {loading && <span className="ml-2 text-emerald-600">• atualizando...</span>}
+            </p>
           </div>
         </div>
         <button
@@ -148,10 +168,10 @@ const CampaignsHome = () => {
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Send} label="Campanhas Ativas" value={stats.activeCampaigns} accent="emerald" />
-        <StatCard icon={CheckCircle2} label="Mensagens Enviadas" value={stats.sentMessages} accent="amber" />
-        <StatCard icon={TrendingUp} label="Taxa de Entrega" value={`${stats.deliveryRate}%`} accent="sky" />
-        <StatCard icon={Users} label="Contatos" value={stats.contacts} accent="violet" />
+        <StatCard icon={Send} label="Campanhas Ativas" value={stats.activeCampaigns} accent="emerald" trend={sparkline} />
+        <StatCard icon={CheckCircle2} label="Mensagens Enviadas" value={stats.sentMessages.toLocaleString("pt-BR")} accent="amber" trend={sparkline} />
+        <StatCard icon={TrendingUp} label="Taxa de Entrega" value={`${stats.deliveryRate}%`} accent="sky" trend={sparkline} />
+        <StatCard icon={Users} label="Contatos Únicos" value={stats.contacts.toLocaleString("pt-BR")} accent="violet" trend={sparkline} />
       </div>
 
       {/* Quick actions */}
@@ -167,16 +187,36 @@ const CampaignsHome = () => {
         </div>
       </div>
 
-      {/* Activity placeholder */}
+      {/* Atividade real */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-slate-800">Atividade de Envios</h3>
             <span className="text-xs text-slate-400">Últimos 7 dias</span>
           </div>
-          <div className="mt-6 flex h-48 items-center justify-center rounded-xl border-2 border-dashed border-slate-200 text-sm text-slate-400">
-            Sem dados ainda — crie sua primeira campanha
-          </div>
+          {sparkline.some(v => v > 0) ? (
+            <div className="mt-6 flex items-end gap-2 h-48 px-2">
+              {sparkline.map((h, i) => {
+                const day = new Date();
+                day.setDate(day.getDate() - (6 - i));
+                const label = day.toLocaleDateString("pt-BR", { weekday: "short" });
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <div
+                      className="w-full rounded-t-lg bg-gradient-to-t from-emerald-400 to-emerald-300 transition-all"
+                      style={{ height: `${Math.max(h, 4)}%` }}
+                      title={`${label}`}
+                    />
+                    <span className="text-[10px] text-slate-400">{label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="mt-6 flex h-48 items-center justify-center rounded-xl border-2 border-dashed border-slate-200 text-sm text-slate-400">
+              Sem dados ainda — crie sua primeira campanha
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
