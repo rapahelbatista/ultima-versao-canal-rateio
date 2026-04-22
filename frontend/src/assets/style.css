@@ -4,16 +4,51 @@
 	box-sizing: border-box;
 }
 
-/* Util mínimo: animação de rotação usada por ícones de loading
-   (substitui o utilitário Tailwind `animate-spin` em telas que
-   não dependem de Tailwind). */
+/* ==========================================
+   Animações utilitárias do CampaignKanban
+   (substituem utilitários Tailwind em telas que
+   não dependem de Tailwind no projeto).
+   ========================================== */
 @keyframes lv-spin {
 	from { transform: rotate(0deg); }
 	to   { transform: rotate(360deg); }
 }
-.animate-spin {
+@keyframes lv-ping {
+	0%   { transform: scale(1);   opacity: 0.75; }
+	75%, 100% { transform: scale(2.2); opacity: 0; }
+}
+@keyframes lv-fade-slide-down {
+	0%   { opacity: 0; transform: translate(-50%, -8px); }
+	100% { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes lv-fade-slide-up {
+	0%   { opacity: 0; transform: translate(-50%, 8px); }
+	100% { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes lv-pulse {
+	0%, 100% { opacity: 1; }
+	50%      { opacity: 0.55; }
+}
+
+/* Compat com qualquer remanescente de `animate-spin` do Tailwind */
+.animate-spin,
+.kanban-spin {
 	animation: lv-spin 1s linear infinite;
 	transform-origin: center;
+	display: inline-block;
+}
+.kanban-ping {
+	animation: lv-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+	transform-origin: center;
+}
+.kanban-pulse {
+	animation: lv-pulse 1.6s ease-in-out infinite;
+}
+.kanban-overlay-top {
+	animation: lv-fade-slide-down 220ms ease-out;
+}
+.kanban-overlay-bottom {
+	animation: lv-fade-slide-up 220ms ease-out;
 }
 
 body{
