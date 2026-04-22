@@ -1,6 +1,24 @@
 import React, { useContext, useState, useMemo } from "react";
 import { Link, useLocation, useHistory } from "react-router-dom";
 import { AuthContext } from "../context/Auth/AuthContext";
+import { makeStyles } from "@material-ui/core/styles";
+import {
+  AppBar,
+  Toolbar,
+  Drawer,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  IconButton,
+  Typography,
+  Avatar,
+  Badge,
+  Divider,
+  Tooltip,
+  InputBase,
+  Box,
+} from "@material-ui/core";
 import {
   LayoutDashboard,
   Send,
@@ -15,26 +33,19 @@ import {
   LogOut,
   Search,
   Bell,
-  Sun,
-  Moon,
   ChevronLeft,
   ChevronRight,
   Layers,
   BarChart3,
 } from "lucide-react";
 
-/**
- * CampaignLayout
- * Layout claro/verde inspirado no whatsCRM, ativo quando CAMPAIGN_ONLY_MODE=true.
- * Mantém apenas itens relacionados a campanhas, APIs, warmup e kanban opcional.
- */
+const drawerWidth = 260;
+const collapsedWidth = 72;
 
 const NAV_GROUPS = [
   {
     label: null,
-    items: [
-      { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
-    ],
+    items: [{ to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true }],
   },
   {
     label: "Campanhas",
@@ -62,9 +73,7 @@ const NAV_GROUPS = [
   },
   {
     label: "Relatórios",
-    items: [
-      { to: "/reports", label: "Relatórios", icon: BarChart3 },
-    ],
+    items: [{ to: "/reports", label: "Relatórios", icon: BarChart3 }],
   },
 ];
 
@@ -73,12 +82,233 @@ const ADMIN_ITEMS = [
   { to: "/settings", label: "Configurações", icon: Settings },
 ];
 
+const useStyles = makeStyles((theme) => ({
+  root: {
+    display: "flex",
+    height: "100vh",
+    width: "100%",
+    overflow: "hidden",
+    backgroundColor: "#f8fafc",
+  },
+  drawer: {
+    width: drawerWidth,
+    flexShrink: 0,
+    whiteSpace: "nowrap",
+    transition: theme.transitions.create("width", {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+  },
+  drawerCollapsed: {
+    width: collapsedWidth,
+  },
+  drawerPaper: {
+    width: drawerWidth,
+    overflowX: "hidden",
+    backgroundColor: "#ffffff",
+    borderRight: "1px solid #e2e8f0",
+    transition: theme.transitions.create("width", {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+  },
+  drawerPaperCollapsed: {
+    width: collapsedWidth,
+  },
+  logoBox: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "18px 16px",
+    borderBottom: "1px solid #f1f5f9",
+  },
+  logoIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    background: "linear-gradient(135deg, #34d399, #059669)",
+    color: "#fff",
+    fontWeight: 700,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 4px 12px rgba(16,185,129,0.35)",
+    fontSize: 13,
+  },
+  brandTitle: {
+    fontSize: 14,
+    fontWeight: 700,
+    color: "#1e293b",
+    lineHeight: 1.1,
+  },
+  brandSub: {
+    fontSize: 9,
+    fontWeight: 700,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: "#059669",
+  },
+  collapseBtn: {
+    marginLeft: "auto",
+    padding: 6,
+    color: "#94a3b8",
+  },
+  searchBox: {
+    margin: "12px 12px 0",
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "8px 12px",
+    background: "#f8fafc",
+    border: "1px solid #f1f5f9",
+    borderRadius: 12,
+    color: "#94a3b8",
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: "#334155",
+  },
+  nav: {
+    flex: 1,
+    overflowY: "auto",
+    padding: "12px 12px",
+  },
+  groupLabel: {
+    padding: "8px 12px 4px",
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: "#94a3b8",
+  },
+  navItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: "10px 12px",
+    borderRadius: 12,
+    fontSize: 13,
+    fontWeight: 500,
+    color: "#475569",
+    textDecoration: "none",
+    transition: "all .15s",
+    marginBottom: 2,
+    "&:hover": {
+      backgroundColor: "#f8fafc",
+      color: "#047857",
+    },
+  },
+  navItemActive: {
+    backgroundColor: "#ecfdf5",
+    color: "#047857",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+  },
+  navIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#f1f5f9",
+    color: "#64748b",
+    flexShrink: 0,
+  },
+  navIconActive: {
+    background: "#10b981",
+    color: "#fff",
+    boxShadow: "0 4px 10px rgba(16,185,129,0.35)",
+  },
+  versionBox: {
+    padding: "12px 16px",
+    borderTop: "1px solid #f1f5f9",
+    fontSize: 11,
+    color: "#94a3b8",
+  },
+  versionTag: {
+    marginLeft: 6,
+    background: "#d1fae5",
+    color: "#047857",
+    padding: "2px 6px",
+    borderRadius: 4,
+    fontWeight: 700,
+    fontSize: 10,
+  },
+  main: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+  },
+  topbar: {
+    background: "#fff",
+    color: "#334155",
+    borderBottom: "1px solid #e2e8f0",
+    boxShadow: "none",
+  },
+  topbarToolbar: {
+    display: "flex",
+    justifyContent: "space-between",
+    minHeight: 60,
+  },
+  crumb: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    color: "#64748b",
+    fontSize: 13,
+  },
+  crumbActive: {
+    color: "#1e293b",
+    fontWeight: 600,
+  },
+  topActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  iconBtn: {
+    border: "1px solid #e2e8f0",
+    borderRadius: 10,
+    padding: 8,
+    color: "#64748b",
+    "&:hover": { background: "#f8fafc" },
+  },
+  langBtn: {
+    border: "1px solid #e2e8f0",
+    borderRadius: 10,
+    padding: "6px 12px",
+    fontSize: 12,
+    fontWeight: 500,
+    color: "#475569",
+    background: "transparent",
+    cursor: "pointer",
+    "&:hover": { background: "#f8fafc" },
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    background: "linear-gradient(135deg, #34d399, #059669)",
+    color: "#fff",
+    fontWeight: 700,
+    fontSize: 13,
+    border: "2px solid #d1fae5",
+  },
+  content: {
+    flex: 1,
+    overflowY: "auto",
+    background: "#f8fafc",
+    padding: 24,
+  },
+}));
+
 const CampaignLayout = ({ children }) => {
+  const classes = useStyles();
   const { user, handleLogout } = useContext(AuthContext);
   const location = useLocation();
   const history = useHistory();
   const [collapsed, setCollapsed] = useState(false);
-  const [dark, setDark] = useState(false);
 
   const initials = useMemo(() => {
     const name = user?.name || "U";
@@ -95,160 +325,127 @@ const CampaignLayout = ({ children }) => {
     return location.pathname.startsWith(item.to);
   };
 
-  const SidebarItem = ({ item }) => {
+  const renderItem = (item) => {
     const Icon = item.icon;
     const active = isActive(item);
-    return (
+    const node = (
       <Link
         to={item.to}
-        className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all
-          ${active
-            ? "bg-emerald-50 text-emerald-700 shadow-sm"
-            : "text-slate-600 hover:bg-slate-50 hover:text-emerald-700"}
-        `}
+        className={`${classes.navItem} ${active ? classes.navItemActive : ""}`}
+        style={collapsed ? { justifyContent: "center" } : undefined}
       >
-        <span
-          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all
-          ${active ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/30" : "bg-slate-100 text-slate-500 group-hover:bg-emerald-100 group-hover:text-emerald-600"}
-        `}
-        >
+        <span className={`${classes.navIcon} ${active ? classes.navIconActive : ""}`}>
           <Icon size={16} />
         </span>
-        {!collapsed && <span className="truncate">{item.label}</span>}
+        {!collapsed && <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{item.label}</span>}
       </Link>
+    );
+    return collapsed ? (
+      <Tooltip title={item.label} placement="right" key={item.to}>
+        <div>{node}</div>
+      </Tooltip>
+    ) : (
+      <div key={item.to}>{node}</div>
     );
   };
 
+  const currentLabel =
+    NAV_GROUPS.flatMap((g) => g.items).find((i) => isActive(i))?.label || "Dashboard";
+
   return (
-    <div className={`flex h-screen w-full overflow-hidden ${dark ? "bg-slate-900" : "bg-slate-50"}`}>
-      {/* Sidebar */}
-      <aside
-        className={`relative flex flex-col border-r border-slate-200 bg-white transition-all duration-300
-          ${collapsed ? "w-[72px]" : "w-[260px]"}`}
+    <div className={classes.root}>
+      <Drawer
+        variant="permanent"
+        className={`${classes.drawer} ${collapsed ? classes.drawerCollapsed : ""}`}
+        classes={{
+          paper: `${classes.drawerPaper} ${collapsed ? classes.drawerPaperCollapsed : ""}`,
+        }}
       >
-        {/* Logo */}
-        <div className="flex items-center gap-2 px-4 py-5 border-b border-slate-100">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white font-bold shadow-md shadow-emerald-500/30">
-            EC
-          </div>
+        <div className={classes.logoBox}>
+          <div className={classes.logoIcon}>EC</div>
           {!collapsed && (
-            <div className="flex flex-col leading-tight">
-              <span className="text-sm font-bold text-slate-800">EquipeChat</span>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600">
-                Campaigns
-              </span>
+            <div>
+              <div className={classes.brandTitle}>EquipeChat</div>
+              <div className={classes.brandSub}>Campaigns</div>
             </div>
           )}
-          <button
+          <IconButton
+            size="small"
+            className={classes.collapseBtn}
             onClick={() => setCollapsed((v) => !v)}
-            className="ml-auto rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
           >
             {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-          </button>
+          </IconButton>
         </div>
 
-        {/* Search */}
         {!collapsed && (
-          <div className="px-3 pt-3">
-            <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-400 border border-slate-100">
-              <Search size={14} />
-              <input
-                placeholder="Buscar menu..."
-                className="w-full bg-transparent outline-none text-slate-700 placeholder:text-slate-400"
-              />
-            </div>
+          <div className={classes.searchBox}>
+            <Search size={14} />
+            <InputBase placeholder="Buscar menu..." className={classes.searchInput} />
           </div>
         )}
 
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4 scrollbar-thin">
+        <nav className={classes.nav}>
           {NAV_GROUPS.map((group, gi) => (
-            <div key={gi}>
+            <Box key={gi} mb={2}>
               {!collapsed && group.label && (
-                <p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  {group.label}
-                </p>
+                <div className={classes.groupLabel}>{group.label}</div>
               )}
-              <div className="space-y-1">
-                {group.items.map((it) => (
-                  <SidebarItem key={it.to} item={it} />
-                ))}
-              </div>
-            </div>
+              {group.items.map(renderItem)}
+            </Box>
           ))}
 
           {user?.profile === "admin" && (
-            <div>
-              {!collapsed && (
-                <p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Admin
-                </p>
-              )}
-              <div className="space-y-1">
-                {ADMIN_ITEMS.map((it) => (
-                  <SidebarItem key={it.to} item={it} />
-                ))}
-              </div>
-            </div>
+            <Box mb={2}>
+              {!collapsed && <div className={classes.groupLabel}>Admin</div>}
+              {ADMIN_ITEMS.map(renderItem)}
+            </Box>
           )}
         </nav>
 
-        {/* Versão */}
         {!collapsed && (
-          <div className="px-4 py-3 border-t border-slate-100 text-[11px] text-slate-400">
-            EquipeChat Campaigns <span className="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-700 font-semibold">v6.0</span>
+          <div className={classes.versionBox}>
+            EquipeChat Campaigns
+            <span className={classes.versionTag}>v6.0</span>
           </div>
         )}
-      </aside>
+      </Drawer>
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Topbar */}
-        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
-          <div className="flex items-center gap-2 text-sm text-slate-500">
-            <LayoutDashboard size={14} />
-            <span className="text-slate-700 font-medium">
-              {NAV_GROUPS.flatMap((g) => g.items).find((i) => isActive(i))?.label || "Dashboard"}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
-              🇧🇷 Português
-            </button>
-            <button
-              onClick={() => setDark((v) => !v)}
-              className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
-              title="Tema"
-            >
-              {dark ? <Sun size={15} /> : <Moon size={15} />}
-            </button>
-            <button className="relative rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
-              <Bell size={15} />
-              <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-white">
-                0
-              </span>
-            </button>
-            <div className="ml-2 flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-sm font-bold text-white ring-2 ring-emerald-100">
-                {initials}
-              </div>
-              <button
-                onClick={() => {
-                  handleLogout && handleLogout();
-                  history.push("/login");
-                }}
-                className="rounded-lg p-2 text-slate-400 hover:bg-slate-50 hover:text-rose-500"
-                title="Sair"
-              >
-                <LogOut size={15} />
-              </button>
+      <div className={classes.main}>
+        <AppBar position="static" className={classes.topbar} elevation={0}>
+          <Toolbar className={classes.topbarToolbar}>
+            <div className={classes.crumb}>
+              <LayoutDashboard size={14} />
+              <span className={classes.crumbActive}>{currentLabel}</span>
             </div>
-          </div>
-        </header>
 
-        {/* Content */}
-        <main className="flex-1 overflow-y-auto bg-slate-50 p-6">{children}</main>
+            <div className={classes.topActions}>
+              <button className={classes.langBtn}>🇧🇷 Português</button>
+              <Tooltip title="Notificações">
+                <IconButton className={classes.iconBtn} size="small">
+                  <Badge badgeContent={0} color="primary">
+                    <Bell size={15} />
+                  </Badge>
+                </IconButton>
+              </Tooltip>
+              <Avatar className={classes.avatar}>{initials}</Avatar>
+              <Tooltip title="Sair">
+                <IconButton
+                  className={classes.iconBtn}
+                  size="small"
+                  onClick={() => {
+                    handleLogout && handleLogout();
+                    history.push("/login");
+                  }}
+                >
+                  <LogOut size={15} />
+                </IconButton>
+              </Tooltip>
+            </div>
+          </Toolbar>
+        </AppBar>
+
+        <main className={classes.content}>{children}</main>
       </div>
     </div>
   );

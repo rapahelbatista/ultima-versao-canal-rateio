@@ -12,65 +12,224 @@ import {
   Webhook,
   RefreshCcw,
 } from "lucide-react";
+import { makeStyles } from "@material-ui/core/styles";
+import {
+  Grid,
+  Paper,
+  Typography,
+  Button,
+  Box,
+  CircularProgress,
+} from "@material-ui/core";
 import api from "../../services/api";
 
-/**
- * Dashboard inicial do modo CAMPAIGN_ONLY.
- * Mostra cards de visão geral + atalhos rápidos. Visual estilo whatsCRM.
- */
+const PALETTES = {
+  emerald: { bg: "#ecfdf5", text: "#059669", bar: "#34d399" },
+  amber: { bg: "#fffbeb", text: "#d97706", bar: "#fbbf24" },
+  sky: { bg: "#f0f9ff", text: "#0284c7", bar: "#38bdf8" },
+  violet: { bg: "#f5f3ff", text: "#7c3aed", bar: "#a78bfa" },
+};
+
+const useStyles = makeStyles((theme) => ({
+  root: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 24,
+  },
+  card: {
+    padding: 20,
+    borderRadius: 16,
+    border: "1px solid #e2e8f0",
+    background: "#fff",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+    transition: "box-shadow .2s",
+    "&:hover": { boxShadow: "0 6px 18px rgba(0,0,0,0.06)" },
+  },
+  welcome: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    padding: 24,
+    borderRadius: 16,
+    background: "#fff",
+    border: "1px solid #e2e8f0",
+  },
+  welcomeIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    background: "#d1fae5",
+    color: "#059669",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  primaryBtn: {
+    background: "#10b981",
+    color: "#fff",
+    fontWeight: 600,
+    textTransform: "none",
+    borderRadius: 12,
+    boxShadow: "0 4px 12px rgba(16,185,129,0.35)",
+    "&:hover": { background: "#059669" },
+  },
+  statHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: "#64748b",
+  },
+  statValue: {
+    marginTop: 8,
+    fontSize: 28,
+    fontWeight: 700,
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bars: {
+    marginTop: 16,
+    display: "flex",
+    alignItems: "flex-end",
+    gap: 4,
+    height: 40,
+  },
+  bar: {
+    flex: 1,
+    borderRadius: 2,
+    minHeight: 2,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: "#64748b",
+    marginBottom: 12,
+  },
+  quick: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: "12px 16px",
+    border: "1px solid #e2e8f0",
+    borderRadius: 12,
+    background: "#fff",
+    cursor: "pointer",
+    width: "100%",
+    textAlign: "left",
+    transition: "all .15s",
+    "&:hover": {
+      borderColor: "#6ee7b7",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+    },
+  },
+  quickIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chartHost: {
+    marginTop: 24,
+    display: "flex",
+    alignItems: "flex-end",
+    gap: 8,
+    height: 192,
+    paddingLeft: 8,
+    paddingRight: 8,
+  },
+  chartBar: {
+    width: "100%",
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    background: "linear-gradient(to top, #34d399, #6ee7b7)",
+  },
+  chartEmpty: {
+    marginTop: 24,
+    height: 192,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    border: "2px dashed #e2e8f0",
+    borderRadius: 12,
+    color: "#94a3b8",
+    fontSize: 13,
+  },
+}));
 
 const StatCard = ({ icon: Icon, label, value, accent = "emerald", trend = [] }) => {
-  const palette = {
-    emerald: { bg: "bg-emerald-50", text: "text-emerald-600", bar: "bg-emerald-400" },
-    amber: { bg: "bg-amber-50", text: "text-amber-600", bar: "bg-amber-400" },
-    sky: { bg: "bg-sky-50", text: "text-sky-600", bar: "bg-sky-400" },
-    violet: { bg: "bg-violet-50", text: "text-violet-600", bar: "bg-violet-400" },
-  }[accent];
-
+  const classes = useStyles();
+  const palette = PALETTES[accent];
   const bars = trend.length ? trend : [40, 65, 50, 80, 60, 90, 70];
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-all">
-      <div className="flex items-start justify-between">
+    <Paper className={classes.card} elevation={0}>
+      <div className={classes.statHeader}>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            {label}
-          </p>
-          <p className={`mt-2 text-3xl font-bold ${palette.text}`}>{value}</p>
+          <div className={classes.statLabel}>{label}</div>
+          <div className={classes.statValue} style={{ color: palette.text }}>
+            {value}
+          </div>
         </div>
-        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${palette.bg} ${palette.text}`}>
+        <div
+          className={classes.statIcon}
+          style={{ background: palette.bg, color: palette.text }}
+        >
           <Icon size={18} />
         </div>
       </div>
-      <div className="mt-4 flex items-end gap-1 h-10">
+      <div className={classes.bars}>
         {bars.map((h, i) => (
           <div
             key={i}
-            className={`flex-1 rounded-sm ${palette.bar} opacity-${30 + (i % 4) * 15}`}
-            style={{ height: `${h}%` }}
+            className={classes.bar}
+            style={{
+              height: `${Math.max(h, 4)}%`,
+              background: palette.bar,
+              opacity: 0.4 + (i % 4) * 0.15,
+            }}
           />
         ))}
       </div>
-    </div>
+    </Paper>
   );
 };
 
-const QuickAction = ({ icon: Icon, label, onClick, color = "emerald" }) => (
-  <button
-    onClick={onClick}
-    className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:border-emerald-300 hover:shadow-md transition-all"
-  >
-    <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-${color}-50 text-${color}-600`}>
-      <Icon size={18} />
-    </div>
-    <div>
-      <p className="text-sm font-semibold text-slate-800">{label}</p>
-      <p className="text-xs text-slate-500">Acessar →</p>
-    </div>
-  </button>
-);
+const QuickAction = ({ icon: Icon, label, onClick, accent = "emerald" }) => {
+  const classes = useStyles();
+  const palette = PALETTES[accent];
+  return (
+    <button onClick={onClick} className={classes.quick}>
+      <div
+        className={classes.quickIcon}
+        style={{ background: palette.bg, color: palette.text }}
+      >
+        <Icon size={18} />
+      </div>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>{label}</div>
+        <div style={{ fontSize: 11, color: "#94a3b8" }}>Acessar →</div>
+      </div>
+    </button>
+  );
+};
 
 const CampaignsHome = () => {
+  const classes = useStyles();
   const history = useHistory();
   const [stats, setStats] = useState({
     activeCampaigns: 0,
@@ -101,7 +260,6 @@ const CampaignsHome = () => {
       });
       setLastUpdate(new Date(data.generatedAt || Date.now()));
     } catch (e) {
-      // mantém zeros — a home não deve quebrar
       setLastUpdate(new Date());
     } finally {
       setLoading(false);
@@ -110,7 +268,7 @@ const CampaignsHome = () => {
 
   useEffect(() => {
     fetchStats();
-    const interval = setInterval(fetchStats, 60000); // auto-refresh 1 min
+    const interval = setInterval(fetchStats, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -122,11 +280,10 @@ const CampaignsHome = () => {
     minute: "2-digit",
   });
 
-  // Sparkline normalizado (últimos 7 dias) — preenche com 0 onde não houver dado
   const sparkline = (() => {
     const days = 7;
     const today = new Date();
-    const map = new Map((stats.series || []).map(p => [p.date, p.sent]));
+    const map = new Map((stats.series || []).map((p) => [p.date, p.sent]));
     const arr = [];
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(today);
@@ -135,107 +292,163 @@ const CampaignsHome = () => {
       arr.push(map.get(key) || 0);
     }
     const max = Math.max(...arr, 1);
-    return arr.map(v => Math.round((v / max) * 100));
+    return arr.map((v) => Math.round((v / max) * 100));
   })();
 
   return (
-    <div className="space-y-6">
+    <div className={classes.root}>
       {/* Welcome */}
-      <div className="flex items-start justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+      <Paper className={classes.welcome} elevation={0}>
+        <Box display="flex" alignItems="flex-start" style={{ gap: 16 }}>
+          <div className={classes.welcomeIcon}>
             <TrendingUp size={22} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">
+            <Typography variant="h6" style={{ fontWeight: 700, color: "#1e293b" }}>
               Bem-vindo de volta!
-            </h1>
-            <p className="text-sm text-slate-500">
+            </Typography>
+            <Typography variant="body2" style={{ color: "#64748b" }}>
               Última atualização: {formatted}
-              {loading && <span className="ml-2 text-emerald-600">• atualizando...</span>}
-            </p>
+              {loading && (
+                <span style={{ marginLeft: 8, color: "#059669" }}>• atualizando...</span>
+              )}
+            </Typography>
           </div>
-        </div>
-        <button
+        </Box>
+        <Button
           onClick={fetchStats}
           disabled={loading}
-          className="flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-500/30 hover:bg-emerald-600 disabled:opacity-50"
+          className={classes.primaryBtn}
+          startIcon={
+            loading ? (
+              <CircularProgress size={14} style={{ color: "#fff" }} />
+            ) : (
+              <RefreshCcw size={14} />
+            )
+          }
         >
-          <RefreshCcw size={14} className={loading ? "animate-spin" : ""} />
           Atualizar
-        </button>
-      </div>
+        </Button>
+      </Paper>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Send} label="Campanhas Ativas" value={stats.activeCampaigns} accent="emerald" trend={sparkline} />
-        <StatCard icon={CheckCircle2} label="Mensagens Enviadas" value={stats.sentMessages.toLocaleString("pt-BR")} accent="amber" trend={sparkline} />
-        <StatCard icon={TrendingUp} label="Taxa de Entrega" value={`${stats.deliveryRate}%`} accent="sky" trend={sparkline} />
-        <StatCard icon={Users} label="Contatos Únicos" value={stats.contacts.toLocaleString("pt-BR")} accent="violet" trend={sparkline} />
-      </div>
+      <Grid container spacing={2}>
+        <Grid item xs={12} sm={6} lg={3}>
+          <StatCard icon={Send} label="Campanhas Ativas" value={stats.activeCampaigns} accent="emerald" trend={sparkline} />
+        </Grid>
+        <Grid item xs={12} sm={6} lg={3}>
+          <StatCard icon={CheckCircle2} label="Mensagens Enviadas" value={stats.sentMessages.toLocaleString("pt-BR")} accent="amber" trend={sparkline} />
+        </Grid>
+        <Grid item xs={12} sm={6} lg={3}>
+          <StatCard icon={TrendingUp} label="Taxa de Entrega" value={`${stats.deliveryRate}%`} accent="sky" trend={sparkline} />
+        </Grid>
+        <Grid item xs={12} sm={6} lg={3}>
+          <StatCard icon={Users} label="Contatos Únicos" value={stats.contacts.toLocaleString("pt-BR")} accent="violet" trend={sparkline} />
+        </Grid>
+      </Grid>
 
       {/* Quick actions */}
       <div>
-        <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-500">
-          Ações Rápidas
-        </h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <QuickAction icon={Plus} label="Nova Campanha" onClick={() => history.push("/campaigns")} color="emerald" />
-          <QuickAction icon={Flame} label="Aquecer Chip" onClick={() => history.push("/whatsapp-warmer")} color="amber" />
-          <QuickAction icon={Code2} label="Gerar API Key" onClick={() => history.push("/api-keys")} color="sky" />
-          <QuickAction icon={Webhook} label="Configurar Webhook" onClick={() => history.push("/webhooks")} color="violet" />
-        </div>
+        <div className={classes.sectionLabel}>Ações Rápidas</div>
+        <Grid container spacing={2}>
+          <Grid item xs={6} lg={3}>
+            <QuickAction icon={Plus} label="Nova Campanha" onClick={() => history.push("/campaigns")} accent="emerald" />
+          </Grid>
+          <Grid item xs={6} lg={3}>
+            <QuickAction icon={Flame} label="Aquecer Chip" onClick={() => history.push("/whatsapp-warmer")} accent="amber" />
+          </Grid>
+          <Grid item xs={6} lg={3}>
+            <QuickAction icon={Code2} label="Gerar API Key" onClick={() => history.push("/api-keys")} accent="sky" />
+          </Grid>
+          <Grid item xs={6} lg={3}>
+            <QuickAction icon={Webhook} label="Configurar Webhook" onClick={() => history.push("/webhooks")} accent="violet" />
+          </Grid>
+        </Grid>
       </div>
 
       {/* Atividade real */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-800">Atividade de Envios</h3>
-            <span className="text-xs text-slate-400">Últimos 7 dias</span>
-          </div>
-          {sparkline.some(v => v > 0) ? (
-            <div className="mt-6 flex items-end gap-2 h-48 px-2">
-              {sparkline.map((h, i) => {
-                const day = new Date();
-                day.setDate(day.getDate() - (6 - i));
-                const label = day.toLocaleDateString("pt-BR", { weekday: "short" });
-                return (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                    <div
-                      className="w-full rounded-t-lg bg-gradient-to-t from-emerald-400 to-emerald-300 transition-all"
-                      style={{ height: `${Math.max(h, 4)}%` }}
-                      title={`${label}`}
-                    />
-                    <span className="text-[10px] text-slate-400">{label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="mt-6 flex h-48 items-center justify-center rounded-xl border-2 border-dashed border-slate-200 text-sm text-slate-400">
-              Sem dados ainda — crie sua primeira campanha
-            </div>
-          )}
-        </div>
+      <Grid container spacing={2}>
+        <Grid item xs={12} lg={8}>
+          <Paper className={classes.card} elevation={0} style={{ padding: 24 }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Typography style={{ fontWeight: 700, color: "#1e293b" }}>
+                Atividade de Envios
+              </Typography>
+              <Typography variant="caption" style={{ color: "#94a3b8" }}>
+                Últimos 7 dias
+              </Typography>
+            </Box>
+            {sparkline.some((v) => v > 0) ? (
+              <div className={classes.chartHost}>
+                {sparkline.map((h, i) => {
+                  const day = new Date();
+                  day.setDate(day.getDate() - (6 - i));
+                  const label = day.toLocaleDateString("pt-BR", { weekday: "short" });
+                  return (
+                    <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, height: "100%" }}>
+                      <div
+                        className={classes.chartBar}
+                        style={{ height: `${Math.max(h, 4)}%` }}
+                        title={label}
+                      />
+                      <span style={{ fontSize: 10, color: "#94a3b8" }}>{label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className={classes.chartEmpty}>
+                Sem dados ainda — crie sua primeira campanha
+              </div>
+            )}
+          </Paper>
+        </Grid>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="font-bold text-slate-800">Conexões WhatsApp</h3>
-          <div className="mt-4 flex flex-col items-center justify-center gap-2 py-8 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-              <Smartphone size={20} />
-            </div>
-            <p className="text-sm font-semibold text-slate-700">Tudo certo!</p>
-            <p className="text-xs text-slate-400">Gerencie seus chips em Conexões</p>
-            <button
-              onClick={() => history.push("/connections")}
-              className="mt-2 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600"
+        <Grid item xs={12} lg={4}>
+          <Paper className={classes.card} elevation={0} style={{ padding: 24 }}>
+            <Typography style={{ fontWeight: 700, color: "#1e293b" }}>
+              Conexões WhatsApp
+            </Typography>
+            <Box
+              display="flex"
+              flexDirection="column"
+              alignItems="center"
+              justifyContent="center"
+              py={4}
+              style={{ gap: 8, textAlign: "center" }}
             >
-              Abrir Conexões
-            </button>
-          </div>
-        </div>
-      </div>
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: "50%",
+                  background: "#d1fae5",
+                  color: "#059669",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Smartphone size={20} />
+              </div>
+              <Typography style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>
+                Tudo certo!
+              </Typography>
+              <Typography style={{ fontSize: 11, color: "#94a3b8" }}>
+                Gerencie seus chips em Conexões
+              </Typography>
+              <Button
+                onClick={() => history.push("/connections")}
+                className={classes.primaryBtn}
+                size="small"
+                style={{ marginTop: 8 }}
+              >
+                Abrir Conexões
+              </Button>
+            </Box>
+          </Paper>
+        </Grid>
+      </Grid>
     </div>
   );
 };
