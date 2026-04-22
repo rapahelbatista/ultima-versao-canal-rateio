@@ -584,7 +584,37 @@ const CampaignKanban = () => {
   const showOnly = (id) => setVisibleStatuses(new Set([id]));
   const showAll = () => setVisibleStatuses(new Set(["pending", "delivered", "confirmed", "failed"]));
   // Quick filter: busca local no nome/número (não dispara fetch)
-  const [quickFilter, setQuickFilter] = useState("");
+  const [quickFilter, setQuickFilter] = useState(persistedFilters.quickFilter || "");
+
+  // Persist filters whenever they change (debounced)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        const payload = {
+          campaignId,
+          search,
+          filterPhone,
+          filterStartDate,
+          filterEndDate,
+          pageSize,
+          visibleStatuses: Array.from(visibleStatuses),
+          quickFilter,
+        };
+        localStorage.setItem(filtersStorageKey, JSON.stringify(payload));
+      } catch { /* ignore quota errors */ }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [
+    filtersStorageKey,
+    campaignId,
+    search,
+    filterPhone,
+    filterStartDate,
+    filterEndDate,
+    pageSize,
+    visibleStatuses,
+    quickFilter,
+  ]);
   const matchesQuickFilter = useCallback((item) => {
     const q = quickFilter.trim().toLowerCase();
     if (!q) return true;
