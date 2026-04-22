@@ -1,289 +1,526 @@
 import React, { useState, useEffect, useReducer, useContext } from "react";
 import { makeStyles } from "@material-ui/core/styles";
-import Paper from "@material-ui/core/Paper";
-import Button from "@material-ui/core/Button";
-import Table from "@material-ui/core/Table";
-import TableBody from "@material-ui/core/TableBody";
-import TableCell from "@material-ui/core/TableCell";
-import TableHead from "@material-ui/core/TableHead";
-import TableRow from "@material-ui/core/TableRow";
+import {
+  Paper,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Chip,
+  CircularProgress,
+} from "@material-ui/core";
+import {
+  CreditCard,
+  Crown,
+  Check,
+  AlertTriangle,
+  Calendar,
+  Users as UsersIcon,
+  Smartphone,
+  Layers,
+  Sparkles,
+} from "lucide-react";
+import moment from "moment";
+
 import MainContainer from "../../components/MainContainer";
-import MainHeader from "../../components/MainHeader";
-import Title from "../../components/Title";
 import SubscriptionModal from "../../components/SubscriptionModal";
-import api from "../../services/api";
 import TableRowSkeleton from "../../components/TableRowSkeleton";
+import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
-
-import moment from "moment";
+import usePlans from "../../hooks/usePlans";
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_INVOICES") {
     const invoices = action.payload.invoices || action.payload;
     const newInvoices = [];
-
     invoices.forEach((invoice) => {
-      const invoiceIndex = state.findIndex((i) => i.id === invoice.id);
-      if (invoiceIndex !== -1) {
-        state[invoiceIndex] = invoice;
-      } else {
-        newInvoices.push(invoice);
-      }
+      const idx = state.findIndex((i) => i.id === invoice.id);
+      if (idx !== -1) state[idx] = invoice;
+      else newInvoices.push(invoice);
     });
-
     return [...state, ...newInvoices];
   }
-
-  if (action.type === "UPDATE_INVOICES") {
-    const invoice = action.payload;
-    const invoiceIndex = state.findIndex((i) => i.id === invoice.id);
-
-    if (invoiceIndex !== -1) {
-      state[invoiceIndex] = invoice;
-      return [...state];
-    } else {
-      return [invoice, ...state];
-    }
-  }
-
-  if (action.type === "DELETE_INVOICE") {
-    const invoiceId = action.payload;
-
-    const invoiceIndex = state.findIndex((i) => i.id === invoiceId);
-    if (invoiceIndex !== -1) {
-      state.splice(invoiceIndex, 1);
-    }
-    return [...state];
-  }
-
-  if (action.type === "RESET") {
-    return [];
-  }
+  if (action.type === "RESET") return [];
+  return state;
 };
 
 const useStyles = makeStyles((theme) => ({
-  mainPaper: {
-    flex: 1,
-    padding: theme.spacing(1),
-    overflowY: "scroll",
-    ...theme.scrollbarStyles,
+  root: { display: "flex", flexDirection: "column", gap: 20, padding: 20 },
+  hero: {
+    background:
+      "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)",
+    color: "#fff",
+    borderRadius: 20,
+    padding: 24,
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 24,
+    alignItems: "center",
+    justifyContent: "space-between",
+    boxShadow: "0 18px 40px rgba(99,102,241,0.25)",
+  },
+  heroLeft: { display: "flex", alignItems: "center", gap: 16, minWidth: 0 },
+  heroIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    background: "rgba(255,255,255,0.18)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backdropFilter: "blur(8px)",
+  },
+  planName: { fontSize: 22, fontWeight: 800, lineHeight: 1.1 },
+  planSub: { fontSize: 13, opacity: 0.85, marginTop: 4 },
+  heroBadges: { display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 },
+  pill: {
+    background: "rgba(255,255,255,0.2)",
+    border: "1px solid rgba(255,255,255,0.35)",
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: 700,
+    padding: "4px 10px",
+    borderRadius: 999,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+  },
+  heroRight: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-end",
+    gap: 6,
+  },
+  dueLabel: { fontSize: 11, opacity: 0.85, textTransform: "uppercase", letterSpacing: 0.5 },
+  dueDate: { fontSize: 18, fontWeight: 800 },
+  expiredBanner: {
+    background: "#fef2f2",
+    border: "1px solid #fecaca",
+    color: "#b91c1c",
+    borderRadius: 12,
+    padding: "12px 16px",
+    fontSize: 13,
+    fontWeight: 600,
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 800,
+    color: "#0f172a",
+    margin: "8px 0 4px",
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  sectionSub: { fontSize: 12, color: "#64748b", marginBottom: 12 },
+  plansGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+    gap: 16,
+  },
+  planCard: {
+    background: "#fff",
+    border: "1px solid #e2e8f0",
+    borderRadius: 16,
+    padding: 20,
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+    transition: "transform .2s, box-shadow .2s, border-color .2s",
+    "&:hover": {
+      transform: "translateY(-2px)",
+      boxShadow: "0 12px 30px rgba(15,23,42,0.08)",
+      borderColor: "#c7d2fe",
+    },
+  },
+  planCardCurrent: {
+    borderColor: "#6366f1",
+    background: "linear-gradient(180deg, #eef2ff 0%, #ffffff 60%)",
+    boxShadow: "0 12px 30px rgba(99,102,241,0.18)",
+  },
+  planCardPopular: {
+    borderColor: "#10b981",
+  },
+  planTopRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+  planTitle: { fontSize: 16, fontWeight: 800, color: "#0f172a" },
+  planTag: {
+    fontSize: 10,
+    fontWeight: 800,
+    padding: "3px 8px",
+    borderRadius: 999,
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
+  planPrice: { display: "flex", alignItems: "baseline", gap: 4 },
+  priceValue: { fontSize: 28, fontWeight: 800, color: "#0f172a" },
+  priceUnit: { fontSize: 12, color: "#64748b" },
+  planFeatures: {
+    listStyle: "none",
+    margin: 0,
+    padding: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+  },
+  planFeature: {
+    fontSize: 13,
+    color: "#334155",
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  selectBtn: { marginTop: "auto" },
+  invoicesPaper: {
+    padding: 12,
+    borderRadius: 16,
+    border: "1px solid #e2e8f0",
+    background: "#fff",
+    overflowY: "auto",
+    maxHeight: 480,
+  },
+  loaderBox: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 30,
+    color: "#64748b",
+    gap: 8,
   },
 }));
 
-const Invoices = () => {
+const TONE = {
+  current: { bg: "#6366f1", color: "#fff", label: "Plano atual" },
+  popular: { bg: "#10b981", color: "#fff", label: "Mais popular" },
+};
+
+const Financeiro = () => {
   const classes = useStyles();
   const { user } = useContext(AuthContext);
+  const { getPlanList, getPlanCompany } = usePlans();
 
   const [loading, setLoading] = useState(false);
   const [pageNumber, setPageNumber] = useState(1);
   const [hasMore, setHasMore] = useState(false);
-  const [searchParam, ] = useState("");
   const [invoices, dispatch] = useReducer(reducer, []);
-  const [storagePlans, setStoragePlans] = React.useState([]);
-  const [selectedContactId, setSelectedContactId] = useState(null);
+  const [plans, setPlans] = useState([]);
+  const [currentPlan, setCurrentPlan] = useState(null);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [contactModalOpen, setContactModalOpen] = useState(false);
-  const [isCompanyExpired, setIsCompanyExpired] = useState(false);
 
-  // Verificar se a empresa está vencida
+  const isCompanyExpired =
+    user?.company?.dueDate && moment().isAfter(moment(user.company.dueDate));
+
+  // Carregar planos disponíveis e plano atual
   useEffect(() => {
-    if (user && user.company) {
-      const hoje = moment();
-      const vencimento = moment(user.company.dueDate);
-      const isExpired = hoje.isAfter(vencimento);
-      setIsCompanyExpired(isExpired);
-    }
-  }, [user]);
+    let alive = true;
+    (async () => {
+      try {
+        setLoadingPlans(true);
+        const [allPlans, mine] = await Promise.all([
+          getPlanList().catch(() => []),
+          user?.companyId ? getPlanCompany({}, user.companyId).catch(() => null) : Promise.resolve(null),
+        ]);
+        if (!alive) return;
+        setPlans(Array.isArray(allPlans) ? allPlans : []);
+        setCurrentPlan(mine?.plan || mine || null);
+      } catch (err) {
+        toastError(err);
+      } finally {
+        if (alive) setLoadingPlans(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.companyId]);
 
-  const handleOpenContactModal = (invoices) => {
-    setStoragePlans(invoices);
-    setSelectedContactId(null);
-    setContactModalOpen(true);
-  };
-
-  const handleCloseContactModal = () => {
-    setSelectedContactId(null);
-    setContactModalOpen(false);
-  };
-  useEffect(() => {
-    dispatch({ type: "RESET" });
-    setPageNumber(1);
-  }, [searchParam]);
-
+  // Faturas
   useEffect(() => {
     setLoading(true);
-    const delayDebounceFn = setTimeout(() => {
-      const fetchInvoices = async () => {
-        try {
-          console.log("Buscando faturas...", { searchParam, pageNumber });
-          const { data } = await api.get("/invoices/all", {
-            params: { searchParam, pageNumber },
-          });
-
-          console.log("Dados recebidos:", data);
-          dispatch({ type: "LOAD_INVOICES", payload: data });
-          console.log("Dispatch realizado com payload:", data);
-          setHasMore(data.hasMore);
-          setLoading(false);
-        } catch (err) {
-          console.error("Erro ao buscar faturas:", err);
-          toastError(err);
-          setLoading(false);
-        }
-      };
-      fetchInvoices();
-    }, 500);
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchParam, pageNumber]);
-
-  const loadMore = () => {
-    setPageNumber((prevState) => prevState + 1);
-  };
+    const t = setTimeout(async () => {
+      try {
+        const { data } = await api.get("/invoices/all", { params: { pageNumber } });
+        dispatch({ type: "LOAD_INVOICES", payload: data });
+        setHasMore(Boolean(data?.hasMore));
+      } catch (err) {
+        toastError(err);
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [pageNumber]);
 
   const handleScroll = (e) => {
     if (!hasMore || loading) return;
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     if (scrollHeight - (scrollTop + 100) < clientHeight) {
-      loadMore();
-    }
-  };
-
-  const rowStyle = (record) => {
-    const hoje = moment(moment()).format("DD/MM/yyyy");
-    const vencimento = moment(record.dueDate).format("DD/MM/yyyy");
-    var diff = moment(vencimento, "DD/MM/yyyy").diff(moment(hoje, "DD/MM/yyyy"));
-    var dias = moment.duration(diff).asDays();
-    if (dias < 0 && record.status !== "paid") {
-      return { backgroundColor: "#ffbcbc9c" };
+      setPageNumber((p) => p + 1);
     }
   };
 
   const rowStatus = (record) => {
-    const hoje = moment(moment()).format("DD/MM/yyyy");
-    const vencimento = moment(record.dueDate).format("DD/MM/yyyy");
-    var diff = moment(vencimento, "DD/MM/yyyy").diff(moment(hoje, "DD/MM/yyyy"));
-    var dias = moment.duration(diff).asDays();
-    const status = record.status;
-    if (status === "paid") {
-      return "Pago";
-    }
-    if (dias < 0) {
-      return "Vencido";
-    } else {
-      return "Em Aberto"
-    }
-  }
-  
-  const renderUseWhatsapp = (row) => { return row.status === false ? "Não" : "Sim" };
-  const renderUseFacebook = (row) => { return row.status === false ? "Não" : "Sim" };
-  const renderUseInstagram = (row) => { return row.status === false ? "Não" : "Sim" };
-  const renderUseCampaigns = (row) => { return row.status === false ? "Não" : "Sim" };
-  const renderUseSchedules = (row) => { return row.status === false ? "Não" : "Sim" };
-  const renderUseInternalChat = (row) => { return row.status === false ? "Não" : "Sim" };
-  const renderUseExternalApi = (row) => { return row.status === false ? "Não" : "Sim" };
+    if (record.status === "paid") return "Pago";
+    const diasRestantes = moment(record.dueDate).diff(moment().startOf("day"), "days");
+    return diasRestantes < 0 ? "Vencido" : "Em Aberto";
+  };
+
+  const handleSelectPlan = (plan) => {
+    // Reaproveita o SubscriptionModal existente — recebe um "Invoice-like" payload
+    setSelectedInvoice({
+      id: plan.id,
+      detail: plan.name,
+      value: plan.value || plan.price || 0,
+      users: plan.users,
+      connections: plan.connections,
+      queues: plan.queues,
+      planId: plan.id,
+    });
+    setContactModalOpen(true);
+  };
+
+  const fmtMoney = (v) =>
+    Number(v || 0).toLocaleString("pt-br", { style: "currency", currency: "BRL" });
+
+  const planFeatures = (p) => [
+    { icon: UsersIcon, label: `${p.users || 0} usuários` },
+    { icon: Smartphone, label: `${p.connections || 0} conexões` },
+    { icon: Layers, label: `${p.queues || 0} filas` },
+    p.useCampaigns && { icon: Sparkles, label: "Campanhas inclusas" },
+    p.useOpenAi && { icon: Sparkles, label: "Integração OpenAI" },
+    p.useKanban && { icon: Sparkles, label: "Kanban de tickets" },
+  ].filter(Boolean);
+
+  const isCurrent = (p) => currentPlan && (currentPlan.id === p.id || currentPlan.planId === p.id);
 
   return (
     <MainContainer>
       <SubscriptionModal
         open={contactModalOpen}
-        onClose={handleCloseContactModal}
-        aria-labelledby="form-dialog-title"
-        Invoice={storagePlans}
-        contactId={selectedContactId}
+        onClose={() => setContactModalOpen(false)}
+        Invoice={selectedInvoice}
+        contactId={null}
+      />
 
-      ></SubscriptionModal>
-      <MainHeader>
-        <Title>Faturas ({invoices.length})</Title>
+      <div className={classes.root}>
+        {/* Hero / plano atual */}
+        <div className={classes.hero}>
+          <div className={classes.heroLeft}>
+            <div className={classes.heroIcon}>
+              <Crown size={28} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div className={classes.planName}>
+                {currentPlan?.name || user?.company?.plan?.name || "Plano atual"}
+              </div>
+              <div className={classes.planSub}>
+                {currentPlan?.value || currentPlan?.price
+                  ? `${fmtMoney(currentPlan.value || currentPlan.price)} / mês`
+                  : "Resumo da sua assinatura"}
+              </div>
+              <div className={classes.heroBadges}>
+                {currentPlan?.users != null && (
+                  <span className={classes.pill}>
+                    <UsersIcon size={11} /> {currentPlan.users} usuários
+                  </span>
+                )}
+                {currentPlan?.connections != null && (
+                  <span className={classes.pill}>
+                    <Smartphone size={11} /> {currentPlan.connections} conexões
+                  </span>
+                )}
+                {currentPlan?.queues != null && (
+                  <span className={classes.pill}>
+                    <Layers size={11} /> {currentPlan.queues} filas
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className={classes.heroRight}>
+            <span className={classes.dueLabel}>Próximo vencimento</span>
+            <span className={classes.dueDate}>
+              <Calendar size={14} style={{ marginRight: 6, verticalAlign: -2 }} />
+              {user?.company?.dueDate
+                ? moment(user.company.dueDate).format("DD/MM/YYYY")
+                : "—"}
+            </span>
+          </div>
+        </div>
+
         {isCompanyExpired && (
-          <div style={{ 
-            backgroundColor: '#ffebee', 
-            color: '#c62828', 
-            padding: '10px', 
-            borderRadius: '4px', 
-            marginTop: '10px',
-            border: '1px solid #ef9a9a'
-          }}>
-            <strong>Atenção:</strong> Sua assinatura está vencida. Entre em contato com o suporte para regularizar sua situação.
+          <div className={classes.expiredBanner}>
+            <AlertTriangle size={16} />
+            Sua assinatura está vencida. Selecione um plano abaixo ou pague uma fatura em aberto para regularizar.
           </div>
         )}
-      </MainHeader>
-      <Paper
-        className={classes.mainPaper}
-        variant="outlined"
-        onScroll={handleScroll}
-      >
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              {/* <TableCell align="center">Id</TableCell> */}
-              <TableCell align="center">Detalhes</TableCell>
 
-              <TableCell align="center">Usuários</TableCell>
-              <TableCell align="center">Conexões</TableCell>
-              <TableCell align="center">Filas</TableCell>
-              {/* <TableCell align="center">Whatsapp</TableCell>
-              <TableCell align="center">Facebook</TableCell>
-              <TableCell align="center">Instagram</TableCell> */}
-              {/* <TableCell align="center">Campanhas</TableCell>
-              <TableCell align="center">Agendamentos</TableCell>
-              <TableCell align="center">Chat Interno</TableCell>
-              <TableCell align="center">Rest PI</TableCell> */}
+        {/* Planos disponíveis */}
+        <div>
+          <div className={classes.sectionTitle}>
+            <Sparkles size={16} /> Planos disponíveis
+          </div>
+          <div className={classes.sectionSub}>
+            Faça upgrade ou downgrade quando quiser. As alterações geram uma nova fatura.
+          </div>
 
-              <TableCell align="center">Valor</TableCell>
-              <TableCell align="center">Data Venc.</TableCell>
-              <TableCell align="center">Status</TableCell>
-              <TableCell align="center">Ação</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            <>
-              {invoices.map((invoices) => (
-                <TableRow style={rowStyle(invoices)} key={invoices.id}>
-                  {/* <TableCell align="center">{invoices.id}</TableCell> */}
-                  <TableCell align="center">{invoices.detail}</TableCell>
+          {loadingPlans ? (
+            <div className={classes.loaderBox}>
+              <CircularProgress size={18} /> Carregando planos…
+            </div>
+          ) : plans.length === 0 ? (
+            <div className={classes.loaderBox}>Nenhum plano disponível no momento.</div>
+          ) : (
+            <div className={classes.plansGrid}>
+              {plans.map((p, idx) => {
+                const current = isCurrent(p);
+                const popular = !current && idx === Math.min(1, plans.length - 1);
+                const tone = current ? TONE.current : popular ? TONE.popular : null;
+                return (
+                  <div
+                    key={p.id}
+                    className={`${classes.planCard} ${current ? classes.planCardCurrent : ""} ${
+                      popular ? classes.planCardPopular : ""
+                    }`}
+                  >
+                    <div className={classes.planTopRow}>
+                      <div className={classes.planTitle}>{p.name}</div>
+                      {tone && (
+                        <span
+                          className={classes.planTag}
+                          style={{ background: tone.bg, color: tone.color }}
+                        >
+                          {tone.label}
+                        </span>
+                      )}
+                    </div>
 
-                  <TableCell align="center">{invoices.users}</TableCell>
-                  <TableCell align="center">{invoices.connections}</TableCell>
-                  <TableCell align="center">{invoices.queues}</TableCell>
-                  {/* <TableCell align="center">{renderUseWhatsapp(invoices.useWhatsapp)}</TableCell>
-                  <TableCell align="center">{renderUseFacebook(invoices.useFacebook)}</TableCell>
-                  <TableCell align="center">{renderUseInstagram(invoices.useInstagram)}</TableCell> */}
-                  {/* <TableCell align="center">{renderUseCampaigns(invoices.useCampaigns)}</TableCell>
-                  <TableCell align="center">{renderUseSchedules(invoices.useSchedules)}</TableCell>
-                  <TableCell align="center">{renderUseInternalChat(invoices.useInternalChat)}</TableCell>
-                  <TableCell align="center">{renderUseExternalApi(invoices.useExternalApi)}</TableCell> */}
+                    <div className={classes.planPrice}>
+                      <span className={classes.priceValue}>{fmtMoney(p.value || p.price)}</span>
+                      <span className={classes.priceUnit}>/ mês</span>
+                    </div>
 
-                  <TableCell style={{ fontWeight: 'bold' }} align="center">{invoices.value.toLocaleString('pt-br', { style: 'currency', currency: 'BRL' })}</TableCell>
-                  <TableCell align="center">{moment(invoices.dueDate).format("DD/MM/YYYY")}</TableCell>
-                  <TableCell style={{ fontWeight: 'bold' }} align="center">{rowStatus(invoices)}</TableCell>
-                  <TableCell align="center">
-                    {rowStatus(invoices) !== "Pago" ?
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="secondary"
-                        onClick={() => handleOpenContactModal(invoices)}
-                      >
-                        PAGAR
-                      </Button> :
-                      <Button
-                        size="small"
-                        variant="outlined"
-                      // color="secondary"
-                      >
-                        PAGO
-                      </Button>}
+                    <ul className={classes.planFeatures}>
+                      {planFeatures(p).map((f, i) => {
+                        const Ic = f.icon;
+                        return (
+                          <li key={i} className={classes.planFeature}>
+                            <Check size={14} style={{ color: "#10b981" }} />
+                            <Ic size={14} style={{ color: "#64748b" }} />
+                            {f.label}
+                          </li>
+                        );
+                      })}
+                    </ul>
 
-                  </TableCell>
+                    <Button
+                      className={classes.selectBtn}
+                      variant={current ? "outlined" : "contained"}
+                      color="primary"
+                      disabled={current}
+                      onClick={() => handleSelectPlan(p)}
+                      startIcon={<CreditCard size={16} />}
+                    >
+                      {current ? "Plano atual" : "Selecionar plano"}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Faturas */}
+        <div>
+          <div className={classes.sectionTitle}>
+            <CreditCard size={16} /> Histórico de faturas ({invoices.length})
+          </div>
+          <Paper className={classes.invoicesPaper} variant="outlined" onScroll={handleScroll}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell align="center">Detalhes</TableCell>
+                  <TableCell align="center">Usuários</TableCell>
+                  <TableCell align="center">Conexões</TableCell>
+                  <TableCell align="center">Filas</TableCell>
+                  <TableCell align="center">Valor</TableCell>
+                  <TableCell align="center">Vencimento</TableCell>
+                  <TableCell align="center">Status</TableCell>
+                  <TableCell align="center">Ação</TableCell>
                 </TableRow>
-              ))}
-              {loading && <TableRowSkeleton columns={4} />}
-            </>
-          </TableBody>
-        </Table>
-      </Paper>
+              </TableHead>
+              <TableBody>
+                {invoices.map((inv) => {
+                  const status = rowStatus(inv);
+                  const tone =
+                    status === "Pago"
+                      ? { bg: "#dcfce7", color: "#15803d" }
+                      : status === "Vencido"
+                      ? { bg: "#fee2e2", color: "#b91c1c" }
+                      : { bg: "#fef9c3", color: "#a16207" };
+                  return (
+                    <TableRow key={inv.id}>
+                      <TableCell align="center">{inv.detail}</TableCell>
+                      <TableCell align="center">{inv.users}</TableCell>
+                      <TableCell align="center">{inv.connections}</TableCell>
+                      <TableCell align="center">{inv.queues}</TableCell>
+                      <TableCell align="center" style={{ fontWeight: 700 }}>
+                        {fmtMoney(inv.value)}
+                      </TableCell>
+                      <TableCell align="center">
+                        {moment(inv.dueDate).format("DD/MM/YYYY")}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip
+                          size="small"
+                          label={status}
+                          style={{
+                            background: tone.bg,
+                            color: tone.color,
+                            fontWeight: 700,
+                            borderRadius: 999,
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        {status !== "Pago" ? (
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="primary"
+                            onClick={() => {
+                              setSelectedInvoice(inv);
+                              setContactModalOpen(true);
+                            }}
+                          >
+                            Pagar
+                          </Button>
+                        ) : (
+                          <Button size="small" variant="outlined" disabled>
+                            Pago
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {loading && <TableRowSkeleton columns={8} />}
+              </TableBody>
+            </Table>
+          </Paper>
+        </div>
+      </div>
     </MainContainer>
   );
 };
 
-export default Invoices;
+export default Financeiro;
