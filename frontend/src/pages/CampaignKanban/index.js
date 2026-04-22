@@ -569,7 +569,8 @@ const CampaignKanban = () => {
           {COLUMNS.map((col) => {
             const c = colorMap[col.color];
             const Icon = col.icon;
-            const items = grouped[col.id] || [];
+            const colState = columnsState[col.id] || { items: [], total: 0, hasMore: false, loading: false };
+            const items = colState.items;
             return (
               <div
                 key={col.id}
@@ -593,7 +594,7 @@ const CampaignKanban = () => {
                       </button>
                     )}
                     <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${c.chip}`}>
-                      {items.length}
+                      {items.length}{colState.total > items.length ? `/${colState.total}` : ""}
                     </span>
                   </div>
                 </div>
@@ -605,7 +606,7 @@ const CampaignKanban = () => {
                       className={`flex-1 min-h-[300px] max-h-[70vh] overflow-y-auto p-3 transition-colors
                         ${snapshot.isDraggingOver ? `${c.bg}` : ""}`}
                     >
-                      {items.length === 0 && !loading && (
+                      {items.length === 0 && !colState.loading && (
                         <div className="flex h-32 items-center justify-center rounded-xl border-2 border-dashed border-slate-200 text-xs text-slate-400">
                           Sem envios
                         </div>
@@ -618,6 +619,22 @@ const CampaignKanban = () => {
                         />
                       ))}
                       {provided.placeholder}
+                      {colState.hasMore && (
+                        <button
+                          onClick={() => loadColumn(col.id)}
+                          disabled={colState.loading}
+                          className={`mt-2 w-full rounded-xl border ${col.border} bg-white py-2 text-xs font-semibold ${c.text} hover:bg-slate-50 disabled:opacity-50`}
+                        >
+                          {colState.loading
+                            ? "Carregando..."
+                            : `Carregar mais (${Math.max(colState.total - items.length, 0)} restantes)`}
+                        </button>
+                      )}
+                      {colState.loading && items.length === 0 && (
+                        <div className="flex h-32 items-center justify-center text-xs text-slate-400">
+                          Carregando...
+                        </div>
+                      )}
                     </div>
                   )}
                 </Droppable>
