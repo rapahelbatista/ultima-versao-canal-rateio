@@ -595,14 +595,20 @@ const Users = () => {
             <div className={classes.formGrid}>
               <TextField
                 label="E-mail"
+                type="email"
                 variant="outlined"
                 size="small"
                 fullWidth
+                required
                 disabled={submitting}
                 value={form.email}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, email: e.target.value }))
                 }
+                onBlur={() => markTouched("email")}
+                error={!!showError("email")}
+                helperText={showError("email") || " "}
+                inputProps={{ maxLength: 255, autoComplete: "email" }}
               />
               <TextField
                 label="Senha"
@@ -610,22 +616,32 @@ const Users = () => {
                 variant="outlined"
                 size="small"
                 fullWidth
+                required
                 disabled={submitting}
                 value={form.password}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, password: e.target.value }))
                 }
+                onBlur={() => markTouched("password")}
+                error={!!showError("password")}
+                helperText={showError("password") || "Mínimo de 6 caracteres"}
+                inputProps={{ maxLength: 72, autoComplete: "new-password" }}
               />
               <TextField
-                label="Full Name"
+                label="Nome completo"
                 variant="outlined"
                 size="small"
                 fullWidth
+                required
                 disabled={submitting}
                 value={form.name}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, name: e.target.value }))
                 }
+                onBlur={() => markTouched("name")}
+                error={!!showError("name")}
+                helperText={showError("name") || " "}
+                inputProps={{ maxLength: 80 }}
               />
               <TextField
                 label="Número de Celular"
@@ -635,8 +651,18 @@ const Users = () => {
                 disabled={submitting}
                 value={form.phone}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, phone: e.target.value }))
+                  setForm((f) => ({
+                    ...f,
+                    // permite apenas dígitos e símbolos comuns de telefone
+                    phone: e.target.value.replace(/[^+\d\s().-]/g, ""),
+                  }))
                 }
+                onBlur={() => markTouched("phone")}
+                error={!!showError("phone")}
+                helperText={
+                  showError("phone") || "Ex.: +55 (11) 91234-5678 (opcional)"
+                }
+                inputProps={{ maxLength: 25, inputMode: "tel" }}
               />
               <TextField
                 label="Short Comment"
@@ -651,6 +677,13 @@ const Users = () => {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, comments: e.target.value }))
                 }
+                onBlur={() => markTouched("comments")}
+                error={!!showError("comments")}
+                helperText={
+                  showError("comments") ||
+                  `${(form.comments || "").length}/500`
+                }
+                inputProps={{ maxLength: 500 }}
               />
             </div>
             <div
