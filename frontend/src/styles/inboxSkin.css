@@ -2,6 +2,8 @@
    Inbox Skin — Restyling visual da Caixa de Entrada
    Aplicado APENAS dentro de .inbox-skin para não vazar para o
    resto da aplicação. Não altera nenhuma lógica.
+   Inspirado no mockup: header verde, abas em pílulas, avatares
+   circulares verdes, balões verdes (enviados) e brancos (recebidos).
    ============================================================ */
 
 .inbox-skin {
@@ -26,11 +28,28 @@
   background: var(--inbox-bg) !important;
 }
 
-/* ----------- HEADER "CAIXA DE ENTRADA" ----------- */
+/* ----------- HEADER VERDE "CAIXA DE ENTRADA" -----------
+   Adiciona uma faixa verde no topo da sidebar com título.    */
+.inbox-skin [class*="ticketsWrapper"]::before,
+.inbox-skin .MuiPaper-root[class*="ticketsWrapper"]::before {
+  content: "📬  Caixa de Entrada";
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--inbox-green-dark);
+  background: linear-gradient(180deg, var(--inbox-green-soft) 0%, #ffffff 100%);
+  border-bottom: 1px solid var(--inbox-border);
+  letter-spacing: 0.2px;
+}
+
+/* ----------- BARRA DE ABAS (Atendendo / Aguardando / Grupos) ----------- */
 .inbox-skin .MuiAppBar-root,
 .inbox-skin .MuiPaper-root[class*="tabsHeader"],
 .inbox-skin [class*="tabsHeader"] {
-  background: linear-gradient(180deg, #ffffff 0%, var(--inbox-green-soft) 100%) !important;
+  background: #ffffff !important;
   box-shadow: none !important;
   border-bottom: 1px solid var(--inbox-border) !important;
 }
@@ -39,16 +58,26 @@
   text-transform: none !important;
   font-weight: 600 !important;
   color: var(--inbox-muted) !important;
-  min-height: 44px !important;
+  min-height: 38px !important;
   border-radius: 999px !important;
-  margin: 4px 4px !important;
+  margin: 6px 4px !important;
   padding: 4px 14px !important;
   min-width: auto !important;
+  border: 1px solid transparent !important;
+  background: #f1f5f9 !important;
+  transition: all .15s ease !important;
+}
+
+.inbox-skin .MuiTab-root:hover {
+  background: var(--inbox-green-soft) !important;
+  color: var(--inbox-green-dark) !important;
 }
 
 .inbox-skin .MuiTab-root.Mui-selected {
   background: var(--inbox-green-light) !important;
   color: var(--inbox-green-dark) !important;
+  border-color: var(--inbox-green) !important;
+  box-shadow: 0 1px 4px rgba(16,185,129,.25) !important;
 }
 
 .inbox-skin .MuiTabs-indicator {
@@ -61,6 +90,8 @@
   background: var(--inbox-card) !important;
   border-bottom: 1px solid var(--inbox-border) !important;
   transition: background .15s ease;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
 }
 
 .inbox-skin .MuiListItem-root:hover {
@@ -70,18 +101,36 @@
 .inbox-skin .MuiListItem-root.Mui-selected,
 .inbox-skin .MuiListItem-root[class*="selected"] {
   background: var(--inbox-green-soft) !important;
-  border-left: 3px solid var(--inbox-green) !important;
+  border-left: 4px solid var(--inbox-green) !important;
 }
 
-/* Avatares circulares verdes */
+/* Avatares circulares verdes grandes */
 .inbox-skin .MuiAvatar-root {
   background: var(--inbox-green) !important;
   color: #fff !important;
   font-weight: 700 !important;
+  width: 44px !important;
+  height: 44px !important;
+  font-size: 16px !important;
 }
 
 .inbox-skin .MuiAvatar-root img {
   background: transparent !important;
+}
+
+/* Nome do contato em negrito */
+.inbox-skin [class*="contactNameWrapper"] strong,
+.inbox-skin [class*="contactName"] {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: var(--inbox-text) !important;
+}
+
+/* Prévia da última mensagem em cinza */
+.inbox-skin [class*="lastMessage"],
+.inbox-skin [class*="contactLastMessage"] {
+  color: var(--inbox-muted) !important;
+  font-size: 12.5px !important;
 }
 
 /* Chips/tags coloridos */
@@ -92,8 +141,7 @@
   border-radius: 6px !important;
 }
 
-.inbox-skin .MuiChip-root[class*="WhatsApp" i],
-.inbox-skin .MuiChip-label:contains("WhatsApp") {
+.inbox-skin .MuiChip-root[class*="WhatsApp" i] {
   background: var(--inbox-tag-whatsapp) !important;
   color: var(--inbox-tag-whatsapp-fg) !important;
 }
@@ -231,4 +279,11 @@
 .inbox-skin .MuiIconButton-root[class*="primary"] svg,
 .inbox-skin .MuiSvgIcon-colorPrimary {
   color: var(--inbox-green) !important;
+}
+
+/* Botão "Nova conversa" (+) verde redondo */
+.inbox-skin button[class*="newButton"],
+.inbox-skin .MuiFab-primary {
+  background: var(--inbox-green) !important;
+  color: #fff !important;
 }
