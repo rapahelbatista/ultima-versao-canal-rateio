@@ -689,7 +689,7 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
   const handleLanguageChange = (lng) => {
     i18n.changeLanguage(lng);
     localStorage.setItem("language", lng);
-    window.location.reload();
+    // sem reload — App.js re-renderiza via listener languageChanged
   };
 
   const LANGUAGE_OPTIONS = [

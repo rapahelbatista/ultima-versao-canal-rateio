@@ -13,6 +13,7 @@ import Routes from "./routes";
 import defaultLogoLight from "./assets/logo1.png";
 import defaultLogoDark from "./assets/logo2.png";
 import useSettings from "./hooks/useSettings";
+import { i18n } from "./translate/i18n";
 import "./styles/animations.css";
 
 const defaultLogoFavicon = "/favicon.ico";
@@ -21,6 +22,14 @@ const queryClient = new QueryClient();
 
 const App = () => {
   const [locale, setLocale] = useState();
+  const [lang, setLang] = useState(i18n.language || localStorage.getItem("language") || "pt-BR");
+
+  // Re-renderiza a árvore inteira quando o idioma muda (sem reload da página)
+  useEffect(() => {
+    const onChange = (lng) => setLang(lng);
+    i18n.on("languageChanged", onChange);
+    return () => i18n.off("languageChanged", onChange);
+  }, []);
   const appColorLocalStorage =
     localStorage.getItem("primaryColorLight") ||
     localStorage.getItem("primaryColorDark") ||
@@ -448,7 +457,9 @@ const App = () => {
         <ThemeProvider theme={theme}>
           <QueryClientProvider client={queryClient}>
             <ActiveMenuProvider>
-              <Routes />
+              <div key={lang} style={{ display: "contents" }}>
+                <Routes />
+              </div>
             </ActiveMenuProvider>
           </QueryClientProvider>
         </ThemeProvider>
