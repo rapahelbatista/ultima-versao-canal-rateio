@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { User as UserIcon, CreditCard, LogOut, ChevronRight } from "lucide-react";
+import { User as UserIcon, CreditCard, LogOut, ChevronRight, Sparkles, Lock } from "lucide-react";
 
 /**
  * Menu de perfil moderno (estilo card) acionado pelo avatar.
@@ -8,7 +8,12 @@ import { User as UserIcon, CreditCard, LogOut, ChevronRight } from "lucide-react
  *  - name: string
  *  - email: string
  *  - avatarUrl: string
- *  - isPro?: boolean
+ *  - isPro?: boolean — controla badge "Pro" e desbloqueio das ações Pro.
+ *  - subscriptionLabel?: string — rótulo dinâmico do item de assinatura
+ *      (ex.: "Ver assinatura" ou "Fazer upgrade ✨").
+ *  - proActions?: Array<{ key, label, icon, onClick }> — ações exclusivas Pro.
+ *      Quando isPro=false, exibimos as mesmas ações com cadeado e clique
+ *      redirecionado para onSubscription.
  *  - onProfile?: () => void
  *  - onSubscription?: () => void
  *  - onLogout?: () => void
@@ -27,6 +32,8 @@ const UserProfileMenu = ({
   email = "",
   avatarUrl,
   isPro = false,
+  subscriptionLabel,
+  proActions = [],
   onProfile,
   onSubscription,
   onLogout,
@@ -244,12 +251,67 @@ const UserProfileMenu = ({
               onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
-              <span style={iconWrap("#fef3c7", "#b45309")}>
-                <CreditCard size={16} />
+              <span style={iconWrap(isPro ? "#fef3c7" : "#ede9fe", isPro ? "#b45309" : "#6d28d9")}>
+                {isPro ? <CreditCard size={16} /> : <Sparkles size={16} />}
               </span>
-              <span style={{ flex: 1 }}>Assinatura</span>
+              <span style={{ flex: 1 }}>
+                {subscriptionLabel || (isPro ? "Ver assinatura" : "Fazer upgrade ✨")}
+              </span>
               <ChevronRight size={16} style={{ color: "#94a3b8" }} />
             </button>
+          )}
+
+          {proActions.length > 0 && (
+            <>
+              <div style={{ height: 1, background: "rgba(15,23,42,0.06)", margin: "6px 4px" }} />
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: 0.6,
+                  textTransform: "uppercase",
+                  color: "#94a3b8",
+                  padding: "4px 14px 6px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <Sparkles size={10} /> Recursos Pro
+              </div>
+              {proActions.map((a) => {
+                const Ic = a.icon || Sparkles;
+                const locked = !isPro;
+                return (
+                  <button
+                    key={a.key}
+                    style={{
+                      ...itemBase,
+                      opacity: locked ? 0.85 : 1,
+                      cursor: "pointer",
+                    }}
+                    onClick={() => {
+                      setOpen(false);
+                      if (locked) onSubscription?.();
+                      else a.onClick?.();
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    title={locked ? "Disponível no plano Pro" : a.label}
+                  >
+                    <span style={iconWrap("#fef3c7", "#b45309")}>
+                      <Ic size={16} />
+                    </span>
+                    <span style={{ flex: 1 }}>{a.label}</span>
+                    {locked ? (
+                      <Lock size={14} style={{ color: "#94a3b8" }} />
+                    ) : (
+                      <ChevronRight size={16} style={{ color: "#94a3b8" }} />
+                    )}
+                  </button>
+                );
+              })}
+            </>
           )}
 
           <div style={{ height: 1, background: "rgba(15,23,42,0.06)", margin: "6px 4px" }} />

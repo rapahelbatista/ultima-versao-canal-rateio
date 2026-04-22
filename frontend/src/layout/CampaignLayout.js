@@ -49,6 +49,7 @@ import {
 import useCanManageMeta from "../hooks/useCanManageMeta";
 import LanguagePill from "../components/LanguagePill";
 import UserProfileMenu from "../components/UserProfileMenu";
+import usePlanStatus from "../hooks/usePlanStatus";
 import { i18n } from "../translate/i18n";
 
 const drawerWidth = 260;
@@ -330,6 +331,7 @@ const CampaignLayout = ({ children }) => {
   const history = useHistory();
   const [collapsed, setCollapsed] = useState(false);
   const { allowed: canManageMeta } = useCanManageMeta();
+  const { isPro, subscriptionLabel } = usePlanStatus();
 
   const initials = useMemo(() => {
     const name = user?.name || "U";
@@ -482,7 +484,8 @@ const CampaignLayout = ({ children }) => {
               <UserProfileMenu
                 name={user?.name || "Usuário"}
                 email={user?.email || ""}
-                isPro={Boolean(user?.company?.plan?.name) || Boolean(user?.super)}
+                isPro={isPro}
+                subscriptionLabel={subscriptionLabel}
                 onProfile={() => history.push("/")}
                 onSubscription={() => history.push("/financeiro")}
                 onLogout={() => {
