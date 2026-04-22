@@ -637,6 +637,10 @@ const Financeiro = () => {
                   const popular = !current && idx === popularIdx && visible.length > 1;
                   const tone = current ? TONE.current : popular ? TONE.popular : null;
                   const price = Number(p.value || p.price || 0);
+                  const extra = getExtra(p.id);
+                  const baseUsers = Number(p.users || 0);
+                  const totalUsers = baseUsers + extra;
+                  const totalPrice = price + extra * SEAT_PRICE;
                   return (
                     <div
                       key={p.id}
@@ -658,18 +662,18 @@ const Financeiro = () => {
                       </div>
 
                       <div className={classes.planPrice}>
-                        {price === 0 ? (
+                        {totalPrice === 0 ? (
                           <span className={classes.priceValue}>Grátis</span>
                         ) : (
                           <>
-                            <span className={classes.priceValue}>{fmtMoney(price)}</span>
+                            <span className={classes.priceValue}>{fmtMoney(totalPrice)}</span>
                             <span className={classes.priceUnit}>/ mês</span>
                           </>
                         )}
                       </div>
 
                       <ul className={classes.planFeatures}>
-                        {planFeatures(p).map((f, i) => {
+                        {planFeatures({ ...p, users: totalUsers }).map((f, i) => {
                           const Ic = f.icon;
                           return (
                             <li key={i} className={classes.planFeature}>
@@ -680,6 +684,62 @@ const Financeiro = () => {
                           );
                         })}
                       </ul>
+
+                      {price > 0 && (
+                        <div className={classes.seatBox}>
+                          <div className={classes.seatRow}>
+                            <span className={classes.seatLabel}>
+                              <UsersIcon size={13} /> Usuários adicionais
+                            </span>
+                            <div className={classes.seatStepper}>
+                              <button
+                                type="button"
+                                className={classes.seatBtn}
+                                onClick={() => changeSeats(p.id, -1)}
+                                disabled={extra <= 0 || current}
+                                aria-label="Remover usuário"
+                              >
+                                <Minus size={14} />
+                              </button>
+                              <span className={classes.seatCount}>{extra}</span>
+                              <button
+                                type="button"
+                                className={classes.seatBtn}
+                                onClick={() => changeSeats(p.id, +1)}
+                                disabled={extra >= MAX_EXTRA_SEATS || current}
+                                aria-label="Adicionar usuário"
+                              >
+                                <Plus size={14} />
+                              </button>
+                            </div>
+                          </div>
+                          <span className={classes.seatHint}>
+                            {extra > 0
+                              ? `+${fmtMoney(extra * SEAT_PRICE)} / mês • Total: ${totalUsers} usuários`
+                              : `${fmtMoney(SEAT_PRICE)} por usuário extra • Inclui ${baseUsers} no plano`}
+                          </span>
+                        </div>
+                      )}
+
+                      <Button
+                        className={classes.selectBtn}
+                        variant={current ? "outlined" : "contained"}
+                        color="primary"
+                        disabled={current}
+                        onClick={() => handleSelectPlan(p, extra)}
+                        startIcon={<CreditCard size={16} />}
+                        fullWidth
+                      >
+                        {current
+                          ? "Plano atual"
+                          : price === 0
+                          ? "Começar agora"
+                          : extra > 0
+                          ? `Assinar com +${extra} usuário${extra > 1 ? "s" : ""}`
+                          : "Assinar este plano"}
+                      </Button>
+                    </div>
+                  );
 
                       <Button
                         className={classes.selectBtn}
