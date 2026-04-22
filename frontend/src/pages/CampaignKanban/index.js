@@ -489,16 +489,30 @@ const CampaignKanban = () => {
   const setColumnScrollRef = (status) => (node) => { columnScrollRefs.current[status] = node; };
   const getColumnScrollRef = (status) => ({ current: columnScrollRefs.current[status] });
   const [campaigns, setCampaigns] = useState([]);
-  const [campaignId, setCampaignId] = useState("");
+
+  // ---- Persisted filters (per-user, localStorage) ----
+  const filtersStorageKey = useMemo(
+    () => `campaignKanban:filters:${user?.id || "anon"}`,
+    [user?.id]
+  );
+  const persistedFilters = useMemo(() => {
+    try {
+      const raw = localStorage.getItem(filtersStorageKey);
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtersStorageKey]);
+
+  const [campaignId, setCampaignId] = useState(persistedFilters.campaignId || "");
   const [shipping, setShipping] = useState([]); // mantido p/ compatibilidade c/ bulk/optimistic
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(persistedFilters.search || "");
   // Filtros avançados
   const [showFilters, setShowFilters] = useState(false);
-  const [filterPhone, setFilterPhone] = useState("");
-  const [filterStartDate, setFilterStartDate] = useState("");
-  const [filterEndDate, setFilterEndDate] = useState("");
-  const [pageSize, setPageSize] = useState(50);
+  const [filterPhone, setFilterPhone] = useState(persistedFilters.filterPhone || "");
+  const [filterStartDate, setFilterStartDate] = useState(persistedFilters.filterStartDate || "");
+  const [filterEndDate, setFilterEndDate] = useState(persistedFilters.filterEndDate || "");
+  const [pageSize, setPageSize] = useState(persistedFilters.pageSize || 50);
   // Presets de filtros avançados (persistidos por usuário em localStorage)
   const presetsStorageKey = useMemo(
     () => `campaignKanban:filterPresets:${user?.id || "anon"}`,
