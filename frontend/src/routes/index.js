@@ -59,6 +59,7 @@ import TemplateManager from "../pages/TemplateManager";
 const RoutesContent = () => {
   const [showCampaigns, setShowCampaigns] = useState(false);
   const { user } = useContext(AuthContext);
+  const campaignOnly = FEATURE_FLAGS.CAMPAIGN_ONLY_MODE;
 
   useEffect(() => {
     const cshow = localStorage.getItem("cshow");
