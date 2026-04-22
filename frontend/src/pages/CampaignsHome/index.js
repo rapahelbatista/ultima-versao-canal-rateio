@@ -372,15 +372,15 @@ const CampaignsHome = () => {
     <div className={classes.root}>
       {/* Welcome */}
       <Paper className={classes.welcome} elevation={0}>
-        <Box display="flex" alignItems="flex-start" style={{ gap: 16 }}>
+        <Box display="flex" alignItems="flex-start" style={{ gap: 16, minWidth: 0 }}>
           <div className={classes.welcomeIcon}>
             <TrendingUp size={22} />
           </div>
-          <div>
-            <Typography variant="h6" style={{ fontWeight: 700, color: "#1e293b" }}>
+          <div style={{ minWidth: 0 }}>
+            <Typography component="h1" className={classes.welcomeTitle}>
               Bem-vindo de volta!
             </Typography>
-            <Typography variant="body2" style={{ color: "#64748b" }}>
+            <Typography className={classes.welcomeSubtitle}>
               Última atualização: {formatted}
               {loading && (
                 <span style={{ marginLeft: 8, color: "#059669" }}>• atualizando...</span>
@@ -392,6 +392,7 @@ const CampaignsHome = () => {
           onClick={fetchStats}
           disabled={loading}
           className={classes.primaryBtn}
+          size="medium"
           startIcon={
             loading ? (
               <CircularProgress size={14} style={{ color: "#fff" }} />
@@ -442,12 +443,12 @@ const CampaignsHome = () => {
       {/* Atividade real */}
       <Grid container spacing={2}>
         <Grid item xs={12} lg={8}>
-          <Paper className={classes.card} elevation={0} style={{ padding: 24 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center">
-              <Typography style={{ fontWeight: 700, color: "#1e293b" }}>
+          <Paper className={classes.card} elevation={0}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" style={{ gap: 8 }}>
+              <Typography component="h2" className={classes.panelTitle}>
                 Atividade de Envios
               </Typography>
-              <Typography variant="caption" style={{ color: "#94a3b8" }}>
+              <Typography className={classes.panelCaption}>
                 Últimos 7 dias
               </Typography>
             </Box>
@@ -478,8 +479,8 @@ const CampaignsHome = () => {
         </Grid>
 
         <Grid item xs={12} lg={4}>
-          <Paper className={classes.card} elevation={0} style={{ padding: 24 }}>
-            <Typography style={{ fontWeight: 700, color: "#1e293b" }}>
+          <Paper className={classes.card} elevation={0}>
+            <Typography component="h2" className={classes.panelTitle}>
               Conexões WhatsApp
             </Typography>
             <Box
@@ -504,10 +505,10 @@ const CampaignsHome = () => {
               >
                 <Smartphone size={20} />
               </div>
-              <Typography style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>
+              <Typography style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#334155" }}>
                 Tudo certo!
               </Typography>
-              <Typography style={{ fontSize: 11, color: "#94a3b8" }}>
+              <Typography style={{ fontSize: "0.6875rem", color: "#94a3b8" }}>
                 Gerencie seus chips em Conexões
               </Typography>
               <Button
