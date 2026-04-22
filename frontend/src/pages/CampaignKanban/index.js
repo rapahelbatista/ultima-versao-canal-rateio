@@ -433,11 +433,33 @@ const COLUMNS = [
   { id: "failed", label: "Falhou", icon: XCircle, color: "rose", border: "border-rose-300" },
 ];
 
+// Tokens de cor por status (sem dependência de Tailwind).
+// `chip` é um objeto de estilos inline aplicado nos botões/etiquetas.
 const colorMap = {
-  amber: { bg: "bg-amber-50", text: "text-amber-700", chip: "bg-amber-100 text-amber-700", dot: "bg-amber-400" },
-  sky: { bg: "bg-sky-50", text: "text-sky-700", chip: "bg-sky-100 text-sky-700", dot: "bg-sky-400" },
-  emerald: { bg: "bg-emerald-50", text: "text-emerald-700", chip: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-400" },
-  rose: { bg: "bg-rose-50", text: "text-rose-700", chip: "bg-rose-100 text-rose-700", dot: "bg-rose-400" },
+  amber: {
+    bg: "#fffbeb",
+    text: "#b45309",
+    chip: { backgroundColor: "#fef3c7", color: "#b45309" },
+    dot: "#fbbf24",
+  },
+  sky: {
+    bg: "#f0f9ff",
+    text: "#0369a1",
+    chip: { backgroundColor: "#e0f2fe", color: "#0369a1" },
+    dot: "#38bdf8",
+  },
+  emerald: {
+    bg: "#ecfdf5",
+    text: "#047857",
+    chip: { backgroundColor: "#d1fae5", color: "#047857" },
+    dot: "#34d399",
+  },
+  rose: {
+    bg: "#fff1f2",
+    text: "#be123c",
+    chip: { backgroundColor: "#ffe4e6", color: "#be123c" },
+    dot: "#fb7185",
+  },
 };
 
 const inferStatus = (s) => {
