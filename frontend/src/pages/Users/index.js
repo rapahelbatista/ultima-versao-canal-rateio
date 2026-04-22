@@ -696,7 +696,7 @@ const Users = () => {
             >
               <Button
                 className={classes.primaryBtn}
-                disabled={submitting}
+                disabled={submitting || !isFormValid}
                 onClick={handleAddAgent}
                 startIcon={
                   submitting ? (
