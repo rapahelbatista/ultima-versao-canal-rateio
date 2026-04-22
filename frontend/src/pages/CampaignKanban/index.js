@@ -63,9 +63,22 @@ const CampaignKanban = () => {
   const refetchTimer = useRef(null);
   const [campaigns, setCampaigns] = useState([]);
   const [campaignId, setCampaignId] = useState("");
-  const [shipping, setShipping] = useState([]);
+  const [shipping, setShipping] = useState([]); // mantido p/ compatibilidade c/ bulk/optimistic
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  // Filtros avançados
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterPhone, setFilterPhone] = useState("");
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
+  const [pageSize, setPageSize] = useState(50);
+  // Estado por coluna: { items, page, total, hasMore, loading }
+  const [columnsState, setColumnsState] = useState(() => ({
+    pending: { items: [], page: 0, total: 0, hasMore: true, loading: false },
+    delivered: { items: [], page: 0, total: 0, hasMore: true, loading: false },
+    confirmed: { items: [], page: 0, total: 0, hasMore: true, loading: false },
+    failed: { items: [], page: 0, total: 0, hasMore: true, loading: false },
+  }));
   const [selected, setSelected] = useState(null);
   const [editMessage, setEditMessage] = useState("");
   const [editNotes, setEditNotes] = useState("");
