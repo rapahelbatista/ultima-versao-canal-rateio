@@ -1209,7 +1209,7 @@ const CampaignKanban = () => {
                 <Droppable droppableId={col.id}>
                   {(provided, snapshot) => (
                     <div
-                      ref={provided.innerRef}
+                      ref={(node) => { provided.innerRef(node); setColumnScrollRef(col.id)(node); }}
                       {...provided.droppableProps}
                       className={`flex-1 min-h-[300px] max-h-[70vh] overflow-y-auto p-3 transition-colors
                         ${snapshot.isDraggingOver ? `${c.bg}` : ""}`}
@@ -1227,6 +1227,14 @@ const CampaignKanban = () => {
                         />
                       ))}
                       {provided.placeholder}
+                      {/* Sentinela: dispara loadColumn ~400px antes do fim p/ pré-carregar */}
+                      {colState.hasMore && !quickFilter && (
+                        <InfiniteSentinel
+                          rootRef={getColumnScrollRef(col.id)}
+                          disabled={colState.loading}
+                          onReach={() => loadColumn(col.id)}
+                        />
+                      )}
                       {colState.hasMore && (
                         <button
                           onClick={() => loadColumn(col.id)}
