@@ -815,17 +815,35 @@ const Financeiro = () => {
                         color="primary"
                         disabled={current}
                         onClick={() => handleSelectPlan(p, extra)}
-                        startIcon={<CreditCard size={16} />}
+                        startIcon={!current && <CreditCard size={16} />}
                         fullWidth
                       >
                         {current
-                          ? "Plano atual"
+                          ? "Você já está neste plano"
                           : price === 0
-                          ? "Começar agora"
+                          ? "Ativar plano grátis →"
+                          : popular
+                          ? extra > 0
+                            ? `Assinar com +${extra} usuário${extra > 1 ? "s" : ""} →`
+                            : "Assinar agora — recomendado →"
                           : extra > 0
-                          ? `Assinar com +${extra} usuário${extra > 1 ? "s" : ""}`
-                          : "Assinar este plano"}
+                          ? `Assinar com +${extra} usuário${extra > 1 ? "s" : ""} →`
+                          : "Quero este plano →"}
                       </Button>
+                      {!current && (
+                        <span className={classes.selectHint}>
+                          {price === 0 ? (
+                            <>Sem cartão de crédito • Cancele quando quiser</>
+                          ) : (
+                            <>
+                              <span className={classes.selectHintHighlight}>
+                                Ativação imediata
+                              </span>{" "}
+                              • Sem fidelidade • Cancele quando quiser
+                            </>
+                          )}
+                        </span>
+                      )}
                     </div>
                   );
                 });
