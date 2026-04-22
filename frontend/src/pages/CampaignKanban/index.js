@@ -230,28 +230,9 @@ const CampaignKanban = () => {
     const ids = Array.from(selectedIds);
     setBulkUpdating(true);
 
-    // Optimistic
-    const prev = shipping;
-    const now = new Date().toISOString();
-    const next = shipping.map((s) => {
-      if (!ids.includes(s.id)) return s;
-      const patch = { ...s };
-      switch (newStatus) {
-        case "pending":
-          patch.deliveredAt = null; patch.confirmedAt = null; break;
-        case "delivered":
-          patch.deliveredAt = patch.deliveredAt || now; patch.confirmedAt = null; break;
-        case "confirmed":
-          patch.deliveredAt = patch.deliveredAt || now; patch.confirmedAt = now; break;
-        case "failed":
-          patch.deliveredAt = null; patch.confirmedAt = null;
-          patch.message = `[FAILED] ${(patch.message || "").replace(/^\[FAILED\]\s*/, "")}`;
-          break;
-        default: break;
-      }
-      return patch;
-    });
-    setShipping(next);
+    // Optimistic local: aplica imediatamente em columnsState (movendo os cards) e em shipping
+    const prevShipping = shipping;
+    applyStatusLocally(ids, newStatus);
 
     try {
       const { data } = await api.post(
@@ -264,12 +245,17 @@ const CampaignKanban = () => {
       setBulkUpdating(false);
       if (fail === 0) {
         toast.success(`${ok} envio(s) atualizados para "${newStatus}"`);
+        // Reconciliação leve apenas (sem refetch eager)
+        reconcileShipping(ids, newStatus);
       } else if (ok === 0) {
-        setShipping(prev);
+        // Tudo falhou: reverte estado local
+        setShipping(prevShipping);
+        fetchShipping();
         toast.error("Falha ao atualizar envios");
       } else {
         toast.warn(`${ok} atualizados, ${fail} falharam`);
-        fetchShipping();
+        // Sucesso parcial: reconcilia para corrigir os que falharam
+        reconcileShipping(ids, newStatus);
       }
       // Habilita botão "Desfazer" por 30s se houve sucesso
       if (bulkId && ok > 0) {
@@ -283,7 +269,8 @@ const CampaignKanban = () => {
       clearSelection();
     } catch (err) {
       setBulkUpdating(false);
-      setShipping(prev);
+      setShipping(prevShipping);
+      fetchShipping();
       toast.error("Falha ao atualizar envios");
     }
   };
@@ -444,6 +431,109 @@ const CampaignKanban = () => {
       setLoading(false);
     }
   }, [campaignId, search, filterPhone, filterStartDate, filterEndDate, pageSize]);
+
+  // Aplica novo status a um conjunto de envios DIRETAMENTE no estado local (columnsState + shipping)
+  // movendo os cards para a coluna alvo sem refetch.
+  const applyStatusLocally = useCallback((ids, newStatus) => {
+    const idSet = new Set(ids.map((x) => Number(x)).filter(Boolean));
+    if (idSet.size === 0) return;
+    const now = new Date().toISOString();
+
+    const patchItem = (s) => {
+      const patch = { ...s };
+      switch (newStatus) {
+        case "pending":
+          patch.deliveredAt = null; patch.confirmedAt = null; break;
+        case "delivered":
+          patch.deliveredAt = patch.deliveredAt || now; patch.confirmedAt = null; break;
+        case "confirmed":
+          patch.deliveredAt = patch.deliveredAt || now; patch.confirmedAt = now; break;
+        case "failed":
+          patch.deliveredAt = null; patch.confirmedAt = null;
+          patch.message = `[FAILED] ${(patch.message || "").replace(/^\[FAILED\]\s*/, "")}`;
+          break;
+        default: break;
+      }
+      return patch;
+    };
+
+    setColumnsState((prev) => {
+      const next = {
+        pending: { ...prev.pending },
+        delivered: { ...prev.delivered },
+        confirmed: { ...prev.confirmed },
+        failed: { ...prev.failed },
+      };
+      const moved = [];
+
+      // Remove dos demais e coleta os movidos com o patch aplicado
+      ["pending", "delivered", "confirmed", "failed"].forEach((col) => {
+        if (col === newStatus) return;
+        const keep = [];
+        let removed = 0;
+        next[col].items.forEach((it) => {
+          if (it.id && idSet.has(Number(it.id))) {
+            moved.push(patchItem(it));
+            removed += 1;
+          } else {
+            keep.push(it);
+          }
+        });
+        if (removed > 0) {
+          next[col] = {
+            ...next[col],
+            items: keep,
+            total: Math.max(0, (next[col].total || 0) - removed),
+          };
+        }
+      });
+
+      // Patch in-place dos que já estão na coluna alvo
+      const targetItems = next[newStatus].items.map((it) =>
+        it.id && idSet.has(Number(it.id)) ? patchItem(it) : it
+      );
+
+      // Adiciona os movidos no topo da coluna alvo (sem duplicar)
+      const existing = new Set(targetItems.map((i) => i.id).filter(Boolean));
+      const fresh = moved.filter((m) => !existing.has(Number(m.id)));
+      next[newStatus] = {
+        ...next[newStatus],
+        items: [...fresh, ...targetItems],
+        total: (next[newStatus].total || 0) + fresh.length,
+      };
+      return next;
+    });
+
+    setShipping((cur) => cur.map((s) => (s.id && idSet.has(Number(s.id)) ? patchItem(s) : s)));
+  }, []);
+
+  // Reconciliação leve com debounce: confirma com o servidor se os ids realmente
+  // estão na coluna esperada. Só dispara `fetchShipping` completo se houver divergência.
+  const reconcileTimer = useRef(null);
+  const reconcileShipping = useCallback((ids, expectedStatus) => {
+    if (!campaignId || !ids || ids.length === 0) return;
+    if (reconcileTimer.current) clearTimeout(reconcileTimer.current);
+    reconcileTimer.current = setTimeout(async () => {
+      reconcileTimer.current = null;
+      try {
+        const expected = new Set(ids.map((x) => Number(x)).filter(Boolean));
+        const sample = Math.max(50, Math.min(500, expected.size * 4));
+        const { data } = await api.get(`/campaigns/${campaignId}/shipping`, {
+          params: {
+            page: 1,
+            pageSize: sample,
+            status: expectedStatus,
+          },
+        });
+        const returned = new Set((data?.shipping || []).map((s) => Number(s.id)).filter(Boolean));
+        const missing = [...expected].filter((id) => !returned.has(id));
+        // Divergência: backend não confirma estado esperado — recarrega tudo
+        if (missing.length > 0) fetchShipping();
+      } catch {
+        // Em erro de rede, evita fetch agressivo; socket eventualmente dispara refresh
+      }
+    }, 600);
+  }, [campaignId, fetchShipping]);
 
   useEffect(() => {
     fetchShipping();
@@ -651,46 +741,20 @@ const CampaignKanban = () => {
       return;
     }
 
-    // Optimistic update individual
+    // Optimistic local: move o card imediatamente entre colunas (sem refetch)
     const prev = shipping;
-    const next = shipping.map((s) => {
-      if (String(s.id) !== shippingId) return s;
-      const patch = { ...s };
-      const now = new Date().toISOString();
-      switch (newStatus) {
-        case "pending":
-          patch.deliveredAt = null;
-          patch.confirmedAt = null;
-          break;
-        case "delivered":
-          patch.deliveredAt = patch.deliveredAt || now;
-          patch.confirmedAt = null;
-          break;
-        case "confirmed":
-          patch.deliveredAt = patch.deliveredAt || now;
-          patch.confirmedAt = now;
-          break;
-        case "failed":
-          patch.deliveredAt = null;
-          patch.confirmedAt = null;
-          patch.message = `[FAILED] ${(patch.message || "").replace(/^\[FAILED\]\s*/, "")}`;
-          break;
-        default:
-          break;
-      }
-      return patch;
-    });
-    setShipping(next);
+    applyStatusLocally([draggedId], newStatus);
 
     try {
       await api.patch(`/campaigns/${campaignId}/shipping/${shippingId}`, {
         status: newStatus,
       });
       toast.success("Status atualizado");
-      // Refetch para refletir movimentação entre colunas paginadas
-      fetchShipping();
+      // Reconciliação leve: confirma com o servidor; só recarrega se houver divergência
+      reconcileShipping([draggedId], newStatus);
     } catch (e) {
       setShipping(prev);
+      fetchShipping();
       toast.error("Falha ao atualizar status");
     }
   };
