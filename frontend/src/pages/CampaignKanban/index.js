@@ -111,6 +111,11 @@ const CampaignKanban = () => {
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
 
+  // Última atualização em massa (botão "Desfazer" temporário)
+  const [lastBulkUpdate, setLastBulkUpdate] = useState(null); // { id, status, count, expiresAt }
+  const [undoing, setUndoing] = useState(false);
+  const [undoTick, setUndoTick] = useState(0);
+
   // Histórico de atualizações em massa
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
