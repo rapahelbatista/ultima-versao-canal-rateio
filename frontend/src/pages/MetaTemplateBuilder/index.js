@@ -101,7 +101,16 @@ const MetaTemplateBuilder = () => {
       const { data } = await api.get("/meta-templates");
       setTemplates(Array.isArray(data) ? data : []);
     } catch (err) {
-      toastError(err);
+      const status = err?.response?.status;
+      if (status === 404) {
+        setTemplates([]);
+        toast.warn("Endpoint de Modelos da Meta indisponível no servidor. Atualize o backend e rode as migrations.");
+      } else if (status === 403) {
+        setTemplates([]);
+        toast.error("Sem permissão para acessar Modelos da Meta.");
+      } else {
+        toastError(err);
+      }
     } finally {
       setLoading(false);
     }
@@ -121,7 +130,14 @@ const MetaTemplateBuilder = () => {
       });
       setEditingId(data.id);
     } catch (err) {
-      toastError(err);
+      const status = err?.response?.status;
+      const msg =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        (status === 404
+          ? "Endpoint de Modelos da Meta indisponível no servidor."
+          : "Falha ao criar novo modelo");
+      toast.error(msg);
     }
   };
 
@@ -132,7 +148,14 @@ const MetaTemplateBuilder = () => {
       setTemplates((arr) => arr.filter((t) => t.id !== id));
       toast.success("Modelo excluído");
     } catch (err) {
-      toastError(err);
+      const status = err?.response?.status;
+      const msg =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        (status === 404
+          ? "Endpoint de Modelos da Meta indisponível."
+          : "Falha ao excluir modelo");
+      toast.error(msg);
     }
   };
 
