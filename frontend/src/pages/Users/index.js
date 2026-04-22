@@ -267,6 +267,68 @@ const Users = () => {
     };
   }, [searchParam, pageNumber]);
 
+  // Buscar status online e contagem de tickets quando a lista de users mudar
+  useEffect(() => {
+    if (!users || users.length === 0) return;
+    let cancelled = false;
+
+    const fetchStats = async () => {
+      // 1) Status online (endpoint dedicado)
+      try {
+        const { data } = await api.get("/users/online");
+        if (!cancelled && Array.isArray(data)) {
+          const map = {};
+          data.forEach((u) => {
+            map[u.id] = { online: !!u.online, lastSeen: u.lastSeen };
+          });
+          setOnlineMap((prev) => ({ ...prev, ...map }));
+        }
+      } catch {
+        // fallback: usa campo `online` do próprio user
+        const map = {};
+        users.forEach((u) => {
+          map[u.id] = { online: !!u.online, lastSeen: u.lastSeen };
+        });
+        if (!cancelled) setOnlineMap((prev) => ({ ...prev, ...map }));
+      }
+
+      // 2) Contagem de conversas (tickets) por usuário — em paralelo
+      const results = await Promise.all(
+        users.map(async (u) => {
+          try {
+            const { data } = await api.get("/tickets", {
+              params: {
+                users: JSON.stringify([u.id]),
+                pageNumber: 1,
+                status: "open,pending,closed",
+                showAll: "true",
+              },
+            });
+            return [u.id, data?.count ?? (data?.tickets?.length || 0)];
+          } catch {
+            return [u.id, 0];
+          }
+        })
+      );
+      if (!cancelled) {
+        setTicketCounts((prev) => {
+          const next = { ...prev };
+          results.forEach(([id, c]) => {
+            next[id] = c;
+          });
+          return next;
+        });
+      }
+    };
+
+    fetchStats();
+    const interval = setInterval(fetchStats, 30000); // refresh a cada 30s
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [users]);
+
   const setExtra = (userId, patch) => {
     setExtras((prev) => {
       const next = { ...prev, [userId]: { ...(prev[userId] || {}), ...patch } };
