@@ -523,6 +523,13 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, channel, initialName }) => {
     })();
   }, []);
 
+  // Pre-fill name when opening for a NEW connection from "New Instance" card
+  useEffect(() => {
+    if (open && !whatsAppId && initialName) {
+      setWhatsApp((prev) => ({ ...prev, name: initialName }));
+    }
+  }, [open, whatsAppId, initialName]);
+
   const handleChangeQueue = (e) => {
     setSelectedQueueIds(e);
     setSelectedPrompt(null);
