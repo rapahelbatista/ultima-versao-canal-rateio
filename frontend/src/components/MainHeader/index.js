@@ -2,11 +2,19 @@ import React from "react";
 
 import { makeStyles } from "@material-ui/core/styles";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles((theme) => ({
 	contactsHeader: {
 		display: "flex",
 		alignItems: "center",
-		padding: "0px 6px 6px 6px",
+		justifyContent: "space-between",
+		flexWrap: "wrap",
+		gap: theme.spacing(1.5),
+		paddingBottom: theme.spacing(1.5),
+		marginBottom: theme.spacing(1.5),
+		borderBottom: "1px solid #f1f5f9",
+		[theme.breakpoints.down("xs")]: {
+			alignItems: "stretch",
+		},
 	},
 }));
 
