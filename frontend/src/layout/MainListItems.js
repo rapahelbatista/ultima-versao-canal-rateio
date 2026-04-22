@@ -770,7 +770,7 @@ const MainListItems = ({ collapsed, drawerClose }) => {
       )}
 
       {/* FLOWBUILDER */}
-      {user.showFlow === "enabled" && (
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && user.showFlow === "enabled" && (
         <>
           <Tooltip
             title={
