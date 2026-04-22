@@ -740,24 +740,6 @@ const Financeiro = () => {
                       </Button>
                     </div>
                   );
-
-                      <Button
-                        className={classes.selectBtn}
-                        variant={current ? "outlined" : "contained"}
-                        color="primary"
-                        disabled={current}
-                        onClick={() => handleSelectPlan(p)}
-                        startIcon={<CreditCard size={16} />}
-                        fullWidth
-                      >
-                        {current
-                          ? "Plano atual"
-                          : price === 0
-                          ? "Começar agora"
-                          : "Assinar este plano"}
-                      </Button>
-                    </div>
-                  );
                 });
               })()}
             </div>
