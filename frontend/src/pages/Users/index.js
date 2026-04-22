@@ -10,11 +10,16 @@ import {
   Tooltip,
   Avatar,
   Chip,
+  Collapse,
+  Fade,
 } from "@material-ui/core";
 import {
   Headphones,
   UserPlus,
   X,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
   LogIn,
   Eye,
   Trash2,
@@ -97,6 +102,31 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   fullSpan: { gridColumn: "1 / -1" },
+  formWrap: { position: "relative" },
+  loadingOverlay: {
+    position: "absolute",
+    inset: 0,
+    background: "rgba(255,255,255,0.7)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
+    borderRadius: 10,
+    backdropFilter: "blur(2px)",
+  },
+  successBanner: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "10px 14px",
+    background: "#ecfdf5",
+    border: "1px solid #a7f3d0",
+    color: "#047857",
+    borderRadius: 10,
+    fontSize: 13,
+    fontWeight: 600,
+    marginBottom: 12,
+  },
   primaryBtn: {
     background: "#10b981",
     color: "#fff",
@@ -227,6 +257,7 @@ const Users = () => {
     comments: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [lastCreated, setLastCreated] = useState(null); // { name, email } | null
 
   // Edit modal
   const [editingUser, setEditingUser] = useState(null);
@@ -358,6 +389,14 @@ const Users = () => {
         });
       }
       toast.success("Agente adicionado");
+      const created = { name: form.name.trim(), email: form.email.trim() };
+      setLastCreated(created);
+      // some o badge de sucesso após 5s
+      setTimeout(() => {
+        setLastCreated((curr) =>
+          curr && curr.email === created.email ? null : curr
+        );
+      }, 5000);
       setForm({ email: "", password: "", name: "", phone: "", comments: "" });
       // Recarrega
       setPageNumber(1);
@@ -453,21 +492,54 @@ const Users = () => {
         actions={
           <Button
             className={classes.closeBtn}
-            startIcon={<X size={14} />}
+            startIcon={
+              formOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+            }
             onClick={() => setFormOpen((v) => !v)}
+            aria-expanded={formOpen}
+            aria-controls="add-agent-form"
           >
-            {formOpen ? "Fechar" : "Abrir"}
+            {formOpen ? "Recolher" : "Expandir"}
           </Button>
         }
       >
-        {formOpen && (
-          <>
+        <Fade in={!!lastCreated} unmountOnExit>
+          <div className={classes.successBanner}>
+            <CheckCircle2 size={16} />
+            Agente <strong>{lastCreated?.name}</strong> ({lastCreated?.email})
+            criado com sucesso.
+            <button
+              type="button"
+              onClick={() => setLastCreated(null)}
+              style={{
+                marginLeft: "auto",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: "#047857",
+                display: "inline-flex",
+              }}
+              aria-label="Fechar aviso"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </Fade>
+
+        <Collapse in={formOpen} timeout={250} unmountOnExit>
+          <div id="add-agent-form" className={classes.formWrap}>
+            {submitting && (
+              <div className={classes.loadingOverlay}>
+                <CircularProgress size={28} style={{ color: "#10b981" }} />
+              </div>
+            )}
             <div className={classes.formGrid}>
               <TextField
                 label="E-mail"
                 variant="outlined"
                 size="small"
                 fullWidth
+                disabled={submitting}
                 value={form.email}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, email: e.target.value }))
@@ -479,6 +551,7 @@ const Users = () => {
                 variant="outlined"
                 size="small"
                 fullWidth
+                disabled={submitting}
                 value={form.password}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, password: e.target.value }))
@@ -489,6 +562,7 @@ const Users = () => {
                 variant="outlined"
                 size="small"
                 fullWidth
+                disabled={submitting}
                 value={form.name}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, name: e.target.value }))
@@ -499,6 +573,7 @@ const Users = () => {
                 variant="outlined"
                 size="small"
                 fullWidth
+                disabled={submitting}
                 value={form.phone}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, phone: e.target.value }))
@@ -511,6 +586,7 @@ const Users = () => {
                 fullWidth
                 multiline
                 minRows={3}
+                disabled={submitting}
                 className={classes.fullSpan}
                 value={form.comments}
                 onChange={(e) =>
@@ -518,17 +594,36 @@ const Users = () => {
                 }
               />
             </div>
-            <div style={{ marginTop: 16 }}>
+            <div
+              style={{
+                marginTop: 16,
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
               <Button
                 className={classes.primaryBtn}
                 disabled={submitting}
                 onClick={handleAddAgent}
+                startIcon={
+                  submitting ? (
+                    <CircularProgress size={14} style={{ color: "#fff" }} />
+                  ) : (
+                    <UserPlus size={14} />
+                  )
+                }
               >
                 {submitting ? "Adicionando..." : "Adicionar"}
               </Button>
+              {submitting && (
+                <span style={{ fontSize: 12, color: "#64748b" }}>
+                  Criando agente, aguarde…
+                </span>
+              )}
             </div>
-          </>
-        )}
+          </div>
+        </Collapse>
       </SectionCard>
 
       <SectionCard>
