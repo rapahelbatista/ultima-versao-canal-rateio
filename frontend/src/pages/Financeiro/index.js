@@ -278,6 +278,7 @@ const Financeiro = () => {
   const [loadingPlans, setLoadingPlans] = useState(true);
 
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [selectedPlan, setSelectedPlan] = useState(null);
   const [contactModalOpen, setContactModalOpen] = useState(false);
 
   const isCompanyExpired =
@@ -340,7 +341,7 @@ const Financeiro = () => {
   };
 
   const handleSelectPlan = (plan) => {
-    // Reaproveita o SubscriptionModal existente — recebe um "Invoice-like" payload
+    // Envia o plano selecionado ao checkout (sem invoiceId, pois é nova assinatura)
     setSelectedInvoice({
       id: plan.id,
       detail: plan.name,
@@ -349,6 +350,16 @@ const Financeiro = () => {
       connections: plan.connections,
       queues: plan.queues,
       planId: plan.id,
+    });
+    setSelectedPlan({
+      id: plan.id,
+      name: plan.name,
+      value: plan.value || plan.price || 0,
+      price: plan.value || plan.price || 0,
+      amount: plan.value || plan.price || 0,
+      users: plan.users,
+      connections: plan.connections,
+      queues: plan.queues,
     });
     setContactModalOpen(true);
   };
@@ -371,8 +382,12 @@ const Financeiro = () => {
     <MainContainer>
       <SubscriptionModal
         open={contactModalOpen}
-        onClose={() => setContactModalOpen(false)}
+        onClose={() => {
+          setContactModalOpen(false);
+          setSelectedPlan(null);
+        }}
         Invoice={selectedInvoice}
+        selectedPlan={selectedPlan}
         contactId={null}
       />
 
@@ -655,6 +670,7 @@ const Financeiro = () => {
                             color="primary"
                             onClick={() => {
                               setSelectedInvoice(inv);
+                              setSelectedPlan(null); // pagar fatura existente, não trocar plano
                               setContactModalOpen(true);
                             }}
                           >

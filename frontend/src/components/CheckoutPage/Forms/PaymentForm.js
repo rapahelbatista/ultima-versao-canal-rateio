@@ -70,6 +70,7 @@ export default function Pricing(props) {
     setFieldValue,
     setActiveStep,
     activeStep,
+    selectedPlan,
   } = props;
 
   const classes = useStyles();
@@ -87,17 +88,31 @@ export default function Pricing(props) {
     }
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectedPlan?.id]);
 
   const loadPlans = async () => {
     setLoading(true);
     try {
-      const companyId = user.companyId;
-      const _planList = await getPlanCompany(undefined, companyId);
+      let planList;
 
-      const planList = _planList.plan;
+      // Se o usuário escolheu um plano específico (clicou em "Selecionar plano"),
+      // priorizamos esse plano em vez do plano atual da empresa.
+      if (selectedPlan && selectedPlan.id) {
+        planList = {
+          id: selectedPlan.id,
+          name: selectedPlan.name || selectedPlan.detail || "Plano",
+          amount: selectedPlan.value || selectedPlan.price || selectedPlan.amount || 0,
+          users: selectedPlan.users || 1,
+          connections: selectedPlan.connections || 1,
+          queues: selectedPlan.queues || 1,
+        };
+      } else {
+        const companyId = user.companyId;
+        const _planList = await getPlanCompany(undefined, companyId);
+        planList = _planList.plan;
+      }
 
-      const plans = []
+      const plans = [];
 
       plans.push({
         title: planList.name,
@@ -106,16 +121,20 @@ export default function Pricing(props) {
         description: [
           `${planList.users} Usuários`,
           `${planList.connections} Conexão`,
-          `${planList.queues} Filas`
+          `${planList.queues} Filas`,
         ],
         users: planList.users,
         connections: planList.connections,
         queues: planList.queues,
-        buttonText: 'SELECIONAR',
-        buttonVariant: 'outlined',
-      })
+        buttonText: "SELECIONAR",
+        buttonVariant: "outlined",
+      });
 
-      // setStoragePlans(data);
+      // Pré-popula o valor base do checkout com o preço do plano escolhido.
+      const basePrice = Number(planList.amount) || 49.0;
+      setCustomValuePlans(basePrice);
+      setUsersPlans(Number(planList.users) || 3);
+      setConnectionsPlans(Number(planList.connections) || 3);
 
       setStoragePlans(plans);
     } catch (e) {
