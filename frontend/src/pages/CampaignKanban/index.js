@@ -16,6 +16,7 @@ import {
   Calendar,
   Hash,
   AlertCircle,
+  Filter,
 } from "lucide-react";
 import api from "../../services/api";
 import { toast } from "react-toastify";
@@ -63,9 +64,22 @@ const CampaignKanban = () => {
   const refetchTimer = useRef(null);
   const [campaigns, setCampaigns] = useState([]);
   const [campaignId, setCampaignId] = useState("");
-  const [shipping, setShipping] = useState([]);
+  const [shipping, setShipping] = useState([]); // mantido p/ compatibilidade c/ bulk/optimistic
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  // Filtros avançados
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterPhone, setFilterPhone] = useState("");
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
+  const [pageSize, setPageSize] = useState(50);
+  // Estado por coluna: { items, page, total, hasMore, loading }
+  const [columnsState, setColumnsState] = useState(() => ({
+    pending: { items: [], page: 0, total: 0, hasMore: true, loading: false },
+    delivered: { items: [], page: 0, total: 0, hasMore: true, loading: false },
+    confirmed: { items: [], page: 0, total: 0, hasMore: true, loading: false },
+    failed: { items: [], page: 0, total: 0, hasMore: true, loading: false },
+  }));
   const [selected, setSelected] = useState(null);
   const [editMessage, setEditMessage] = useState("");
   const [editNotes, setEditNotes] = useState("");
@@ -205,20 +219,104 @@ const CampaignKanban = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Carrega mais uma página de uma coluna específica
+  const loadColumn = useCallback(async (status) => {
+    if (!campaignId) return;
+    let nextPage = 1;
+    setColumnsState((prev) => {
+      const cur = prev[status];
+      if (cur.loading || !cur.hasMore) { nextPage = -1; return prev; }
+      nextPage = (cur.page || 0) + 1;
+      return { ...prev, [status]: { ...cur, loading: true } };
+    });
+    if (nextPage === -1) return;
+
+    try {
+      const term = (filterPhone || search || "").trim();
+      const { data } = await api.get(`/campaigns/${campaignId}/shipping`, {
+        params: {
+          page: nextPage,
+          pageSize,
+          status,
+          searchParam: term || undefined,
+          startDate: filterStartDate || undefined,
+          endDate: filterEndDate || undefined,
+        },
+      });
+      const items = data?.shipping || [];
+      const total = data?.count ?? 0;
+      setColumnsState((prev) => {
+        const baseItems = [...prev[status].items, ...items];
+        return {
+          ...prev,
+          [status]: {
+            items: baseItems,
+            page: nextPage,
+            total,
+            hasMore: baseItems.length < total,
+            loading: false,
+          },
+        };
+      });
+      setShipping((cur) => {
+        const ids = new Set(items.filter((i) => i.id).map((i) => i.id));
+        const merged = cur.filter((s) => !s.id || !ids.has(s.id));
+        return [...merged, ...items];
+      });
+    } catch (e) {
+      toast.error(`Erro ao carregar mais (${status})`);
+      setColumnsState((prev) => ({ ...prev, [status]: { ...prev[status], loading: false } }));
+    }
+  }, [campaignId, filterPhone, search, pageSize, filterStartDate, filterEndDate]);
+
+  // Recarrega todas as colunas em paralelo
   const fetchShipping = useCallback(async () => {
     if (!campaignId) return;
     setLoading(true);
     try {
-      const { data } = await api.get(`/campaigns/${campaignId}/shipping`, {
-        params: { page: 1, pageSize: 500, searchParam: search || undefined },
+      setColumnsState({
+        pending: { items: [], page: 0, total: 0, hasMore: true, loading: true },
+        delivered: { items: [], page: 0, total: 0, hasMore: true, loading: true },
+        confirmed: { items: [], page: 0, total: 0, hasMore: true, loading: true },
+        failed: { items: [], page: 0, total: 0, hasMore: true, loading: true },
       });
-      setShipping(data?.shipping || []);
+      const term = (filterPhone || search || "").trim();
+      const results = await Promise.all(
+        ["pending", "delivered", "confirmed", "failed"].map((status) =>
+          api.get(`/campaigns/${campaignId}/shipping`, {
+            params: {
+              page: 1,
+              pageSize,
+              status,
+              searchParam: term || undefined,
+              startDate: filterStartDate || undefined,
+              endDate: filterEndDate || undefined,
+            },
+          }).then((r) => ({ status, data: r.data }))
+        )
+      );
+      const newCols = {};
+      const flat = [];
+      results.forEach(({ status, data }) => {
+        const items = data?.shipping || [];
+        const total = data?.count ?? items.length;
+        newCols[status] = {
+          items,
+          page: 1,
+          total,
+          hasMore: items.length < total,
+          loading: false,
+        };
+        flat.push(...items);
+      });
+      setColumnsState(newCols);
+      setShipping(flat);
     } catch (e) {
       toast.error("Erro ao buscar envios");
     } finally {
       setLoading(false);
     }
-  }, [campaignId, search]);
+  }, [campaignId, search, filterPhone, filterStartDate, filterEndDate, pageSize]);
 
   useEffect(() => {
     fetchShipping();
@@ -272,13 +370,13 @@ const CampaignKanban = () => {
     };
   }, [socket, user?.companyId, campaignId, fetchShipping]);
 
-  const grouped = useMemo(() => {
-    const g = { pending: [], delivered: [], confirmed: [], failed: [] };
-    shipping.forEach((s) => {
-      g[inferStatus(s)].push(s);
-    });
-    return g;
-  }, [shipping]);
+  // grouped derivado do columnsState (paginação por coluna)
+  const grouped = useMemo(() => ({
+    pending: columnsState.pending.items,
+    delivered: columnsState.delivered.items,
+    confirmed: columnsState.confirmed.items,
+    failed: columnsState.failed.items,
+  }), [columnsState]);
 
   const onDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
@@ -454,6 +552,22 @@ const CampaignKanban = () => {
               className="w-48 bg-transparent outline-none text-slate-700 placeholder:text-slate-400"
             />
           </div>
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors
+              ${showFilters || filterPhone || filterStartDate || filterEndDate
+                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}
+            `}
+          >
+            <Filter size={14} />
+            Filtros
+            {(filterPhone || filterStartDate || filterEndDate) && (
+              <span className="rounded-full bg-emerald-500 px-1.5 text-[10px] text-white">
+                {[filterPhone, filterStartDate, filterEndDate].filter(Boolean).length}
+              </span>
+            )}
+          </button>
           <LiveBadge tick={liveTick} connected={!!socket?.connected} />
           <button
             onClick={fetchShipping}
@@ -466,13 +580,82 @@ const CampaignKanban = () => {
         </div>
       </div>
 
+      {/* Painel de filtros avançados */}
+      {showFilters && (
+        <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Telefone / mensagem</label>
+              <input
+                value={filterPhone}
+                onChange={(e) => setFilterPhone(e.target.value)}
+                placeholder="ex.: 5511..."
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Data inicial</label>
+              <input
+                type="date"
+                value={filterStartDate}
+                onChange={(e) => setFilterStartDate(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Data final</label>
+              <input
+                type="date"
+                value={filterEndDate}
+                onChange={(e) => setFilterEndDate(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Itens por página</label>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={200}>200</option>
+                <option value={500}>500</option>
+              </select>
+            </div>
+          </div>
+          <div className="mt-3 flex items-center justify-end gap-2">
+            <button
+              onClick={() => {
+                setFilterPhone("");
+                setFilterStartDate("");
+                setFilterEndDate("");
+                setPageSize(50);
+              }}
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+            >
+              Limpar
+            </button>
+            <button
+              onClick={fetchShipping}
+              className="rounded-xl bg-emerald-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600"
+            >
+              Aplicar
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Board */}
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {COLUMNS.map((col) => {
             const c = colorMap[col.color];
             const Icon = col.icon;
-            const items = grouped[col.id] || [];
+            const colState = columnsState[col.id] || { items: [], total: 0, hasMore: false, loading: false };
+            const items = colState.items;
             return (
               <div
                 key={col.id}
@@ -496,7 +679,7 @@ const CampaignKanban = () => {
                       </button>
                     )}
                     <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${c.chip}`}>
-                      {items.length}
+                      {items.length}{colState.total > items.length ? `/${colState.total}` : ""}
                     </span>
                   </div>
                 </div>
@@ -508,7 +691,7 @@ const CampaignKanban = () => {
                       className={`flex-1 min-h-[300px] max-h-[70vh] overflow-y-auto p-3 transition-colors
                         ${snapshot.isDraggingOver ? `${c.bg}` : ""}`}
                     >
-                      {items.length === 0 && !loading && (
+                      {items.length === 0 && !colState.loading && (
                         <div className="flex h-32 items-center justify-center rounded-xl border-2 border-dashed border-slate-200 text-xs text-slate-400">
                           Sem envios
                         </div>
@@ -521,6 +704,22 @@ const CampaignKanban = () => {
                         />
                       ))}
                       {provided.placeholder}
+                      {colState.hasMore && (
+                        <button
+                          onClick={() => loadColumn(col.id)}
+                          disabled={colState.loading}
+                          className={`mt-2 w-full rounded-xl border ${col.border} bg-white py-2 text-xs font-semibold ${c.text} hover:bg-slate-50 disabled:opacity-50`}
+                        >
+                          {colState.loading
+                            ? "Carregando..."
+                            : `Carregar mais (${Math.max(colState.total - items.length, 0)} restantes)`}
+                        </button>
+                      )}
+                      {colState.loading && items.length === 0 && (
+                        <div className="flex h-32 items-center justify-center text-xs text-slate-400">
+                          Carregando...
+                        </div>
+                      )}
                     </div>
                   )}
                 </Droppable>

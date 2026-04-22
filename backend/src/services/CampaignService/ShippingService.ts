@@ -11,7 +11,9 @@ interface ShippingParams {
   page?: number;
   pageSize?: number;
   searchParam?: string;
-  status?: 'delivered' | 'pending' | 'failed';
+  status?: 'delivered' | 'pending' | 'failed' | 'confirmed';
+  startDate?: string;
+  endDate?: string;
 }
 
 interface ShippingResponse {
@@ -24,37 +26,49 @@ interface ShippingResponse {
 }
 
 const ShippingService = async (params: ShippingParams): Promise<ShippingResponse> => {
-  const { campaignId, page = 1, pageSize = 50, searchParam, status } = params;
-  
-  // Validar parâmetros
+  const { campaignId, page = 1, pageSize = 50, searchParam, status, startDate, endDate } = params;
+
   if (pageSize > 1000) {
     throw new AppError("Page size cannot exceed 1000", 400);
   }
 
   const offset = (page - 1) * pageSize;
-  
-  // Construir condições de busca
-  const whereClause: any = {
-    campaignId: campaignId
-  };
 
-  // Filtro por status
+  const whereClause: any = { campaignId };
+
+  // Filtro por status (no SQL quando possível)
   if (status) {
     switch (status) {
       case 'delivered':
         whereClause.deliveredAt = { [Op.ne]: null };
+        whereClause.confirmedAt = null;
+        whereClause.message = { [Op.notILike]: '[FAILED]%' };
         break;
-      case 'pending':
-        whereClause.deliveredAt = null;
+      case 'confirmed':
+        whereClause.confirmedAt = { [Op.ne]: null };
+        whereClause.message = { [Op.notILike]: '[FAILED]%' };
         break;
       case 'failed':
-        // Implementar lógica de falha se necessário
+        whereClause.message = { [Op.iLike]: '[FAILED]%' };
+        break;
+      case 'pending':
         whereClause.deliveredAt = null;
         break;
     }
   }
 
-  // Filtro por busca
+  // Filtros de data
+  if (startDate || endDate) {
+    const range: any = {};
+    if (startDate) range[Op.gte] = new Date(startDate);
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      range[Op.lte] = end;
+    }
+    whereClause.createdAt = range;
+  }
+
   if (searchParam) {
     whereClause[Op.or] = [
       { number: { [Op.iLike]: `%${searchParam}%` } },
@@ -176,65 +190,66 @@ const ShippingService = async (params: ShippingParams): Promise<ShippingResponse
       // Para campanhas por lista, incluir contatos pendentes também
       console.log(`[SHIPPING-SERVICE] Campanha ${campaignId} é por lista de contatos (contactListId: ${campaign.contactListId})`);
       
-      // 1. Buscar registros CampaignShipping existentes
-      const { rows: existingShipping, count: existingCount } = await CampaignShipping.findAndCountAll({
-        where: whereClause,
-        include: [
-          {
-            model: ContactListItem,
-            as: "contact",
-            attributes: ["id", "name", "number", "email"]
-          }
-        ],
-        order: [["createdAt", "DESC"]]
-      });
+      // Otimização: quando o status filtra apenas registros já existentes (não-pending),
+      // podemos paginar direto no SQL sem carregar contatos virtuais.
+      const skipVirtuals = status === 'delivered' || status === 'confirmed' || status === 'failed';
 
-      console.log(`[SHIPPING-SERVICE] Registros CampaignShipping existentes: ${existingCount}`);
+      if (skipVirtuals) {
+        const { rows, count: total } = await CampaignShipping.findAndCountAll({
+          where: whereClause,
+          include: [
+            { model: ContactListItem, as: "contact", attributes: ["id", "name", "number", "email"] }
+          ],
+          order: [["createdAt", "DESC"]],
+          limit: pageSize,
+          offset
+        });
+        shipping = rows;
+        count = total;
+        console.log(`[SHIPPING-SERVICE][SQL-PAGE] status=${status} total=${count} pagina=${page} ret=${rows.length}`);
+      } else {
+        // Fluxo legado: precisamos dos contatos virtuais pendentes
+        const { rows: existingShipping } = await CampaignShipping.findAndCountAll({
+          where: whereClause,
+          include: [
+            { model: ContactListItem, as: "contact", attributes: ["id", "name", "number", "email"] }
+          ],
+          order: [["createdAt", "DESC"]]
+        });
 
-      // 2. Buscar todos os contatos da lista
-      const allContacts = await ContactListItem.findAll({
-        where: { contactListId: campaign.contactListId },
-        attributes: ["id", "name", "number", "email"]
-      });
+        const allContacts = await ContactListItem.findAll({
+          where: { contactListId: campaign.contactListId },
+          attributes: ["id", "name", "number", "email"]
+        });
 
-      console.log(`[SHIPPING-SERVICE] Total de contatos na lista: ${allContacts.length}`);
+        const existingNumbers = new Set(existingShipping.map(s => s.number));
+        const pendingContacts = allContacts
+          .filter(contact => !existingNumbers.has(contact.number))
+          .map(contact => ({
+            id: null,
+            campaignId,
+            contactId: contact.id,
+            number: contact.number,
+            message: null,
+            deliveredAt: null,
+            createdAt: null,
+            contact
+          }));
 
-      // 3. Criar registros virtuais para contatos pendentes
-      const existingNumbers = new Set(existingShipping.map(s => s.number));
-      const pendingContacts = allContacts
-        .filter(contact => !existingNumbers.has(contact.number))
-        .map(contact => ({
-          id: null, // ID será null para contatos pendentes
-          campaignId: campaignId,
-          contactId: contact.id,
-          number: contact.number,
-          message: null,
-          deliveredAt: null,
-          createdAt: null,
-          contact: contact
-        }));
+        let allShipping = [...existingShipping, ...pendingContacts];
 
-      // 4. Combinar registros existentes com pendentes
-      const allShipping = [...existingShipping, ...pendingContacts];
-      
-      // 5. Aplicar filtros de busca se necessário
-      let filteredShipping = allShipping;
-      if (searchParam) {
-        filteredShipping = allShipping.filter(item => 
-          item.number?.includes(searchParam) || 
-          item.message?.toLowerCase().includes(searchParam.toLowerCase()) ||
-          item.contact?.name?.toLowerCase().includes(searchParam.toLowerCase())
-        );
+        if (searchParam) {
+          allShipping = allShipping.filter(item =>
+            item.number?.includes(searchParam) ||
+            item.message?.toLowerCase().includes(searchParam.toLowerCase()) ||
+            item.contact?.name?.toLowerCase().includes(searchParam.toLowerCase())
+          );
+        }
+
+        count = allShipping.length;
+        shipping = allShipping.slice(offset, offset + pageSize);
+        console.log(`[SHIPPING-SERVICE][MEM-PAGE] total=${count} pagina=${page} ret=${shipping.length}`);
       }
-
-      count = filteredShipping.length;
-      
-      // 6. Aplicar paginação
-      const startIndex = offset;
-      const endIndex = startIndex + pageSize;
-      shipping = filteredShipping.slice(startIndex, endIndex);
-
-      console.log(`[SHIPPING-SERVICE] Total filtrado: ${count}, Página ${page}: ${shipping.length} registros`);
     }
 
     const totalPages = Math.ceil(count / pageSize);

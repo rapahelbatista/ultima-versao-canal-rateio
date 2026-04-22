@@ -631,7 +631,7 @@ export const stopRecurrence = async (req: Request, res: Response): Promise<Respo
 // Novo endpoint para dados de shipping com paginação
 export const getShipping = async (req: Request, res: Response): Promise<Response> => {
   const { id } = req.params;
-  const { page = 1, pageSize = 50, searchParam, status } = req.query;
+  const { page = 1, pageSize = 50, searchParam, status, startDate, endDate } = req.query;
 
   try {
     const result = await ShippingService({
@@ -639,7 +639,9 @@ export const getShipping = async (req: Request, res: Response): Promise<Response
       page: parseInt(page as string),
       pageSize: parseInt(pageSize as string),
       searchParam: searchParam as string,
-      status: status as 'delivered' | 'pending' | 'failed'
+      status: status as 'delivered' | 'pending' | 'failed' | 'confirmed',
+      startDate: startDate as string,
+      endDate: endDate as string
     });
 
     return res.status(200).json(result);
