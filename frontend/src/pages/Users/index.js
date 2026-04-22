@@ -4,7 +4,6 @@ import { makeStyles } from "@material-ui/core/styles";
 import {
   Button,
   IconButton,
-  Switch,
   TextField,
   TablePagination,
   CircularProgress,
