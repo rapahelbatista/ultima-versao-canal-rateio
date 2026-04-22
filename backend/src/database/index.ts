@@ -68,6 +68,8 @@ import Floup from "../models/Floup";
 import FloupSchedule from "../models/FloupSchedule";
 import InstallationLog from "../models/InstallationLog";
 import CampaignBulkUpdate from "../models/CampaignBulkUpdate";
+import WarmerSetting from "../models/WarmerSetting";
+import MetaTemplate from "../models/MetaTemplate";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -144,6 +146,8 @@ const models = [
   , PushSubscription
   , InteractiveMessageTemplate
   , CampaignBulkUpdate
+  , WarmerSetting
+  , MetaTemplate
 ];
 
 sequelize.addModels(models);

@@ -56,6 +56,8 @@ import pushNotificationRoutes from "./pushNotificationRoutes";
 import n8nCallbackRoutes from "./n8nCallbackRoutes";
 import interactiveTemplateRoutes from "./interactiveTemplateRoutes";
 import interactiveRoutes from "./interactiveRoutes";
+import warmerSettingsRoutes from "./warmerSettingsRoutes";
+import metaTemplateRoutes from "./metaTemplateRoutes";
 import apiKeyRoutes from "./apiKeyRoutes";
 import apiV2Routes from "./api/apiV2Routes";
 import apiV2Docs from "./api/apiV2Docs";
@@ -126,6 +128,8 @@ routes.use(pushNotificationRoutes);
 routes.use(n8nCallbackRoutes);
 routes.use(interactiveTemplateRoutes);
 routes.use(interactiveRoutes);
+routes.use(warmerSettingsRoutes);
+routes.use(metaTemplateRoutes);
 
 // API pública v2 (auth via X-API-Key) + docs Swagger
 routes.use(apiKeyRoutes);
