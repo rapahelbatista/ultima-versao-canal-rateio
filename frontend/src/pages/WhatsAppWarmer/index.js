@@ -191,11 +191,17 @@ const WhatsAppWarmer = () => {
       setSyncError("");
     } catch (err) {
       setSyncStatus("error");
-      const msg =
+      const status = err?.response?.status;
+      let msg =
         err?.response?.data?.error ||
         err?.response?.data?.message ||
         err?.message ||
         "Falha ao sincronizar com o servidor";
+      if (status === 404) {
+        msg = "Endpoint do Aquecedor indisponível no servidor. Verifique se o backend foi atualizado e as migrations executadas.";
+      } else if (status === 403) {
+        msg = "Sem permissão para salvar (apenas admin/super pode operar o Aquecedor).";
+      }
       setSyncError(msg);
       throw err;
     } finally {
@@ -204,7 +210,7 @@ const WhatsAppWarmer = () => {
   }, []);
 
   const retrySync = useCallback(() => {
-    persist(stateRef.current).catch((err) => toastError(err));
+    persist(stateRef.current).catch(() => { /* já refletido no badge */ });
   }, [persist]);
 
   useAutoSaveFlush(async () => {
@@ -226,7 +232,15 @@ const WhatsAppWarmer = () => {
         setMessages(Array.isArray(data?.messages) ? data.messages : []);
         setConfig({ ...DEFAULT_CONFIG, ...(data?.config || {}) });
       } catch (err) {
-        if (active) toastError(err);
+        if (!active) return;
+        const status = err?.response?.status;
+        if (status === 404) {
+          // Endpoint ainda não disponível: segue com defaults locais
+          setSyncStatus("error");
+          setSyncError("Endpoint do Aquecedor indisponível. Trabalhando em modo local até o backend ser atualizado.");
+        } else {
+          toastError(err);
+        }
       } finally {
         if (active) setLoading(false);
       }
