@@ -58,6 +58,8 @@ import interactiveTemplateRoutes from "./interactiveTemplateRoutes";
 import interactiveRoutes from "./interactiveRoutes";
 import warmerSettingsRoutes from "./warmerSettingsRoutes";
 import metaTemplateRoutes from "./metaTemplateRoutes";
+import warmerDraftRoutes from "./warmerDraftRoutes";
+import metaTemplateVersionRoutes from "./metaTemplateVersionRoutes";
 import apiKeyRoutes from "./apiKeyRoutes";
 import apiV2Routes from "./api/apiV2Routes";
 import apiV2Docs from "./api/apiV2Docs";
@@ -130,6 +132,8 @@ routes.use(interactiveTemplateRoutes);
 routes.use(interactiveRoutes);
 routes.use(warmerSettingsRoutes);
 routes.use(metaTemplateRoutes);
+routes.use(warmerDraftRoutes);
+routes.use(metaTemplateVersionRoutes);
 
 // API pública v2 (auth via X-API-Key) + docs Swagger
 routes.use(apiKeyRoutes);
