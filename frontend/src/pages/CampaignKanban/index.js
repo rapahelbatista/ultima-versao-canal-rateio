@@ -8,6 +8,13 @@ import {
   RefreshCcw,
   Search,
   ChevronDown,
+  X,
+  Save,
+  Phone,
+  Mail,
+  Calendar,
+  Hash,
+  AlertCircle,
 } from "lucide-react";
 import api from "../../services/api";
 import { toast } from "react-toastify";
@@ -41,12 +48,62 @@ const inferStatus = (s) => {
   return "pending";
 };
 
+// Separa a parte "mensagem" da parte "[NOTE]observações" persistida no campo message.
+const parseMessage = (raw) => {
+  const m = (raw || "").replace(/^\[FAILED\]\s*/, "");
+  const idx = m.indexOf("\n[NOTE]");
+  if (idx === -1) return { message: m, notes: "" };
+  return { message: m.slice(0, idx), notes: m.slice(idx + "\n[NOTE]".length) };
+};
+
 const CampaignKanban = () => {
   const [campaigns, setCampaigns] = useState([]);
   const [campaignId, setCampaignId] = useState("");
   const [shipping, setShipping] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState(null);
+  const [editMessage, setEditMessage] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const openDetails = (item) => {
+    if (!item.id) {
+      toast.warn("Envio ainda não processado — sem detalhes para exibir");
+      return;
+    }
+    const parsed = parseMessage(item.message);
+    setSelected(item);
+    setEditMessage(parsed.message);
+    setEditNotes(parsed.notes);
+  };
+
+  const closeDetails = () => {
+    setSelected(null);
+    setEditMessage("");
+    setEditNotes("");
+  };
+
+  const saveContent = async () => {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      const { data } = await api.put(
+        `/campaigns/${campaignId}/shipping/${selected.id}`,
+        { message: editMessage, notes: editNotes }
+      );
+      // Atualiza local
+      setShipping((arr) =>
+        arr.map((s) => (s.id === selected.id ? { ...s, message: data.message } : s))
+      );
+      toast.success("Envio atualizado");
+      closeDetails();
+    } catch (e) {
+      toast.error("Falha ao salvar alterações");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Buscar lista de campanhas para o seletor
   useEffect(() => {
