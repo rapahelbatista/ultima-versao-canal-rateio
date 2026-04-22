@@ -27,6 +27,41 @@ import {
 } from "lucide-react";
 import api from "../../services/api";
 import { toast } from "react-toastify";
+import { makeStyles } from "@material-ui/core/styles";
+import {
+  Button,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select as MuiSelect,
+  MenuItem,
+  Menu,
+} from "@material-ui/core";
+import RefreshIcon from "@material-ui/icons/Refresh";
+import FilterListIcon from "@material-ui/icons/FilterList";
+import GetAppIcon from "@material-ui/icons/GetApp";
+import DescriptionIcon from "@material-ui/icons/Description";
+import TableChartIcon from "@material-ui/icons/TableChart";
+import MainContainer from "../../components/MainContainer";
+import MainHeader from "../../components/MainHeader";
+import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
+import Title from "../../components/Title";
+
+const useKanbanHeaderStyles = makeStyles((theme) => ({
+  headerControl: {
+    minWidth: 200,
+    marginRight: theme.spacing(1),
+    "& .MuiOutlinedInput-root": { borderRadius: 10 },
+  },
+  searchControl: {
+    minWidth: 220,
+    marginRight: theme.spacing(1),
+    "& .MuiOutlinedInput-root": { borderRadius: 10 },
+  },
+  button: {
+    borderRadius: 10,
+  },
+}));
 
 /**
  * Kanban de Campanha — visualiza e move shippings entre colunas de status.
