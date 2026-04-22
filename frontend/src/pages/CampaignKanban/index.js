@@ -73,6 +73,17 @@ const CampaignKanban = () => {
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
   const [pageSize, setPageSize] = useState(50);
+  // Visibilidade por status (todos visíveis por padrão)
+  const [visibleStatuses, setVisibleStatuses] = useState(() => new Set(["pending", "delivered", "confirmed", "failed"]));
+  const toggleStatusVisible = (id) =>
+    setVisibleStatuses((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      // Sempre manter ao menos um visível
+      return n.size === 0 ? prev : n;
+    });
+  const showOnly = (id) => setVisibleStatuses(new Set([id]));
+  const showAll = () => setVisibleStatuses(new Set(["pending", "delivered", "confirmed", "failed"]));
   // Estado por coluna: { items, page, total, hasMore, loading }
   const [columnsState, setColumnsState] = useState(() => ({
     pending: { items: [], page: 0, total: 0, hasMore: true, loading: false },
