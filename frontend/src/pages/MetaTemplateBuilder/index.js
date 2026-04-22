@@ -196,4 +196,22 @@ const MetaTemplateBuilder = () => {
   );
 };
 
-export default MetaTemplateBuilder;
+const MetaTemplateBuilderGuarded = (props) => {
+  // eslint-disable-next-line global-require
+  const useCanManageMeta = require("../../hooks/useCanManageMeta").default;
+  // eslint-disable-next-line global-require
+  const LockedPage = require("../../components/LockedPage").default;
+  const { allowed } = useCanManageMeta();
+  if (!allowed) {
+    return (
+      <LockedPage
+        title="Modelos da Meta bloqueados"
+        description="A criação e o envio de modelos para aprovação da Meta são restritos a super usuários e administradores da empresa."
+        resource="Create Meta Template"
+      />
+    );
+  }
+  return <MetaTemplateBuilder {...props} />;
+};
+
+export default MetaTemplateBuilderGuarded;

@@ -415,4 +415,22 @@ const WhatsAppWarmer = () => {
   );
 };
 
-export default WhatsAppWarmer;
+const WhatsAppWarmerGuarded = (props) => {
+  // eslint-disable-next-line global-require
+  const useCanManageMeta = require("../../hooks/useCanManageMeta").default;
+  // eslint-disable-next-line global-require
+  const LockedPage = require("../../components/LockedPage").default;
+  const { allowed } = useCanManageMeta();
+  if (!allowed) {
+    return (
+      <LockedPage
+        title="Aquecedor de WhatsApp bloqueado"
+        description="Apenas super usuários ou administradores da empresa podem configurar e operar o aquecedor de números."
+        resource="Aquecedor (Warmer)"
+      />
+    );
+  }
+  return <WhatsAppWarmer {...props} />;
+};
+
+export default WhatsAppWarmerGuarded;
