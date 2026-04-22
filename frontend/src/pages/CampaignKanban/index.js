@@ -2156,10 +2156,7 @@ const CampaignKanban = () => {
             variant="contained"
             color="primary"
             startIcon={
-              <RefreshIcon
-                className={loading ? "animate-spin" : ""}
-                style={loading ? { animation: "spin 1s linear infinite" } : {}}
-              />
+              <RefreshIcon className={loading ? "kanban-spin" : ""} />
             }
             onClick={fetchShipping}
             disabled={loading}
@@ -2624,10 +2621,11 @@ const CampaignKanban = () => {
             }}
             role="status"
             aria-live="polite"
+            className="kanban-overlay-top"
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: tone.text }}>
-                {phase === "processing" && <RefreshCcw size={12} className="animate-spin" />}
+                {phase === "processing" && <RefreshCcw size={12} className="kanban-spin" />}
                 {phase === "done" && <CheckCheck size={12} />}
                 {phase === "error" && <AlertCircle size={12} />}
                 {phase === "processing" && `Atualizando para "${statusLabel}"`}
@@ -2664,6 +2662,7 @@ const CampaignKanban = () => {
         const col = COLUMNS.find((c) => c.id === lastBulkUpdate.status);
         return (
           <div
+            className="kanban-overlay-bottom"
             style={{
               position: "fixed",
               left: "50%",
@@ -2721,6 +2720,7 @@ const CampaignKanban = () => {
       {/* Barra flutuante de ações em massa */}
       {hasSelection && (
         <div
+          className="kanban-overlay-bottom"
           style={{
             position: "fixed",
             bottom: 24,
@@ -3288,13 +3288,12 @@ const LiveBadge = ({ tick, state = "disconnected", attempt = 0, onRetry }) => {
         <span style={{ position: "relative", display: "inline-flex", height: 8, width: 8 }}>
           {((isConnected && pulsing) || isReconnecting) && (
             <span
+              className="kanban-ping"
               style={{
                 position: "absolute", display: "inline-flex",
                 height: "100%", width: "100%",
                 borderRadius: "50%",
                 backgroundColor: isReconnecting ? "#fbbf24" : "#34d399",
-                opacity: 0.75,
-                animation: "lv-spin 1.2s cubic-bezier(0,0,0.2,1) infinite",
               }}
             />
           )}
@@ -3312,7 +3311,7 @@ const LiveBadge = ({ tick, state = "disconnected", attempt = 0, onRetry }) => {
             padding: 6, color: "#64748b", cursor: "pointer",
           }}
         >
-          <RefreshCcw size={12} className={isReconnecting ? "animate-spin" : ""} />
+          <RefreshCcw size={12} className={isReconnecting ? "kanban-spin" : ""} />
         </button>
       )}
     </div>
