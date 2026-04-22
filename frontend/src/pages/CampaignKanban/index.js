@@ -2061,7 +2061,14 @@ const CampaignKanban = () => {
   return (
     <MainContainer>
       <MainHeader>
-        <Title>Kanban de Campanha</Title>
+        <Title>
+          <span style={{ display: "inline-flex", alignItems: "baseline", gap: 10 }}>
+            <span>Kanban de Campanha</span>
+            <span style={{ fontSize: 12, fontWeight: 500, color: "#64748b" }}>
+              Acompanhe e organize os envios em tempo real
+            </span>
+          </span>
+        </Title>
         <MainHeaderButtonsWrapper>
           <FormControl
             variant="outlined"
