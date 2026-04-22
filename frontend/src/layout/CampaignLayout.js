@@ -43,7 +43,9 @@ import {
   Bot,
   Megaphone,
   QrCode,
+  Lock,
 } from "lucide-react";
+import useCanManageMeta from "../hooks/useCanManageMeta";
 
 const drawerWidth = 260;
 const collapsedWidth = 72;
