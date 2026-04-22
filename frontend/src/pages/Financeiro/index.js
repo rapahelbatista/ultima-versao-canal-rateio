@@ -23,6 +23,8 @@ import {
   Sparkles,
   Minus,
   Plus,
+  X as XIcon,
+  GitCompare,
 } from "lucide-react";
 import moment from "moment";
 
@@ -313,6 +315,75 @@ const useStyles = makeStyles((theme) => ({
     color: "#334155",
     fontWeight: 600,
   },
+  compareWrap: {
+    background: "#fff",
+    border: "1px solid #e2e8f0",
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  compareScroll: { overflowX: "auto" },
+  compareTable: {
+    width: "100%",
+    borderCollapse: "separate",
+    borderSpacing: 0,
+    minWidth: 560,
+    "& th, & td": {
+      padding: "12px 14px",
+      fontSize: 13,
+      borderBottom: "1px solid #f1f5f9",
+      textAlign: "center",
+      color: "#334155",
+    },
+    "& th:first-child, & td:first-child": {
+      textAlign: "left",
+      fontWeight: 600,
+      color: "#0f172a",
+      position: "sticky",
+      left: 0,
+      background: "#fff",
+      zIndex: 1,
+    },
+    "& thead th": {
+      background: "#f8fafc",
+      fontWeight: 800,
+      color: "#0f172a",
+      fontSize: 13,
+      textTransform: "none",
+      letterSpacing: 0,
+      borderBottom: "1px solid #e2e8f0",
+    },
+    "& tbody tr:hover td": { background: "#f8fafc" },
+  },
+  compareHeadCol: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 4,
+  },
+  compareHeadName: { fontWeight: 800, color: "#0f172a" },
+  compareHeadPrice: { fontSize: 12, color: "#475569", fontWeight: 700 },
+  compareTagPopular: {
+    fontSize: 9,
+    fontWeight: 800,
+    padding: "2px 6px",
+    borderRadius: 999,
+    background: "#10b981",
+    color: "#fff",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
+  compareTagCurrent: {
+    fontSize: 9,
+    fontWeight: 800,
+    padding: "2px 6px",
+    borderRadius: 999,
+    background: "#6366f1",
+    color: "#fff",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
+  iconYes: { color: "#10b981" },
+  iconNo: { color: "#cbd5e1" },
 }));
 
 const TONE = {
@@ -745,6 +816,128 @@ const Financeiro = () => {
             </div>
           )}
         </div>
+
+        {/* Comparação de planos */}
+        {(() => {
+          const visible = plans
+            .filter((p) => p.isPublic !== false && p.deletedAt == null)
+            .slice()
+            .sort(
+              (a, b) =>
+                Number(a.value || a.price || 0) - Number(b.value || b.price || 0)
+            );
+          if (visible.length < 2) return null;
+          const popularIdx =
+            visible.length >= 3 ? Math.floor(visible.length / 2) : visible.length - 1;
+
+          const rows = [
+            { label: "Usuários inclusos", get: (p) => p.users || 0 },
+            { label: "Conexões WhatsApp", get: (p) => p.connections || 0 },
+            { label: "Filas de atendimento", get: (p) => p.queues || 0 },
+            { label: "WhatsApp (não oficial)", get: (p) => !!p.useWhatsapp, bool: true },
+            { label: "WhatsApp Oficial (Meta)", get: (p) => !!p.useWhatsappOfficial, bool: true },
+            { label: "Facebook Messenger", get: (p) => !!p.useFacebook, bool: true },
+            { label: "Instagram Direct", get: (p) => !!p.useInstagram, bool: true },
+            { label: "Campanhas em massa", get: (p) => !!p.useCampaigns, bool: true },
+            { label: "Agendamentos", get: (p) => !!p.useSchedules, bool: true },
+            { label: "Chat interno", get: (p) => !!p.useInternalChat, bool: true },
+            { label: "Kanban de tickets", get: (p) => !!p.useKanban, bool: true },
+            { label: "Integração OpenAI", get: (p) => !!p.useOpenAi, bool: true },
+            { label: "Integrações externas", get: (p) => !!p.useIntegrations, bool: true },
+            { label: "API externa", get: (p) => !!p.useExternalApi, bool: true },
+            { label: "Chamadas de voz (Wavoip)", get: (p) => !!p.wavoip, bool: true },
+          ];
+
+          return (
+            <div>
+              <div className={classes.sectionTitle}>
+                <GitCompare size={16} /> Comparar planos
+              </div>
+              <div className={classes.sectionSub}>
+                Veja lado a lado o que cada plano inclui antes de decidir.
+              </div>
+
+              <div className={classes.compareWrap}>
+                <div className={classes.compareScroll}>
+                  <table className={classes.compareTable}>
+                    <thead>
+                      <tr>
+                        <th>Recurso</th>
+                        {visible.map((p, idx) => {
+                          const current = isCurrent(p);
+                          const popular = !current && idx === popularIdx;
+                          const price = Number(p.value || p.price || 0);
+                          return (
+                            <th key={p.id}>
+                              <div className={classes.compareHeadCol}>
+                                <span className={classes.compareHeadName}>{p.name}</span>
+                                <span className={classes.compareHeadPrice}>
+                                  {price === 0 ? "Grátis" : `${fmtMoney(price)}/mês`}
+                                </span>
+                                {current ? (
+                                  <span className={classes.compareTagCurrent}>Atual</span>
+                                ) : popular ? (
+                                  <span className={classes.compareTagPopular}>Popular</span>
+                                ) : null}
+                              </div>
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((row) => (
+                        <tr key={row.label}>
+                          <td>{row.label}</td>
+                          {visible.map((p) => {
+                            const v = row.get(p);
+                            return (
+                              <td key={p.id}>
+                                {row.bool ? (
+                                  v ? (
+                                    <Check size={18} className={classes.iconYes} />
+                                  ) : (
+                                    <XIcon size={18} className={classes.iconNo} />
+                                  )
+                                ) : (
+                                  <strong style={{ color: "#0f172a" }}>{v}</strong>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                      <tr>
+                        <td>Ação</td>
+                        {visible.map((p) => {
+                          const current = isCurrent(p);
+                          const price = Number(p.value || p.price || 0);
+                          return (
+                            <td key={p.id}>
+                              <Button
+                                size="small"
+                                variant={current ? "outlined" : "contained"}
+                                color="primary"
+                                disabled={current}
+                                onClick={() => handleSelectPlan(p, getExtra(p.id))}
+                              >
+                                {current
+                                  ? "Atual"
+                                  : price === 0
+                                  ? "Começar"
+                                  : "Assinar"}
+                              </Button>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Faturas */}
         <div>
