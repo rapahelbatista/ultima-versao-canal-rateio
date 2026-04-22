@@ -888,7 +888,7 @@ const MainListItems = ({ collapsed, drawerClose }) => {
               />
             )}
 
-            {user.profile === "admin" && (
+            {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && user.profile === "admin" && (
               <ListItemLink
                 to="/queues"
                 primary={i18n.t("mainDrawer.listItems.queues")}
@@ -897,7 +897,7 @@ const MainListItems = ({ collapsed, drawerClose }) => {
               />
             )}
 
-            {user.profile === "admin" && (
+            {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && user.profile === "admin" && (
               <ListItemLink
                 to="/files"
                 primary={i18n.t("mainDrawer.listItems.files")}
@@ -906,7 +906,7 @@ const MainListItems = ({ collapsed, drawerClose }) => {
               />
             )}
 
-            {showOpenAi && user.profile === "admin" && (
+            {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && showOpenAi && user.profile === "admin" && (
               <ListItemLink
                 to="/prompts"
                 primary={i18n.t("mainDrawer.listItems.prompts")}
@@ -915,11 +915,20 @@ const MainListItems = ({ collapsed, drawerClose }) => {
               />
             )}
 
-            {showIntegrations && user.profile === "admin" && (
+            {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && showIntegrations && user.profile === "admin" && (
               <ListItemLink
                 to="/queue-integration"
                 primary={i18n.t("mainDrawer.listItems.queueIntegration")}
                 icon={<DeviceHubOutlined />}
+                tooltip={collapsed}
+              />
+            )}
+
+            {FEATURE_FLAGS.PUBLIC_API_V2 && user.profile === "admin" && (
+              <ListItemLink
+                to="/api-keys"
+                primary="API Keys"
+                icon={<CodeRoundedIcon />}
                 tooltip={collapsed}
               />
             )}
