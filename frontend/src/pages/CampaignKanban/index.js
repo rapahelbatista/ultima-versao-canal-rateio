@@ -2396,53 +2396,45 @@ const CampaignKanban = () => {
         };
         const cancel = () => setPendingBulkMove(null);
         return (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in"
-            role="dialog"
-            aria-modal="true"
+          <Dialog
+            open
+            onClose={cancel}
+            maxWidth="sm"
+            fullWidth
+            classes={{ paper: headerClasses.dialogPaper }}
             aria-labelledby="bulk-move-confirm-title"
-            onKeyDown={(e) => {
-              if (e.key === "Escape") cancel();
-              if (e.key === "Enter") confirm();
-            }}
           >
-            <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95">
-              <div className="flex items-start gap-3 px-5 pt-5 pb-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
-                  <AlertCircle size={20} className="text-amber-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 id="bulk-move-confirm-title" className="text-base font-bold text-slate-900">
+            <DialogTitle id="bulk-move-confirm-title" disableTypography>
+              <div className={headerClasses.dialogHeader} style={{ padding: 0, borderBottom: "none" }}>
+                <Avatar className={headerClasses.dialogHeaderAvatar} style={{ background: "#fde68a", color: "#92400e" }}>
+                  <AlertCircle size={20} />
+                </Avatar>
+                <div>
+                  <div style={{ fontSize: "1rem", fontWeight: 700 }}>
                     Mover {pendingBulkMove.count} envios selecionados?
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Você arrastou um card que faz parte da seleção. Todos os{" "}
-                    <strong>{pendingBulkMove.count}</strong> envios selecionados serão movidos
-                    de <span className="font-semibold text-slate-700">"{sourceLabel}"</span> para{" "}
-                    <span className="font-semibold text-emerald-700">"{targetLabel}"</span>.
-                  </p>
-                  <p className="mt-2 text-xs text-slate-500">
-                    Você poderá desfazer essa ação por 30 segundos depois de confirmar.
-                  </p>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center justify-end gap-2 bg-slate-50 px-5 py-3 border-t border-slate-100">
-                <button
-                  autoFocus
-                  onClick={cancel}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirm}
-                  className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-500/30 hover:bg-emerald-600"
-                >
-                  Mover {pendingBulkMove.count} envios
-                </button>
-              </div>
-            </div>
-          </div>
+            </DialogTitle>
+            <DialogContent dividers>
+              <DialogContentText>
+                Você arrastou um card que faz parte da seleção. Todos os{" "}
+                <strong>{pendingBulkMove.count}</strong> envios selecionados serão movidos
+                de <strong>"{sourceLabel}"</strong> para <strong>"{targetLabel}"</strong>.
+              </DialogContentText>
+              <DialogContentText style={{ fontSize: "0.75rem", marginBottom: 0 }}>
+                Você poderá desfazer essa ação por 30 segundos depois de confirmar.
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions className={headerClasses.dialogActions}>
+              <Button onClick={cancel} variant="outlined" className={headerClasses.dialogButton} autoFocus>
+                Cancelar
+              </Button>
+              <Button onClick={confirm} variant="contained" color="primary" className={headerClasses.dialogButton}>
+                Mover {pendingBulkMove.count} envios
+              </Button>
+            </DialogActions>
+          </Dialog>
         );
       })()}
 
