@@ -369,13 +369,13 @@ const CampaignKanban = () => {
     };
   }, [socket, user?.companyId, campaignId, fetchShipping]);
 
-  const grouped = useMemo(() => {
-    const g = { pending: [], delivered: [], confirmed: [], failed: [] };
-    shipping.forEach((s) => {
-      g[inferStatus(s)].push(s);
-    });
-    return g;
-  }, [shipping]);
+  // grouped derivado do columnsState (paginação por coluna)
+  const grouped = useMemo(() => ({
+    pending: columnsState.pending.items,
+    delivered: columnsState.delivered.items,
+    confirmed: columnsState.confirmed.items,
+    failed: columnsState.failed.items,
+  }), [columnsState]);
 
   const onDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
