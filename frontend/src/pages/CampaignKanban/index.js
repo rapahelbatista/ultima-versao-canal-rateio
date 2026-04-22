@@ -445,6 +445,109 @@ const CampaignKanban = () => {
     }
   }, [campaignId, search, filterPhone, filterStartDate, filterEndDate, pageSize]);
 
+  // Aplica novo status a um conjunto de envios DIRETAMENTE no estado local (columnsState + shipping)
+  // movendo os cards para a coluna alvo sem refetch.
+  const applyStatusLocally = useCallback((ids, newStatus) => {
+    const idSet = new Set(ids.map((x) => Number(x)).filter(Boolean));
+    if (idSet.size === 0) return;
+    const now = new Date().toISOString();
+
+    const patchItem = (s) => {
+      const patch = { ...s };
+      switch (newStatus) {
+        case "pending":
+          patch.deliveredAt = null; patch.confirmedAt = null; break;
+        case "delivered":
+          patch.deliveredAt = patch.deliveredAt || now; patch.confirmedAt = null; break;
+        case "confirmed":
+          patch.deliveredAt = patch.deliveredAt || now; patch.confirmedAt = now; break;
+        case "failed":
+          patch.deliveredAt = null; patch.confirmedAt = null;
+          patch.message = `[FAILED] ${(patch.message || "").replace(/^\[FAILED\]\s*/, "")}`;
+          break;
+        default: break;
+      }
+      return patch;
+    };
+
+    setColumnsState((prev) => {
+      const next = {
+        pending: { ...prev.pending },
+        delivered: { ...prev.delivered },
+        confirmed: { ...prev.confirmed },
+        failed: { ...prev.failed },
+      };
+      const moved = [];
+
+      // Remove dos demais e coleta os movidos com o patch aplicado
+      ["pending", "delivered", "confirmed", "failed"].forEach((col) => {
+        if (col === newStatus) return;
+        const keep = [];
+        let removed = 0;
+        next[col].items.forEach((it) => {
+          if (it.id && idSet.has(Number(it.id))) {
+            moved.push(patchItem(it));
+            removed += 1;
+          } else {
+            keep.push(it);
+          }
+        });
+        if (removed > 0) {
+          next[col] = {
+            ...next[col],
+            items: keep,
+            total: Math.max(0, (next[col].total || 0) - removed),
+          };
+        }
+      });
+
+      // Patch in-place dos que já estão na coluna alvo
+      const targetItems = next[newStatus].items.map((it) =>
+        it.id && idSet.has(Number(it.id)) ? patchItem(it) : it
+      );
+
+      // Adiciona os movidos no topo da coluna alvo (sem duplicar)
+      const existing = new Set(targetItems.map((i) => i.id).filter(Boolean));
+      const fresh = moved.filter((m) => !existing.has(Number(m.id)));
+      next[newStatus] = {
+        ...next[newStatus],
+        items: [...fresh, ...targetItems],
+        total: (next[newStatus].total || 0) + fresh.length,
+      };
+      return next;
+    });
+
+    setShipping((cur) => cur.map((s) => (s.id && idSet.has(Number(s.id)) ? patchItem(s) : s)));
+  }, []);
+
+  // Reconciliação leve com debounce: confirma com o servidor se os ids realmente
+  // estão na coluna esperada. Só dispara `fetchShipping` completo se houver divergência.
+  const reconcileTimer = useRef(null);
+  const reconcileShipping = useCallback((ids, expectedStatus) => {
+    if (!campaignId || !ids || ids.length === 0) return;
+    if (reconcileTimer.current) clearTimeout(reconcileTimer.current);
+    reconcileTimer.current = setTimeout(async () => {
+      reconcileTimer.current = null;
+      try {
+        const expected = new Set(ids.map((x) => Number(x)).filter(Boolean));
+        const sample = Math.max(50, Math.min(500, expected.size * 4));
+        const { data } = await api.get(`/campaigns/${campaignId}/shipping`, {
+          params: {
+            page: 1,
+            pageSize: sample,
+            status: expectedStatus,
+          },
+        });
+        const returned = new Set((data?.shipping || []).map((s) => Number(s.id)).filter(Boolean));
+        const missing = [...expected].filter((id) => !returned.has(id));
+        // Divergência: backend não confirma estado esperado — recarrega tudo
+        if (missing.length > 0) fetchShipping();
+      } catch {
+        // Em erro de rede, evita fetch agressivo; socket eventualmente dispara refresh
+      }
+    }, 600);
+  }, [campaignId, fetchShipping]);
+
   useEffect(() => {
     fetchShipping();
   }, [fetchShipping]);
