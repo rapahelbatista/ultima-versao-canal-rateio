@@ -871,16 +871,16 @@ const CampaignKanban = () => {
         const reasonEntries = Object.entries(byReason);
 
         const ToastBody = (
-          <div className="text-[12px] leading-snug">
-            <div className="font-bold mb-1">
+          <div style={{ fontSize: 12, lineHeight: 1.35 }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>
               ⚠️ Desfazer parcial: {restored} restaurado(s), {failed} falharam
             </div>
             {reasonEntries.length > 0 ? (
-              <ul className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, maxHeight: 192, overflowY: "auto", paddingRight: 4 }}>
                 {reasonEntries.map(([reason, ids]) => (
-                  <li key={reason}>
-                    <div className="font-semibold text-rose-700">{reason}</div>
-                    <div className="text-slate-600 text-[11px] break-words">
+                  <li key={reason} style={{ marginBottom: 6 }}>
+                    <div style={{ fontWeight: 600, color: "#be123c" }}>{reason}</div>
+                    <div style={{ color: "#475569", fontSize: 11, wordBreak: "break-word" }}>
                       {ids.length} envio(s): {ids.slice(0, 12).map((i) => `#${i}`).join(", ")}
                       {ids.length > 12 ? `, +${ids.length - 12}` : ""}
                     </div>
@@ -888,7 +888,7 @@ const CampaignKanban = () => {
                 ))}
               </ul>
             ) : (
-              <div className="text-slate-600">
+              <div style={{ color: "#475569" }}>
                 O servidor não retornou detalhes dos envios que falharam.
               </div>
             )}
@@ -923,18 +923,18 @@ const CampaignKanban = () => {
         : [];
       if (failures.length > 0) {
         toast.error(
-          <div className="text-[12px] leading-snug">
-            <div className="font-bold mb-1">❌ {baseMsg}{status ? ` (HTTP ${status})` : ""}</div>
-            <ul className="space-y-0.5 max-h-40 overflow-y-auto pr-1 text-[11px] text-slate-700">
+          <div style={{ fontSize: 12, lineHeight: 1.35 }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>❌ {baseMsg}{status ? ` (HTTP ${status})` : ""}</div>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, maxHeight: 160, overflowY: "auto", paddingRight: 4, fontSize: 11, color: "#334155" }}>
               {failures.slice(0, 20).map((f, i) => (
-                <li key={i}>
-                  <span className="font-mono">#{f.id ?? f.shippingId ?? "?"}</span>
+                <li key={i} style={{ marginBottom: 2 }}>
+                  <span style={{ fontFamily: "monospace" }}>#{f.id ?? f.shippingId ?? "?"}</span>
                   {" — "}
-                  <span className="text-rose-700">{f.reason || f.error || f.message || "erro"}</span>
+                  <span style={{ color: "#be123c" }}>{f.reason || f.error || f.message || "erro"}</span>
                 </li>
               ))}
               {failures.length > 20 && (
-                <li className="italic text-slate-500">+{failures.length - 20} outro(s)…</li>
+                <li style={{ fontStyle: "italic", color: "#64748b" }}>+{failures.length - 20} outro(s)…</li>
               )}
             </ul>
           </div>,
@@ -1635,9 +1635,9 @@ const CampaignKanban = () => {
             const who = data.undoneByUserName || "Outro usuário";
             const count = Array.isArray(data.shippingIds) ? data.shippingIds.length : (data.restored ?? 0);
             toast.info(
-              <div className="text-[12px] leading-snug">
-                <div className="font-bold">↩️ Undo aplicado por {who}</div>
-                <div className="text-slate-600">
+              <div style={{ fontSize: 12, lineHeight: 1.35 }}>
+                <div style={{ fontWeight: 700 }}>↩️ Undo aplicado por {who}</div>
+                <div style={{ color: "#475569" }}>
                   {count} envio(s) restaurado(s){data.bulkUpdateId ? ` — atualização #${data.bulkUpdateId}` : ""}
                 </div>
               </div>,
