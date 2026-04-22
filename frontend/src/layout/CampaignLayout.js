@@ -59,14 +59,14 @@ const NAV_GROUPS = [
     label: "WhatsApp QR Plugin",
     items: [
       { to: "/connections", label: "Adicionar WhatsApp por QR", icon: QrCode },
-      { to: "/whatsapp-warmer", label: "Aquecedor de WhatsApp", icon: Flame },
+      { to: "/whatsapp-warmer", label: "Aquecedor de WhatsApp", icon: Flame, restricted: true },
       { to: "/messages-api", label: "Rest API", icon: Code2 },
     ],
   },
   {
     label: "Conexão WA Meta",
     items: [
-      { to: "/meta-api-keys", label: "Vincular Meta WhatsApp", icon: Facebook },
+      { to: "/meta-api-keys", label: "Vincular Meta WhatsApp", icon: Facebook, restricted: true },
     ],
   },
   {
@@ -79,7 +79,7 @@ const NAV_GROUPS = [
   {
     label: "Transmissão",
     items: [
-      { to: "/create-meta-template", label: "Create Meta Template", icon: FileText },
+      { to: "/create-meta-template", label: "Create Meta Template", icon: FileText, restricted: true },
       { to: "/campaigns", label: "Nova Campanha", icon: Send },
       { to: "/campaigns-config", label: "Listas & Config", icon: ListChecks },
       { to: "/contact-lists", label: "Phonebook", icon: Users },
