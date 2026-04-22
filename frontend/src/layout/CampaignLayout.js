@@ -45,6 +45,7 @@ import {
   QrCode,
   Lock,
   BookOpen,
+  Inbox,
 } from "lucide-react";
 import useCanManageMeta from "../hooks/useCanManageMeta";
 import LanguagePill from "../components/LanguagePill";
@@ -58,7 +59,10 @@ const collapsedWidth = 72;
 const NAV_GROUPS = [
   {
     label: null,
-    items: [{ to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true }],
+    items: [
+      { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
+      { to: "/inbox", label: "Caixa de Entrada", icon: Inbox },
+    ],
   },
   {
     label: "WhatsApp QR Plugin",
