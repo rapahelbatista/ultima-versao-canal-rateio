@@ -300,6 +300,13 @@ const Users = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [lastCreated, setLastCreated] = useState(null); // { name, email } | null
+  const [touched, setTouched] = useState({});
+
+  const formErrors = useMemo(() => validateAgentForm(form), [form]);
+  const isFormValid = Object.keys(formErrors).length === 0;
+  const showError = (field) => (touched[field] ? formErrors[field] : undefined);
+  const markTouched = (field) =>
+    setTouched((t) => (t[field] ? t : { ...t, [field]: true }));
 
   // Edit modal
   const [editingUser, setEditingUser] = useState(null);
