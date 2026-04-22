@@ -1694,6 +1694,51 @@ const CampaignKanban = () => {
     failed: columnsState.failed.items,
   }), [columnsState]);
 
+  // Lista filtrada por coluna + flag allSelected, calculada uma única vez por
+  // mudança de columnsState/quickFilter/selectedIds. Evita .filter() em cada render
+  // para listas grandes (centenas/milhares de envios).
+  const quickFilterNorm = useMemo(
+    () => quickFilter.trim().toLowerCase(),
+    [quickFilter]
+  );
+  const columnViews = useMemo(() => {
+    const out = {};
+    for (const col of COLUMNS) {
+      const colState = columnsState[col.id] || { items: [], total: 0, hasMore: false, loading: false };
+      const allItems = colState.items;
+      let items = allItems;
+      if (quickFilterNorm) {
+        items = [];
+        for (let i = 0; i < allItems.length; i++) {
+          const it = allItems[i];
+          const name = (it.contact?.name || "").toLowerCase();
+          const number = (it.number || "").toLowerCase();
+          if (name.includes(quickFilterNorm) || number.includes(quickFilterNorm)) {
+            items.push(it);
+          }
+        }
+      }
+      // allSelected: todos os itens com id estão selecionados (e existe ao menos um)
+      let withId = 0;
+      let selectedWithId = 0;
+      for (let i = 0; i < items.length; i++) {
+        const id = items[i].id;
+        if (!id) continue;
+        withId++;
+        if (selectedIds.has(id)) selectedWithId++;
+      }
+      out[col.id] = {
+        colState,
+        allItems,
+        items,
+        allSelected: withId > 0 && withId === selectedWithId,
+        hasAnyId: withId > 0,
+      };
+    }
+    return out;
+  }, [columnsState, quickFilterNorm, selectedIds]);
+
+
   // ===== Exportação (CSV/PDF) dos envios filtrados/carregados =====
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
 
