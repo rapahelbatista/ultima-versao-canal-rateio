@@ -409,8 +409,16 @@ const CampaignKanban = () => {
     }
 
     const newStatus = destination.droppableId;
+    const draggedId = Number(shippingId);
 
-    // Optimistic update
+    // Se houver seleção e o card arrastado faz parte dela,
+    // movemos TODOS os selecionados em massa.
+    if (hasSelection && selectedIds.has(draggedId)) {
+      await bulkUpdateStatus(newStatus);
+      return;
+    }
+
+    // Optimistic update individual
     const prev = shipping;
     const next = shipping.map((s) => {
       if (String(s.id) !== shippingId) return s;
@@ -446,6 +454,8 @@ const CampaignKanban = () => {
         status: newStatus,
       });
       toast.success("Status atualizado");
+      // Refetch para refletir movimentação entre colunas paginadas
+      fetchShipping();
     } catch (e) {
       setShipping(prev);
       toast.error("Falha ao atualizar status");
@@ -469,7 +479,7 @@ const CampaignKanban = () => {
     };
 
     return (
-      <Draggable draggableId={draggableId} index={index} isDragDisabled={isVirtual || hasSelection}>
+      <Draggable draggableId={draggableId} index={index} isDragDisabled={isVirtual}>
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
@@ -482,6 +492,12 @@ const CampaignKanban = () => {
               ${isVirtual ? "opacity-60 cursor-not-allowed" : ""}
             `}
           >
+            {/* Badge "+N" quando arrastando um card que faz parte de uma seleção múltipla */}
+            {snapshot.isDragging && checked && selectedIds.size > 1 && (
+              <span className="absolute -top-2 -right-2 z-10 flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[11px] font-bold text-white shadow-lg ring-2 ring-white">
+                +{selectedIds.size - 1}
+              </span>
+            )}
             <div className="flex items-center gap-2">
               {!isVirtual && (
                 <span
