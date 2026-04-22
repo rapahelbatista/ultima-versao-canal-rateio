@@ -2012,86 +2012,8 @@ const CampaignKanban = () => {
     }
   };
 
-  const Card = ({ item, index, classes }) => {
-    const draggableId = `ship-${item.id ?? `virtual-${item.number}`}`;
-    const isVirtual = !item.id;
-    const parsed = parseMessage(item.message);
-    const status = inferStatus(item);
-    const checked = !isVirtual && isSelected(item.id);
-
-    const handleCardClick = (e) => {
-      if (e.ctrlKey || e.metaKey || e.shiftKey) {
-        e.preventDefault();
-        toggleSelect(item.id);
-        return;
-      }
-      openDetails(item);
-    };
-
-    const cardClassName = [
-      classes.card,
-      checked ? classes.cardSelected : "",
-      isVirtual ? classes.cardVirtual : "",
-    ].filter(Boolean).join(" ");
-
-    return (
-      <Draggable draggableId={draggableId} index={index} isDragDisabled={isVirtual}>
-        {(provided, snapshot) => (
-          <div
-            ref={provided.innerRef}
-            {...provided.draggableProps}
-            {...provided.dragHandleProps}
-            onClick={(e) => !snapshot.isDragging && handleCardClick(e)}
-            className={`${cardClassName} ${snapshot.isDragging ? classes.cardDragging : ""}`}
-          >
-            {snapshot.isDragging && checked && selectedIds.size > 1 && (
-              <span className={classes.cardBadgeMulti}>+{selectedIds.size - 1}</span>
-            )}
-            <div className={classes.cardRow}>
-              {!isVirtual && (
-                <span
-                  onClick={(e) => { e.stopPropagation(); toggleSelect(item.id); }}
-                  className={`${classes.cardCheck} ${checked ? classes.cardCheckActive : ""}`}
-                >
-                  {checked && <CheckCircle2 size={12} />}
-                </span>
-              )}
-              <span className={classes.cardAvatar}>
-                {(item.contact?.name || item.number || "?").slice(0, 2).toUpperCase()}
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className={classes.cardName}>{item.contact?.name || "Sem nome"}</div>
-                <div className={classes.cardNumber}>{item.number}</div>
-              </div>
-              {status === "failed" && (
-                <AlertCircle size={14} style={{ color: "#f43f5e", flexShrink: 0 }} />
-              )}
-            </div>
-            {parsed.message && (
-              <div className={classes.cardMessage}>{parsed.message}</div>
-            )}
-            {parsed.notes && (
-              <div className={classes.cardNotes}>📝 {parsed.notes}</div>
-            )}
-            <div className={classes.cardFooter}>
-              <span>
-                {item.deliveredAt
-                  ? new Date(item.deliveredAt).toLocaleString("pt-BR")
-                  : item.createdAt
-                  ? new Date(item.createdAt).toLocaleString("pt-BR")
-                  : "Aguardando"}
-              </span>
-              {isVirtual && (
-                <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 4 }}>
-                  Virtual
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </Draggable>
-    );
-  };
+  // (Card foi extraído para o componente memoizado `KanbanCard` no topo do módulo
+  // — evita rerenders em cascata em listas grandes.)
 
   const headerClasses = useKanbanHeaderStyles();
   const exportBtnRef = useRef(null);
