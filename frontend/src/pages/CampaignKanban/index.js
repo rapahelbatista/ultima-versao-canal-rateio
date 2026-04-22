@@ -199,6 +199,8 @@ const CampaignKanban = () => {
   // phase: "processing" | "done" | "error"
   const [bulkProgress, setBulkProgress] = useState(null);
   const bulkProgressTimer = useRef(null);
+  // Confirmação pendente após drag de um card selecionado (move massa)
+  const [pendingBulkMove, setPendingBulkMove] = useState(null); // { newStatus, count, sourceStatus }
 
   // Última atualização em massa (botão "Desfazer" temporário)
   const [lastBulkUpdate, setLastBulkUpdate] = useState(null); // { id, status, count, expiresAt }
@@ -1042,11 +1044,16 @@ const CampaignKanban = () => {
     const draggedId = Number(shippingId);
 
     // Se houver seleção e o card arrastado faz parte dela,
-    // movemos TODOS os selecionados em massa.
-    if (hasSelection && selectedIds.has(draggedId)) {
-      await bulkUpdateStatus(newStatus);
+    // pedimos confirmação antes de mover TODOS os selecionados em massa.
+    if (hasSelection && selectedIds.has(draggedId) && selectedIds.size > 1) {
+      setPendingBulkMove({
+        newStatus,
+        count: selectedIds.size,
+        sourceStatus: source.droppableId,
+      });
       return;
     }
+    // Caso degenerado: 1 card selecionado e arrastado — segue como single update normal abaixo.
 
     // Optimistic local: move o card imediatamente entre colunas (sem refetch)
     const prev = shipping;
@@ -1583,6 +1590,70 @@ const CampaignKanban = () => {
           })}
         </div>
       </DragDropContext>
+
+      {/* Modal de confirmação: drag em seleção múltipla */}
+      {pendingBulkMove && (() => {
+        const statusLabel = {
+          pending: "Pendente", delivered: "Entregue", confirmed: "Confirmado", failed: "Falhou",
+        };
+        const targetLabel = statusLabel[pendingBulkMove.newStatus] || pendingBulkMove.newStatus;
+        const sourceLabel = statusLabel[pendingBulkMove.sourceStatus] || pendingBulkMove.sourceStatus;
+        const confirm = async () => {
+          const status = pendingBulkMove.newStatus;
+          setPendingBulkMove(null);
+          await bulkUpdateStatus(status);
+        };
+        const cancel = () => setPendingBulkMove(null);
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bulk-move-confirm-title"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") cancel();
+              if (e.key === "Enter") confirm();
+            }}
+          >
+            <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95">
+              <div className="flex items-start gap-3 px-5 pt-5 pb-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                  <AlertCircle size={20} className="text-amber-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 id="bulk-move-confirm-title" className="text-base font-bold text-slate-900">
+                    Mover {pendingBulkMove.count} envios selecionados?
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Você arrastou um card que faz parte da seleção. Todos os{" "}
+                    <strong>{pendingBulkMove.count}</strong> envios selecionados serão movidos
+                    de <span className="font-semibold text-slate-700">"{sourceLabel}"</span> para{" "}
+                    <span className="font-semibold text-emerald-700">"{targetLabel}"</span>.
+                  </p>
+                  <p className="mt-2 text-xs text-slate-500">
+                    Você poderá desfazer essa ação por 30 segundos depois de confirmar.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-2 bg-slate-50 px-5 py-3 border-t border-slate-100">
+                <button
+                  autoFocus
+                  onClick={cancel}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirm}
+                  className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-500/30 hover:bg-emerald-600"
+                >
+                  Mover {pendingBulkMove.count} envios
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Indicador de progresso do bulk update — barra flutuante no topo */}
       {bulkProgress && (() => {
