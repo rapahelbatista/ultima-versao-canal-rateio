@@ -484,7 +484,8 @@ const CampaignLayout = ({ children }) => {
               <UserProfileMenu
                 name={user?.name || "Usuário"}
                 email={user?.email || ""}
-                isPro={Boolean(user?.company?.plan?.name) || Boolean(user?.super)}
+                isPro={isPro}
+                subscriptionLabel={subscriptionLabel}
                 onProfile={() => history.push("/")}
                 onSubscription={() => history.push("/financeiro")}
                 onLogout={() => {
