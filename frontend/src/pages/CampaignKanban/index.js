@@ -71,6 +71,61 @@ const useKanbanHeaderStyles = makeStyles((theme) => ({
   button: {
     borderRadius: 10,
   },
+  filtersPaper: {
+    padding: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+    borderRadius: 10,
+    border: `1px solid ${theme.palette.divider}`,
+  },
+  filterField: {
+    width: "100%",
+    "& .MuiOutlinedInput-root": { borderRadius: 10 },
+  },
+  filterActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: theme.spacing(1),
+    marginTop: theme.spacing(2),
+  },
+  presetsHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: theme.spacing(1),
+  },
+  presetInputRow: {
+    display: "flex",
+    gap: theme.spacing(1),
+    marginBottom: theme.spacing(1),
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+  presetChip: {
+    margin: theme.spacing(0.5),
+  },
+  statusBar: {
+    display: "flex",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: theme.spacing(1),
+    padding: theme.spacing(1, 1.5),
+    marginBottom: theme.spacing(2),
+    borderRadius: 10,
+  },
+  statusBarRight: {
+    marginLeft: "auto",
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1),
+  },
+  quickFilter: {
+    "& .MuiOutlinedInput-root": { borderRadius: 10 },
+    minWidth: 220,
+  },
+  statusChipActive: {
+    fontWeight: 700,
+    "&:hover": { opacity: 0.9 },
+  },
 }));
 
 /**
