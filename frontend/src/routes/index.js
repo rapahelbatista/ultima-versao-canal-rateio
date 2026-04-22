@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useContext } from "react";
-import { BrowserRouter, Switch } from "react-router-dom";
+import { BrowserRouter, Switch, Redirect, Route as RRRoute } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import moment from "moment";
+
+import { FEATURE_FLAGS } from "../config/featureFlags";
 
 import LoggedInLayout from "../layout";
 import Dashboard from "../pages/Dashboard/";
