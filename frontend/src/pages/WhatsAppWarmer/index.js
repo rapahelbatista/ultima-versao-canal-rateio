@@ -274,7 +274,14 @@ const WhatsAppWarmer = () => {
       await persist({ messages, config });
       toast.success("Configurações salvas");
     } catch (err) {
-      toastError(err);
+      const status = err?.response?.status;
+      const msg =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        (status === 404
+          ? "Endpoint do Aquecedor indisponível no servidor."
+          : "Falha ao salvar configurações");
+      toast.error(msg);
     }
   };
 
