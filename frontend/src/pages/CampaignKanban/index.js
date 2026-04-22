@@ -2170,7 +2170,7 @@ const CampaignKanban = () => {
         </MainHeaderButtonsWrapper>
       </MainHeader>
 
-      <div className="space-y-4">
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {/* (Header migrado para MainHeader acima) */}
 
 
