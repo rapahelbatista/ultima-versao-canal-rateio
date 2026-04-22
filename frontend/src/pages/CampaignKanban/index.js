@@ -287,13 +287,66 @@ const CampaignKanban = () => {
       const { data } = await api.post(`/campaigns/bulk-updates/${bulkId}/undo`);
       const restored = data?.restored ?? 0;
       const failed = data?.failed ?? 0;
+
+      // Normaliza lista de falhas vindo do backend (vários formatos possíveis)
+      const rawFailures =
+        data?.failures ||
+        data?.failedItems ||
+        data?.errors ||
+        (Array.isArray(data?.failedIds)
+          ? data.failedIds.map((id) => ({ id, reason: data?.failedReason || "Não foi possível restaurar" }))
+          : []);
+      const failures = Array.isArray(rawFailures)
+        ? rawFailures.map((f) => ({
+            id: f?.id ?? f?.shippingId ?? f?.shipping_id ?? "?",
+            reason: f?.reason || f?.error || f?.message || "Motivo não informado",
+          }))
+        : [];
+
       if (restored > 0 && failed === 0) {
-        toast.success(`Atualização revertida — ${restored} envio(s) restaurado(s)`);
-      } else if (restored > 0) {
-        toast.warn(`${restored} restaurado(s), ${failed} falharam`);
+        toast.success(`Atualização revertida — ${restored} envio(s) restaurado(s)`, { autoClose: 4000 });
+      } else if (failed > 0) {
+        // Agrupa por motivo
+        const byReason = failures.reduce((acc, f) => {
+          (acc[f.reason] ||= []).push(f.id);
+          return acc;
+        }, {});
+        const reasonEntries = Object.entries(byReason);
+
+        const ToastBody = (
+          <div className="text-[12px] leading-snug">
+            <div className="font-bold mb-1">
+              ⚠️ Desfazer parcial: {restored} restaurado(s), {failed} falharam
+            </div>
+            {reasonEntries.length > 0 ? (
+              <ul className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                {reasonEntries.map(([reason, ids]) => (
+                  <li key={reason}>
+                    <div className="font-semibold text-rose-700">{reason}</div>
+                    <div className="text-slate-600 text-[11px] break-words">
+                      {ids.length} envio(s): {ids.slice(0, 12).map((i) => `#${i}`).join(", ")}
+                      {ids.length > 12 ? `, +${ids.length - 12}` : ""}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-slate-600">
+                O servidor não retornou detalhes dos envios que falharam.
+              </div>
+            )}
+          </div>
+        );
+
+        if (restored > 0) {
+          toast.warn(ToastBody, { autoClose: 9000, closeOnClick: false });
+        } else {
+          toast.error(ToastBody, { autoClose: 10000, closeOnClick: false });
+        }
       } else {
-        toast.error("Não foi possível desfazer");
+        toast.error("Não foi possível desfazer — nenhum envio restaurado");
       }
+
       setLastBulkUpdate(null);
       // Atualiza histórico aberto e board
       if (historyOpen) fetchHistory(historyScope);
@@ -305,8 +358,34 @@ const CampaignKanban = () => {
       }
       fetchShipping();
     } catch (err) {
-      const msg = err?.response?.data?.error || err?.response?.data?.message || "Falha ao desfazer";
-      toast.error(msg);
+      const status = err?.response?.status;
+      const payload = err?.response?.data || {};
+      const baseMsg = payload.error || payload.message || "Falha ao desfazer";
+      const failures = Array.isArray(payload.failures || payload.failedItems)
+        ? (payload.failures || payload.failedItems)
+        : [];
+      if (failures.length > 0) {
+        toast.error(
+          <div className="text-[12px] leading-snug">
+            <div className="font-bold mb-1">❌ {baseMsg}{status ? ` (HTTP ${status})` : ""}</div>
+            <ul className="space-y-0.5 max-h-40 overflow-y-auto pr-1 text-[11px] text-slate-700">
+              {failures.slice(0, 20).map((f, i) => (
+                <li key={i}>
+                  <span className="font-mono">#{f.id ?? f.shippingId ?? "?"}</span>
+                  {" — "}
+                  <span className="text-rose-700">{f.reason || f.error || f.message || "erro"}</span>
+                </li>
+              ))}
+              {failures.length > 20 && (
+                <li className="italic text-slate-500">+{failures.length - 20} outro(s)…</li>
+              )}
+            </ul>
+          </div>,
+          { autoClose: 10000, closeOnClick: false }
+        );
+      } else {
+        toast.error(`${baseMsg}${status ? ` (HTTP ${status})` : ""}`, { autoClose: 6000 });
+      }
     } finally {
       setUndoing(false);
     }
