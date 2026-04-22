@@ -824,8 +824,8 @@ export const dashboardStats = async (
           [fn("DATE", col("deliveredAt")), "date"],
           [fn("COUNT", col("id")), "sent"]
         ],
-        group: [literal('DATE("deliveredAt")')],
-        order: [[literal('DATE("deliveredAt")'), "ASC"]],
+        group: [literal('DATE("deliveredAt")') as any],
+        order: [[literal('DATE("deliveredAt")') as any, "ASC"]],
         raw: true
       });
 
