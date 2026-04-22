@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { makeStyles } from "@material-ui/core/styles";
-import { Button, Chip, IconButton, Tooltip } from "@material-ui/core";
+import { Button, Chip, IconButton, Tooltip, TextField, MenuItem } from "@material-ui/core";
 import {
   FileText,
   Plus,
   Trash2,
   Edit3,
   Clock,
+  Search,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import PageHeader from "../../components/PageHeader";
@@ -76,6 +77,23 @@ const MetaTemplateBuilder = () => {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return templates.filter((t) => {
+      if (statusFilter !== "all" && (t.status || "draft") !== statusFilter) return false;
+      if (q && !String(t.name || "").toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [templates, statusFilter, search]);
+
+  const counts = useMemo(() => {
+    const c = { all: templates.length, draft: 0, pending: 0, approved: 0, rejected: 0 };
+    templates.forEach((t) => { c[t.status || "draft"] = (c[t.status || "draft"] || 0) + 1; });
+    return c;
+  }, [templates]);
 
   const fetchTemplates = useCallback(async () => {
     try {
@@ -142,14 +160,48 @@ const MetaTemplateBuilder = () => {
 
       <div style={{ marginTop: 16 }}>
         <SectionCard>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+            {[
+              { id: "all", label: "Todos" },
+              { id: "draft", label: "Rascunhos" },
+              { id: "pending", label: "Pendentes" },
+              { id: "approved", label: "Aprovados" },
+              { id: "rejected", label: "Rejeitados" },
+            ].map((f) => (
+              <Chip
+                key={f.id}
+                size="small"
+                clickable
+                label={`${f.label} (${counts[f.id] || 0})`}
+                onClick={() => setStatusFilter(f.id)}
+                style={{
+                  background: statusFilter === f.id ? "#10b981" : "#f1f5f9",
+                  color: statusFilter === f.id ? "#fff" : "#475569",
+                  fontWeight: 700,
+                }}
+              />
+            ))}
+            <div style={{ flex: 1 }} />
+            <TextField
+              size="small"
+              variant="outlined"
+              placeholder="Buscar por nome..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              InputProps={{ startAdornment: <Search size={14} style={{ marginRight: 6, color: "#94a3b8" }} /> }}
+              style={{ minWidth: 220 }}
+            />
+          </div>
           {loading ? (
             <div className={classes.empty}>Carregando…</div>
-          ) : templates.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <div className={classes.empty}>
-              Nenhum modelo ainda. Clique em <strong>Novo modelo</strong> para começar.
+              {templates.length === 0
+                ? <>Nenhum modelo ainda. Clique em <strong>Novo modelo</strong> para começar.</>
+                : "Nenhum modelo corresponde aos filtros."}
             </div>
           ) : (
-            templates.map((t) => {
+            filtered.map((t) => {
               const tone = STATUS_TONES[t.status] || STATUS_TONES.draft;
               return (
                 <div key={t.id} className={classes.row}>
