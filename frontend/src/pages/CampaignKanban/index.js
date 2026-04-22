@@ -353,6 +353,62 @@ const useKanbanHeaderStyles = makeStyles((theme) => ({
     border: "2px solid #fff",
     zIndex: 2,
   },
+  // ---- Dialogs (Phase 3 modals) ----
+  dialogPaper: { borderRadius: 12 },
+  dialogHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1.5),
+    padding: theme.spacing(2, 3),
+    borderBottom: `1px solid ${theme.palette.divider}`,
+  },
+  dialogHeaderAvatar: {
+    width: 40,
+    height: 40,
+    background: theme.palette.primary.light,
+    color: theme.palette.primary.contrastText,
+  },
+  dialogActions: {
+    padding: theme.spacing(1.5, 3),
+    borderTop: `1px solid ${theme.palette.divider}`,
+    background: theme.palette.background.default,
+  },
+  dialogButton: { borderRadius: 10, textTransform: "none", fontWeight: 600 },
+  historySplit: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: 0,
+    [theme.breakpoints.up("md")]: { gridTemplateColumns: "1fr 1fr" },
+    minHeight: 380,
+  },
+  historyListWrapper: {
+    overflowY: "auto",
+    maxHeight: 480,
+    borderRight: `1px solid ${theme.palette.divider}`,
+    ...theme.scrollbarStyles,
+  },
+  historyDetailWrapper: {
+    overflowY: "auto",
+    maxHeight: 480,
+    background: theme.palette.background.default,
+    padding: theme.spacing(2),
+    ...theme.scrollbarStyles,
+  },
+  historyEmpty: {
+    padding: theme.spacing(4),
+    textAlign: "center",
+    fontSize: "0.85rem",
+    color: theme.palette.text.secondary,
+  },
+  historyItemActive: {
+    background: theme.palette.action.selected,
+  },
+  detailsField: { marginTop: theme.spacing(1.5) },
+  detailsHeaderChip: {
+    fontWeight: 700,
+    fontSize: "0.7rem",
+    height: 22,
+  },
 }));
 
 // Color tokens used by columns (header background/chip/text). Hex values keep
