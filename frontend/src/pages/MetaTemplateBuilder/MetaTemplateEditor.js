@@ -237,6 +237,8 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
   const [variableValues, setVariableValues] = useState({});
   const [simulating, setSimulating] = useState(false);
   const [simulatedAt, setSimulatedAt] = useState(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const skipNextSave = useRef(true);
   const saveTimer = useRef(null);
@@ -270,7 +272,7 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
       }
     })();
     return () => { active = false; };
-  }, [templateId]);
+  }, [templateId, reloadKey]);
 
   // Auto-save
   const collectPayload = useCallback(() => ({
@@ -400,6 +402,15 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {saving && <span className={classes.savingTag}>salvando…</span>}
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<History size={14} />}
+            onClick={() => setHistoryOpen(true)}
+            style={{ textTransform: "none", borderRadius: 10 }}
+          >
+            Histórico
+          </Button>
           <Chip
             size="small"
             label={statusTone.label}
@@ -407,6 +418,13 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
           />
         </div>
       </div>
+
+      <MetaTemplateVersionsDialog
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        templateId={templateId}
+        onRestored={() => { setLoading(true); setReloadKey((k) => k + 1); }}
+      />
 
       {status === "rejected" && statusReason && (
         <div style={{
