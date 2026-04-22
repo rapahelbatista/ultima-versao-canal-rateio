@@ -195,6 +195,10 @@ const CampaignKanban = () => {
   const [saving, setSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  // Progresso visual da operação em massa: { total, processed, status, success, failed, phase }
+  // phase: "processing" | "done" | "error"
+  const [bulkProgress, setBulkProgress] = useState(null);
+  const bulkProgressTimer = useRef(null);
 
   // Última atualização em massa (botão "Desfazer" temporário)
   const [lastBulkUpdate, setLastBulkUpdate] = useState(null); // { id, status, count, expiresAt }
