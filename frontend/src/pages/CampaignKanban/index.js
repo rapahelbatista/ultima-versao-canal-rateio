@@ -157,6 +157,49 @@ const CampaignKanban = () => {
     }
   };
 
+  // Tick a cada 1s p/ contador regressivo + auto-dismiss do banner de undo
+  useEffect(() => {
+    if (!lastBulkUpdate) return;
+    const t = setInterval(() => setUndoTick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, [lastBulkUpdate]);
+  useEffect(() => {
+    if (!lastBulkUpdate) return;
+    if (Date.now() >= lastBulkUpdate.expiresAt) setLastBulkUpdate(null);
+  }, [undoTick, lastBulkUpdate]);
+
+  const undoBulkUpdate = async (bulkId) => {
+    if (!bulkId || undoing) return;
+    setUndoing(true);
+    try {
+      const { data } = await api.post(`/campaigns/bulk-updates/${bulkId}/undo`);
+      const restored = data?.restored ?? 0;
+      const failed = data?.failed ?? 0;
+      if (restored > 0 && failed === 0) {
+        toast.success(`Atualização revertida — ${restored} envio(s) restaurado(s)`);
+      } else if (restored > 0) {
+        toast.warn(`${restored} restaurado(s), ${failed} falharam`);
+      } else {
+        toast.error("Não foi possível desfazer");
+      }
+      setLastBulkUpdate(null);
+      // Atualiza histórico aberto e board
+      if (historyOpen) fetchHistory(historyScope);
+      if (historyDetail?.log?.id === bulkId) {
+        try {
+          const { data: refreshed } = await api.get(`/campaigns/bulk-updates/${bulkId}`);
+          setHistoryDetail(refreshed);
+        } catch { /* ignore */ }
+      }
+      fetchShipping();
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.response?.data?.message || "Falha ao desfazer";
+      toast.error(msg);
+    } finally {
+      setUndoing(false);
+    }
+  };
+
   const isSelected = (id) => selectedIds.has(id);
   const hasSelection = selectedIds.size > 0;
 
