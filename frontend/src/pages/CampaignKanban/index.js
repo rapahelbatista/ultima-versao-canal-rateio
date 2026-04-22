@@ -951,6 +951,161 @@ const CampaignKanban = () => {
       )}
 
       {/* Modal de detalhes do envio */}
+      {/* Modal de histórico de atualizações em massa */}
+      {historyOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
+          onClick={() => { setHistoryOpen(false); setHistoryDetail(null); }}
+        >
+          <div
+            className="w-full max-w-4xl max-h-[85vh] flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 bg-indigo-50 border-b border-indigo-100">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-700">
+                  <History size={18} />
+                </span>
+                <div>
+                  <h3 className="font-bold text-slate-800">Histórico de atualizações em massa</h3>
+                  <p className="text-[11px] text-slate-500">Quem atualizou, quando e quais envios foram afetados</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex rounded-xl border border-slate-200 bg-white p-0.5 text-[11px] font-semibold">
+                  <button
+                    onClick={() => { setHistoryScope("campaign"); fetchHistory("campaign"); setHistoryDetail(null); }}
+                    disabled={!campaignId}
+                    className={`px-3 py-1 rounded-lg ${historyScope === "campaign" ? "bg-indigo-500 text-white" : "text-slate-600 hover:bg-slate-100"} disabled:opacity-40`}
+                  >
+                    Esta campanha
+                  </button>
+                  <button
+                    onClick={() => { setHistoryScope("all"); fetchHistory("all"); setHistoryDetail(null); }}
+                    className={`px-3 py-1 rounded-lg ${historyScope === "all" ? "bg-indigo-500 text-white" : "text-slate-600 hover:bg-slate-100"}`}
+                  >
+                    Todas
+                  </button>
+                </div>
+                <button
+                  onClick={() => { setHistoryOpen(false); setHistoryDetail(null); }}
+                  className="rounded-lg p-2 text-slate-400 hover:bg-white hover:text-slate-700"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2">
+              {/* Lista */}
+              <div className="overflow-y-auto border-r border-slate-100">
+                {historyLoading ? (
+                  <div className="p-6 text-center text-sm text-slate-400">Carregando...</div>
+                ) : historyRecords.length === 0 ? (
+                  <div className="p-6 text-center text-sm text-slate-400">Nenhuma atualização em massa registrada.</div>
+                ) : (
+                  <ul className="divide-y divide-slate-100">
+                    {historyRecords.map((r) => {
+                      const col = COLUMNS.find((c) => c.id === r.newStatus);
+                      const cc = colorMap[col?.color || "amber"];
+                      const total = (Array.isArray(r.shippingIds) ? r.shippingIds.length : 0) || (r.successCount + r.failedCount);
+                      const isActive = historyDetail?.log?.id === r.id;
+                      return (
+                        <li key={r.id}>
+                          <button
+                            onClick={() => openHistoryDetail(r.id)}
+                            className={`w-full text-left px-4 py-3 hover:bg-indigo-50/40 transition-colors ${isActive ? "bg-indigo-50" : ""}`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                                  <UserIcon size={12} />
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-slate-800 truncate">
+                                    {r.userName || "Usuário desconhecido"}
+                                  </p>
+                                  <p className="text-[10px] text-slate-400">
+                                    {new Date(r.createdAt).toLocaleString("pt-BR")}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${cc.chip}`}>
+                                {col?.label || r.newStatus}
+                              </span>
+                            </div>
+                            <div className="mt-2 flex items-center gap-3 text-[11px] text-slate-500">
+                              <span>📦 {total} envio(s)</span>
+                              <span className="text-emerald-600">✓ {r.successCount}</span>
+                              {r.failedCount > 0 && <span className="text-rose-600">✗ {r.failedCount}</span>}
+                              {r.campaign?.name && (
+                                <span className="ml-auto truncate text-slate-400">📣 {r.campaign.name}</span>
+                              )}
+                            </div>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              {/* Detalhe */}
+              <div className="overflow-y-auto bg-slate-50">
+                {!historyDetail ? (
+                  <div className="p-6 text-center text-sm text-slate-400">
+                    Selecione um registro para ver os envios afetados.
+                  </div>
+                ) : historyDetailLoading ? (
+                  <div className="p-6 text-center text-sm text-slate-400">Carregando detalhes...</div>
+                ) : (
+                  <div className="p-4">
+                    <div className="mb-3 rounded-xl border border-slate-200 bg-white p-3 text-xs">
+                      <p className="font-bold text-slate-700">
+                        {historyDetail.log?.userName || "Usuário"} alterou {historyDetail.shippings?.length || 0} envio(s) para{" "}
+                        <span className="text-indigo-700">"{historyDetail.log?.newStatus}"</span>
+                      </p>
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        {historyDetail.log && new Date(historyDetail.log.createdAt).toLocaleString("pt-BR")}
+                        {" · "}
+                        Origem: {historyDetail.log?.source || "—"}
+                      </p>
+                    </div>
+                    <ul className="space-y-1">
+                      {(historyDetail.shippings || []).map((s) => (
+                        <li key={s.id}>
+                          <button
+                            onClick={() => {
+                              setHistoryOpen(false);
+                              setHistoryDetail(null);
+                              openDetails(s);
+                            }}
+                            className="w-full flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors"
+                          >
+                            <div className="min-w-0 text-left">
+                              <p className="font-semibold text-slate-700 truncate">
+                                {s.contact?.name || s.number || `#${s.id}`}
+                              </p>
+                              <p className="text-[10px] text-slate-400 truncate">{s.number}</p>
+                            </div>
+                            <ExternalLink size={12} className="text-indigo-500 shrink-0" />
+                          </button>
+                        </li>
+                      ))}
+                      {(!historyDetail.shippings || historyDetail.shippings.length === 0) && (
+                        <li className="text-center text-xs text-slate-400 py-4">
+                          Nenhum envio encontrado (podem ter sido removidos).
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {selected && (() => {
         const status = inferStatus(selected);
         const col = COLUMNS.find((c) => c.id === status);
