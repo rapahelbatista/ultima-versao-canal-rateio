@@ -1875,6 +1875,42 @@ const CampaignKanban = () => {
                   {filteredHistoryRecords.length} de {historyRecords.length} registro(s)
                 </p>
               )}
+
+              {/* Filtro por Status destino */}
+              <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mr-1">
+                  Status destino:
+                </span>
+                <button
+                  onClick={() => setHistoryStatusFilter("all")}
+                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border transition-colors ${
+                    historyStatusFilter === "all"
+                      ? "bg-indigo-500 text-white border-indigo-500"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                  }`}
+                >
+                  Todos ({historyRecords.length})
+                </button>
+                {COLUMNS.map((col) => {
+                  const count = historyStatusCounts[col.id] || 0;
+                  const cc = colorMap[col.color || "amber"];
+                  const active = historyStatusFilter === col.id;
+                  return (
+                    <button
+                      key={col.id}
+                      onClick={() => setHistoryStatusFilter(col.id)}
+                      disabled={count === 0}
+                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                        active
+                          ? `${cc.chip} border-transparent ring-2 ring-offset-1 ring-indigo-300`
+                          : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
+                      }`}
+                    >
+                      {col.label} ({count})
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2">
