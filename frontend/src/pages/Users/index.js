@@ -236,6 +236,10 @@ const Users = () => {
   const [deletingUser, setDeletingUser] = useState(null);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
 
+  // Live: status online + contagem de conversas (tickets) por usuário
+  const [onlineMap, setOnlineMap] = useState({}); // { [userId]: { online, lastSeen } }
+  const [ticketCounts, setTicketCounts] = useState({}); // { [userId]: number }
+
   useEffect(() => {
     dispatch({ type: "RESET" });
     setPageNumber(1);
