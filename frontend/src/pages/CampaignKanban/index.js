@@ -768,7 +768,7 @@ const CampaignKanban = () => {
         refetchTimer.current = null;
       }
     };
-  }, [socket, user?.companyId, campaignId, fetchShipping]);
+  }, [socket, user?.companyId, campaignId, fetchShipping, applyStatusLocally]);
 
   // grouped derivado do columnsState (paginação por coluna)
   const grouped = useMemo(() => ({
