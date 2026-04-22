@@ -762,6 +762,17 @@ const CampaignKanban = () => {
     campaignIdRef.current = campaignId ? Number(campaignId) : null;
   }, [campaignId]);
 
+  // Refs do histórico p/ uso dentro de handlers de socket sem rebind do efeito
+  const historyOpenRef = useRef(false);
+  const historyScopeRef = useRef("campaign");
+  const historyDetailRef = useRef(null);
+  const fetchHistoryRef = useRef(null);
+  useEffect(() => { historyOpenRef.current = historyOpen; }, [historyOpen]);
+  useEffect(() => { historyScopeRef.current = historyScope; }, [historyScope]);
+  useEffect(() => { historyDetailRef.current = historyDetail; }, [historyDetail]);
+  useEffect(() => { fetchHistoryRef.current = fetchHistory; }, [fetchHistory]);
+
+
   // Estado de conexão do socket: "connected" | "reconnecting" | "disconnected"
   const [connState, setConnState] = useState(() => (socket?.connected ? "connected" : "disconnected"));
   const [reconnectAttempt, setReconnectAttempt] = useState(0);
