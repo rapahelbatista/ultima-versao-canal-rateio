@@ -926,21 +926,21 @@ const CampaignKanban = () => {
     }
   };
 
-  const isSelected = (id) => selectedIds.has(id);
+  const isSelected = useCallback((id) => selectedIds.has(id), [selectedIds]);
   const hasSelection = selectedIds.size > 0;
 
-  const toggleSelect = (id) => {
+  const toggleSelect = useCallback((id) => {
     if (!id) return;
     setSelectedIds((prev) => {
       const n = new Set(prev);
       n.has(id) ? n.delete(id) : n.add(id);
       return n;
     });
-  };
+  }, []);
 
-  const clearSelection = () => setSelectedIds(new Set());
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
-  const selectAllInColumn = (items) => {
+  const selectAllInColumn = useCallback((items) => {
     setSelectedIds((prev) => {
       const n = new Set(prev);
       const ids = items.map((i) => i.id).filter(Boolean);
@@ -949,7 +949,7 @@ const CampaignKanban = () => {
       else ids.forEach((id) => n.add(id));
       return n;
     });
-  };
+  }, []);
 
   const bulkUpdateStatus = async (newStatus) => {
     if (!hasSelection || !campaignId) return;
