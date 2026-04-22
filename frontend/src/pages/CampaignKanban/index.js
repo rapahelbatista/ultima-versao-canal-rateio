@@ -1050,6 +1050,101 @@ const CampaignKanban = () => {
     setExportMenuOpen(false);
   }, [collectExportRows, campaigns, campaignId, quickFilter]);
 
+  // ---------- Export do histórico de bulk updates ----------
+  const statusLabelFor = useCallback((id) => {
+    const c = COLUMNS.find((x) => x.id === id);
+    return c?.label || id;
+  }, []);
+
+  const exportHistoryCSV = useCallback(() => {
+    const rows = filteredHistoryRecords;
+    if (rows.length === 0) { toast.warn("Nada para exportar"); return; }
+    const headers = ["ID", "Data", "Usuário", "Campanha", "Status destino", "Total", "Sucesso", "Falhas", "Origem", "Desfeito em", "Desfeito por"];
+    const esc = (v) => {
+      const s = String(v ?? "").replace(/"/g, '""');
+      return /[",\n;]/.test(s) ? `"${s}"` : s;
+    };
+    const lines = [headers.join(";")];
+    rows.forEach((r) => {
+      const total = (Array.isArray(r.shippingIds) ? r.shippingIds.length : 0) || ((r.successCount || 0) + (r.failedCount || 0));
+      lines.push([
+        r.id,
+        formatDateBR(r.createdAt),
+        r.userName || "",
+        r.campaign?.name || "",
+        statusLabelFor(r.newStatus),
+        total,
+        r.successCount ?? 0,
+        r.failedCount ?? 0,
+        r.source || "",
+        r.undoneAt ? formatDateBR(r.undoneAt) : "",
+        r.undoneByUserName || "",
+      ].map(esc).join(";"));
+    });
+    const csv = "\uFEFF" + lines.join("\n");
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    downloadFile(`historico_bulk_${stamp}.csv`, csv, "text/csv;charset=utf-8");
+    toast.success(`${rows.length} registro(s) exportados`);
+  }, [filteredHistoryRecords, statusLabelFor]);
+
+  const exportHistoryPDF = useCallback(() => {
+    const rows = filteredHistoryRecords;
+    if (rows.length === 0) { toast.warn("Nada para exportar"); return; }
+    const generatedAt = new Date().toLocaleString("pt-BR");
+    const escHtml = (s) => String(s ?? "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const statusBadge = (s) => {
+      const label = statusLabelFor(s);
+      return `<span style="background:#e0e7ff;color:#3730a3;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600">${escHtml(label)}</span>`;
+    };
+    const tableRows = rows.map((r) => {
+      const total = (Array.isArray(r.shippingIds) ? r.shippingIds.length : 0) || ((r.successCount || 0) + (r.failedCount || 0));
+      return `
+        <tr>
+          <td style="font-family:monospace;color:#475569">#${escHtml(r.id)}</td>
+          <td>${escHtml(r.userName || "—")}<div style="color:#64748b;font-size:10px">${escHtml(formatDateBR(r.createdAt))}</div></td>
+          <td>${escHtml(r.campaign?.name || "—")}</td>
+          <td>${statusBadge(r.newStatus)}</td>
+          <td style="text-align:center">${total}</td>
+          <td style="text-align:center;color:#059669;font-weight:600">${r.successCount ?? 0}</td>
+          <td style="text-align:center;color:${(r.failedCount||0)>0?"#b91c1c":"#94a3b8"};font-weight:600">${r.failedCount ?? 0}</td>
+          <td style="font-size:10px;color:#475569">
+            ${r.undoneAt ? `<span style="color:#b91c1c">Desfeito ${escHtml(formatDateBR(r.undoneAt))}${r.undoneByUserName ? " por " + escHtml(r.undoneByUserName) : ""}</span>` : ""}
+          </td>
+        </tr>`;
+    }).join("");
+    const filterInfo = [
+      historyScope === "campaign" ? "Esta campanha" : "Todas as campanhas",
+      historyStatusFilter !== "all" ? `Status: ${statusLabelFor(historyStatusFilter)}` : null,
+      historySearch ? `Busca: "${historySearch}"` : null,
+    ].filter(Boolean).join(" • ");
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/>
+<title>Histórico de atualizações em massa</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px;color:#0f172a}
+  h1{font-size:18px;margin:0 0 4px}
+  .meta{color:#64748b;font-size:11px;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th{background:#f1f5f9;text-align:left;padding:8px;border-bottom:2px solid #cbd5e1;text-transform:uppercase;font-size:10px;letter-spacing:.04em}
+  td{padding:8px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+  tr:nth-child(even) td{background:#fafafa}
+  @media print{ @page{size:A4 landscape;margin:12mm} }
+</style></head><body>
+<h1>Histórico de atualizações em massa</h1>
+<div class="meta">Gerado em ${escHtml(generatedAt)} • ${rows.length} registro(s)${filterInfo ? ` • ${escHtml(filterInfo)}` : ""}</div>
+<table>
+  <thead><tr><th>ID</th><th>Usuário / Data</th><th>Campanha</th><th>Status destino</th><th>Total</th><th>OK</th><th>Falhas</th><th>Observações</th></tr></thead>
+  <tbody>${tableRows}</tbody>
+</table>
+<script>window.onload=()=>{setTimeout(()=>window.print(),300)}</script>
+</body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) { toast.error("Bloqueado pelo navegador. Permita pop-ups."); return; }
+    w.document.open(); w.document.write(html); w.document.close();
+    toast.success(`${rows.length} registro(s) prontos para PDF`);
+  }, [filteredHistoryRecords, historyScope, historyStatusFilter, historySearch, statusLabelFor]);
+
 
   const onDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
