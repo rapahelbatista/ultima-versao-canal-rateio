@@ -53,6 +53,8 @@ import useSettings from "../hooks/useSettings";
 import VersionControl from "../components/VersionControl";
 import useSocketListener from "../hooks/useSocketListener";
 import { FaGlobe } from "react-icons/fa";
+import LanguagePill from "../components/LanguagePill";
+import UserProfileMenu from "../components/UserProfileMenu";
 
 const backendUrl = getBackendUrl();
 const drawerWidth = 240;
@@ -830,58 +832,12 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
                 onUpdateComplete={handleUpdateComplete}
               />
 
-              <div
-                style={{ position: "relative", display: "inline-block" }}
-                className="language-dropdown"
-              >
-                <button
-                  onClick={() => setShowOptions(!showOptions)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "white",
-                    cursor: "pointer",
-                    fontSize: "22px",
-                    paddingRight: "20px",
-                    paddingTop: "8px",
-                  }}
-                >
-                  <FaGlobe />
-                </button>
-
-                {showOptions && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "35px",
-                      left: "0",
-                      background: "#fff",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                      borderRadius: "8px",
-                      padding: "8px",
-                      zIndex: 1000,
-                      minWidth: "120px",
-                      maxWidth: "200px",
-                    }}
-                  >
-                    {filteredLanguageOptions.map((lang) => (
-                      <button
-                        key={lang.code}
-                        onClick={() => handleLanguageChange(lang.code)}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          display: "block",
-                          width: "100%",
-                          padding: "4px",
-                        }}
-                      >
-                        {lang.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
+              <div className="language-dropdown" style={{ display: "inline-flex", alignItems: "center" }}>
+                <LanguagePill
+                  value={i18n.language || localStorage.getItem("language") || "pt-BR"}
+                  options={filteredLanguageOptions}
+                  onChange={handleLanguageChange}
+                />
               </div>
 
               <IconButton edge="start" onClick={colorMode.toggleColorMode}>
@@ -913,21 +869,14 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
 
 
               <div className="user-menu-wrapper">
-                <StyledBadge
-                  overlap="circular"
-                  anchorOrigin={{
-                    vertical: "bottom",
-                    horizontal: "right",
-                  }}
-                  variant="dot"
-                  onClick={handleMenu}
-                >
-                  <Avatar
-                    alt="Multi100"
-                    className={classes.avatar2}
-                    src={profileUrl}
-                  />
-                </StyledBadge>
+                <UserProfileMenu
+                  name={user?.name || "Usuário"}
+                  email={user?.email || ""}
+                  avatarUrl={profileUrl}
+                  isPro={Boolean(user?.company?.plan?.name) || Boolean(user?.super)}
+                  onProfile={() => setUserModalOpen(true)}
+                  onLogout={handleClickLogout}
+                />
 
                 <UserModal
                   open={userModalOpen}
@@ -935,36 +884,6 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
                   onImageUpdate={(newProfileUrl) => setProfileUrl(newProfileUrl)}
                   userId={user?.id}
                 />
-
-                <Menu
-                  id="menu-appbar"
-                  anchorEl={anchorEl}
-                  getContentAnchorEl={null}
-                  anchorOrigin={{
-                    vertical: "bottom",
-                    horizontal: "right",
-                  }}
-                  transformOrigin={{
-                    vertical: "top",
-                    horizontal: "right",
-                  }}
-                  open={menuOpen}
-                  onClose={handleCloseMenu}
-                  PaperProps={{
-                    style: {
-                      minWidth: "150px",
-                      maxWidth: "200px",
-                      width: "auto",
-                    },
-                  }}
-                >
-                  <MenuItem onClick={handleOpenUserModal}>
-                    {i18n.t("mainDrawer.appBar.user.profile")}
-                  </MenuItem>
-                  <MenuItem onClick={handleClickLogout}>
-                    {i18n.t("mainDrawer.appBar.user.logout")}
-                  </MenuItem>
-                </Menu>
               </div>
             </>
           )}
