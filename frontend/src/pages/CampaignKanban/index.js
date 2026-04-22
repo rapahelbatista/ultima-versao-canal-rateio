@@ -68,6 +68,7 @@ import MainContainer from "../../components/MainContainer";
 import MainHeader from "../../components/MainHeader";
 import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
 import Title from "../../components/Title";
+import KanbanSpinner from "./KanbanSpinner";
 
 const useKanbanHeaderStyles = makeStyles((theme) => ({
   headerControl: {
@@ -2156,7 +2157,11 @@ const CampaignKanban = () => {
             variant="contained"
             color="primary"
             startIcon={
-              <RefreshIcon className={loading ? "kanban-spin" : ""} />
+              loading ? (
+                <KanbanSpinner size={16} color="inherit" inline />
+              ) : (
+                <RefreshIcon />
+              )
             }
             onClick={fetchShipping}
             disabled={loading}
@@ -2625,7 +2630,7 @@ const CampaignKanban = () => {
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: tone.text }}>
-                {phase === "processing" && <RefreshCcw size={12} className="kanban-spin" />}
+                {phase === "processing" && <KanbanSpinner size={12} color={tone.text} inline />}
                 {phase === "done" && <CheckCheck size={12} />}
                 {phase === "error" && <AlertCircle size={12} />}
                 {phase === "processing" && `Atualizando para "${statusLabel}"`}
@@ -2935,8 +2940,7 @@ const CampaignKanban = () => {
             <div className={headerClasses.historyListWrapper}>
               {historyLoading ? (
                 <div className={headerClasses.historyEmpty}>
-                  <CircularProgress size={20} />
-                  <div style={{ marginTop: 8 }}>Carregando...</div>
+                  <KanbanSpinner size={20} label="Carregando..." />
                 </div>
               ) : historyRecords.length === 0 ? (
                 <div className={headerClasses.historyEmpty}>Nenhuma atualização em massa registrada.</div>
@@ -3015,8 +3019,7 @@ const CampaignKanban = () => {
                 </div>
               ) : historyDetailLoading ? (
                 <div className={headerClasses.historyEmpty}>
-                  <CircularProgress size={20} />
-                  <div style={{ marginTop: 8 }}>Carregando detalhes...</div>
+                  <KanbanSpinner size={20} label="Carregando detalhes..." />
                 </div>
               ) : (
                 <div>
@@ -3217,7 +3220,7 @@ const CampaignKanban = () => {
                   disabled={!isFailed || saving || messageError}
                   variant="contained"
                   color="primary"
-                  startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon fontSize="small" />}
+                  startIcon={saving ? <KanbanSpinner size={14} color="inherit" inline /> : <SaveIcon fontSize="small" />}
                   className={headerClasses.dialogButton}
                 >
                   {saving ? "Salvando..." : "Salvar"}
@@ -3311,7 +3314,11 @@ const LiveBadge = ({ tick, state = "disconnected", attempt = 0, onRetry }) => {
             padding: 6, color: "#64748b", cursor: "pointer",
           }}
         >
-          <RefreshCcw size={12} className={isReconnecting ? "kanban-spin" : ""} />
+          {isReconnecting ? (
+            <KanbanSpinner size={12} color="#64748b" inline />
+          ) : (
+            <RefreshCcw size={12} />
+          )}
         </button>
       )}
     </div>
