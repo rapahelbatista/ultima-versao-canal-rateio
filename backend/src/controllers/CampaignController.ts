@@ -16,6 +16,8 @@ import CampaignStatsService from "../services/CampaignService/CampaignStatsServi
 
 import Campaign from "../models/Campaign";
 import CampaignShipping from "../models/CampaignShipping";
+import CampaignBulkUpdate from "../models/CampaignBulkUpdate";
+import User from "../models/User";
 import { Op, fn, col, literal } from "sequelize";
 
 import ContactTag from "../models/ContactTag";
