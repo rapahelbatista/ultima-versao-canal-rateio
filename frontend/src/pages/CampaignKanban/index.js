@@ -199,6 +199,31 @@ const CampaignKanban = () => {
   // phase: "processing" | "done" | "error"
   const [bulkProgress, setBulkProgress] = useState(null);
   const bulkProgressTimer = useRef(null);
+  // Confirmação pendente após drag de um card selecionado (move massa)
+  const [pendingBulkMove, setPendingBulkMove] = useState(null); // { newStatus, count, sourceStatus }
+  // IDs movidos recentemente (destaque visual + alvo do scroll). Limpo após ~3s.
+  const [recentlyMovedIds, setRecentlyMovedIds] = useState(() => new Set());
+  const recentlyMovedTimer = useRef(null);
+  const markRecentlyMoved = useCallback((ids, targetStatus) => {
+    const idSet = new Set(ids.map((x) => Number(x)).filter(Boolean));
+    if (idSet.size === 0) return;
+    setRecentlyMovedIds(idSet);
+    if (recentlyMovedTimer.current) clearTimeout(recentlyMovedTimer.current);
+    recentlyMovedTimer.current = setTimeout(() => setRecentlyMovedIds(new Set()), 3000);
+    // Garante que o primeiro card movido fique visível na coluna alvo
+    requestAnimationFrame(() => {
+      const container = columnScrollRefs.current?.[targetStatus];
+      if (!container) return;
+      const firstId = ids.find((id) => id != null);
+      if (firstId == null) return;
+      const node = container.querySelector(`[data-shipping-id="${firstId}"]`);
+      if (node && typeof node.scrollIntoView === "function") {
+        node.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else {
+        container.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
+  }, []);
 
   // Última atualização em massa (botão "Desfazer" temporário)
   const [lastBulkUpdate, setLastBulkUpdate] = useState(null); // { id, status, count, expiresAt }
