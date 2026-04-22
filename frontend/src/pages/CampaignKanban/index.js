@@ -432,9 +432,20 @@ const CampaignKanban = () => {
                     </span>
                     <span className={`text-sm font-bold ${c.text}`}>{col.label}</span>
                   </div>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${c.chip}`}>
-                    {items.length}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {items.some((i) => i.id) && (
+                      <button
+                        onClick={() => selectAllInColumn(items)}
+                        title="Selecionar todos desta coluna"
+                        className={`text-[10px] font-semibold underline-offset-2 hover:underline ${c.text} opacity-70 hover:opacity-100`}
+                      >
+                        {items.filter((i) => i.id).every((i) => isSelected(i.id)) ? "Limpar" : "Todos"}
+                      </button>
+                    )}
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${c.chip}`}>
+                      {items.length}
+                    </span>
+                  </div>
                 </div>
                 <Droppable droppableId={col.id}>
                   {(provided, snapshot) => (
