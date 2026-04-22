@@ -324,6 +324,7 @@ const CampaignLayout = ({ children }) => {
   const location = useLocation();
   const history = useHistory();
   const [collapsed, setCollapsed] = useState(false);
+  const { allowed: canManageMeta } = useCanManageMeta();
 
   const initials = useMemo(() => {
     const name = user?.name || "U";
