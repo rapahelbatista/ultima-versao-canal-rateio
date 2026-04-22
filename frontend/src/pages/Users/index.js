@@ -232,6 +232,7 @@ const Users = () => {
     comments: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [lastCreated, setLastCreated] = useState(null); // { name, email } | null
 
   // Edit modal
   const [editingUser, setEditingUser] = useState(null);
