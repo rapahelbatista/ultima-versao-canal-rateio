@@ -1817,65 +1817,93 @@ const CampaignKanban = () => {
 
             <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2">
               {/* Lista */}
-              <div className="overflow-y-auto border-r border-slate-100">
+              <div ref={historyListRef} className="overflow-y-auto border-r border-slate-100">
                 {historyLoading ? (
                   <div className="p-6 text-center text-sm text-slate-400">Carregando...</div>
                 ) : historyRecords.length === 0 ? (
                   <div className="p-6 text-center text-sm text-slate-400">Nenhuma atualização em massa registrada.</div>
                 ) : (
-                  <ul className="divide-y divide-slate-100">
-                    {historyRecords.map((r) => {
-                      const col = COLUMNS.find((c) => c.id === r.newStatus);
-                      const cc = colorMap[col?.color || "amber"];
-                      const total = (Array.isArray(r.shippingIds) ? r.shippingIds.length : 0) || (r.successCount + r.failedCount);
-                      const isActive = historyDetail?.log?.id === r.id;
-                      return (
-                        <li key={r.id}>
-                          <button
-                            onClick={() => openHistoryDetail(r.id)}
-                            className={`w-full text-left px-4 py-3 hover:bg-indigo-50/40 transition-colors ${isActive ? "bg-indigo-50" : ""}`}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                                  <UserIcon size={12} />
-                                </span>
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold text-slate-800 truncate">
-                                    {r.userName || "Usuário desconhecido"}
-                                  </p>
-                                  <p className="text-[10px] text-slate-400">
-                                    {new Date(r.createdAt).toLocaleString("pt-BR")}
-                                  </p>
+                  <>
+                    <ul className="divide-y divide-slate-100">
+                      {historyRecords.map((r) => {
+                        const col = COLUMNS.find((c) => c.id === r.newStatus);
+                        const cc = colorMap[col?.color || "amber"];
+                        const total = (Array.isArray(r.shippingIds) ? r.shippingIds.length : 0) || (r.successCount + r.failedCount);
+                        const isActive = historyDetail?.log?.id === r.id;
+                        return (
+                          <li key={r.id}>
+                            <button
+                              onClick={() => openHistoryDetail(r.id)}
+                              className={`w-full text-left px-4 py-3 hover:bg-indigo-50/40 transition-colors ${isActive ? "bg-indigo-50" : ""}`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                                    <UserIcon size={12} />
+                                  </span>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-bold text-slate-800 truncate">
+                                      {r.userName || "Usuário desconhecido"}
+                                    </p>
+                                    <p className="text-[10px] text-slate-400">
+                                      {new Date(r.createdAt).toLocaleString("pt-BR")}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="shrink-0 flex items-center gap-1">
+                                  {r.undoneAt && (
+                                    <span
+                                      title={`Desfeito em ${new Date(r.undoneAt).toLocaleString("pt-BR")}`}
+                                      className="inline-flex items-center gap-0.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-500"
+                                    >
+                                      <Undo2 size={9} /> desfeito
+                                    </span>
+                                  )}
+                                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${cc.chip}`}>
+                                    {col?.label || r.newStatus}
+                                  </span>
                                 </div>
                               </div>
-                              <div className="shrink-0 flex items-center gap-1">
-                                {r.undoneAt && (
-                                  <span
-                                    title={`Desfeito em ${new Date(r.undoneAt).toLocaleString("pt-BR")}`}
-                                    className="inline-flex items-center gap-0.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-500"
-                                  >
-                                    <Undo2 size={9} /> desfeito
-                                  </span>
+                              <div className="mt-2 flex items-center gap-3 text-[11px] text-slate-500">
+                                <span>📦 {total} envio(s)</span>
+                                <span className="text-emerald-600">✓ {r.successCount}</span>
+                                {r.failedCount > 0 && <span className="text-rose-600">✗ {r.failedCount}</span>}
+                                {r.campaign?.name && (
+                                  <span className="ml-auto truncate text-slate-400">📣 {r.campaign.name}</span>
                                 )}
-                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${cc.chip}`}>
-                                  {col?.label || r.newStatus}
-                                </span>
                               </div>
-                            </div>
-                            <div className="mt-2 flex items-center gap-3 text-[11px] text-slate-500">
-                              <span>📦 {total} envio(s)</span>
-                              <span className="text-emerald-600">✓ {r.successCount}</span>
-                              {r.failedCount > 0 && <span className="text-rose-600">✗ {r.failedCount}</span>}
-                              {r.campaign?.name && (
-                                <span className="ml-auto truncate text-slate-400">📣 {r.campaign.name}</span>
-                              )}
-                            </div>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {/* Infinite scroll sentinel + botão "Carregar mais" */}
+                    {historyHasMore && (
+                      <>
+                        <InfiniteSentinel
+                          rootRef={historyListRef}
+                          disabled={historyLoadingMore}
+                          onReach={loadMoreHistory}
+                        />
+                        <div className="p-3 border-t border-slate-100">
+                          <button
+                            onClick={loadMoreHistory}
+                            disabled={historyLoadingMore}
+                            className="w-full rounded-xl border border-indigo-200 bg-white py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
+                          >
+                            {historyLoadingMore
+                              ? "Carregando..."
+                              : `Carregar mais${historyTotal ? ` (${Math.max(historyTotal - historyRecords.length, 0)} restantes)` : ""}`}
                           </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                        </div>
+                      </>
+                    )}
+                    {!historyHasMore && historyRecords.length > 0 && (
+                      <div className="p-3 text-center text-[11px] text-slate-400 border-t border-slate-100">
+                        Fim da lista — {historyRecords.length} registro(s) carregado(s)
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
