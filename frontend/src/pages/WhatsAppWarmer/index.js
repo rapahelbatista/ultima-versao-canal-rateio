@@ -266,11 +266,21 @@ const WhatsAppWarmer = () => {
 
   return (
     <div className={classes.root}>
-      <PageHeader
-        icon={<Flame size={22} />}
-        title="Aquecedor de WhatsApp"
-        subtitle="Comportamento humano automatizado para mensagens mais seguras."
-      />
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <PageHeader
+          icon={<Flame size={22} />}
+          title="Aquecedor de WhatsApp"
+          subtitle="Comportamento humano automatizado para mensagens mais seguras."
+        />
+        <div style={{ marginTop: 8 }}>
+          <SyncStatusBadge
+            status={syncStatus}
+            lastSavedAt={lastSavedAt}
+            errorMessage={syncError}
+            onRetry={retrySync}
+          />
+        </div>
+      </div>
 
       <div className={classes.tabs}>
         <button
@@ -309,11 +319,6 @@ const WhatsAppWarmer = () => {
             <div className={classes.listHeader}>
               <div className={classes.listTitle}>
                 Mensagens
-                {saving && (
-                  <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 500, color: "#10b981" }}>
-                    salvando…
-                  </span>
-                )}
               </div>
               <Chip
                 size="small"
@@ -432,11 +437,12 @@ const WhatsAppWarmer = () => {
           </div>
 
           <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12 }}>
-            {saving && (
-              <span style={{ fontSize: 12, color: "#10b981", fontWeight: 600 }}>
-                salvando…
-              </span>
-            )}
+            <SyncStatusBadge
+              status={syncStatus}
+              lastSavedAt={lastSavedAt}
+              errorMessage={syncError}
+              onRetry={retrySync}
+            />
             <Button
               variant="contained"
               disabled={saving || loading}
