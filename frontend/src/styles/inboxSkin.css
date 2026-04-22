@@ -122,22 +122,63 @@
   background: var(--inbox-bg) !important;
 }
 
-/* Bolhas: enviado por mim (à direita) — verde claro */
+/* Bolhas: enviado por mim (à direita) — verde sólido tipo WhatsApp */
 .inbox-skin [class*="messageRight"],
 .inbox-skin [class*="messageOut"] {
-  background: var(--inbox-green-light) !important;
-  color: var(--inbox-text) !important;
-  border-radius: 14px 14px 4px 14px !important;
-  box-shadow: 0 1px 2px rgba(0,0,0,.05) !important;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
+  border-radius: 18px 18px 4px 18px !important;
+  box-shadow: 0 2px 6px rgba(16,185,129,.25) !important;
+}
+.inbox-skin [class*="messageRight"] *,
+.inbox-skin [class*="messageOut"] * {
+  color: #ffffff !important;
+}
+.inbox-skin [class*="messageRight"] [class*="timestamp"],
+.inbox-skin [class*="messageOut"] [class*="timestamp"] {
+  color: rgba(255,255,255,.85) !important;
 }
 
-/* Bolhas: recebidas — branco */
+/* Bolhas: recebidas — branco arredondado */
 .inbox-skin [class*="messageLeft"],
 .inbox-skin [class*="messageIn"] {
-  background: #fff !important;
+  background: #ffffff !important;
   color: var(--inbox-text) !important;
-  border-radius: 14px 14px 14px 4px !important;
-  box-shadow: 0 1px 2px rgba(0,0,0,.05) !important;
+  border-radius: 18px 18px 18px 4px !important;
+  box-shadow: 0 1px 3px rgba(15,23,42,.06) !important;
+}
+
+/* Tags coloridas por nome (Telegram / Important / Meta) */
+.inbox-skin .MuiChip-root[class*="Telegram" i] {
+  background: var(--inbox-tag-telegram) !important;
+  color: var(--inbox-tag-telegram-fg) !important;
+}
+.inbox-skin .MuiChip-root[class*="Important" i] {
+  background: var(--inbox-tag-important) !important;
+  color: var(--inbox-tag-important-fg) !important;
+}
+.inbox-skin .MuiChip-root[class*="Meta" i] {
+  background: var(--inbox-tag-meta) !important;
+  color: var(--inbox-tag-meta-fg) !important;
+}
+
+/* Header do ticket: avatar verde + título e subtítulo (telefone) empilhados */
+.inbox-skin [class*="ticketHeader"] [class*="contactDetails"],
+.inbox-skin [class*="TicketHeader"] [class*="contactDetails"] {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+.inbox-skin [class*="ticketHeader"] [class*="contactNameWrapper"] strong,
+.inbox-skin [class*="TicketHeader"] [class*="contactNameWrapper"] strong {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: var(--inbox-text) !important;
+}
+.inbox-skin [class*="ticketHeader"] [class*="contactNameWrapper"] span,
+.inbox-skin [class*="TicketHeader"] [class*="contactNameWrapper"] span {
+  font-size: 12px !important;
+  color: var(--inbox-muted) !important;
 }
 
 /* Separador de data */
