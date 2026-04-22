@@ -373,26 +373,6 @@ const Users = () => {
     }
   };
 
-  const handleToggleActive = async (user) => {
-    // active=true → admin/user normal; active=false → bloqueia via tokenVersion incrementando
-    const nextActive = !(user.active === false);
-    try {
-      // Tenta endpoint dedicado se existir; se não, faz update do profile genérico
-      await api.put(`/users/${user.id}`, { ...user, active: !nextActive });
-      dispatch({
-        type: "UPDATE_USERS",
-        payload: { ...user, active: !nextActive },
-      });
-      toast.success(nextActive ? "Agente desativado" : "Agente ativado");
-    } catch (err) {
-      const msg =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        "Não foi possível alterar o status";
-      toast.error(msg);
-    }
-  };
-
   const handleViewConversations = (user) => {
     history.push(`/inbox?userId=${user.id}`);
   };
