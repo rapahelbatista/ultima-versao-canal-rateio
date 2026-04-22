@@ -424,7 +424,12 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
           <ArrowLeft size={14} /> Voltar para a lista
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {saving && <span className={classes.savingTag}>salvando…</span>}
+          <SyncStatusBadge
+            status={syncStatus}
+            lastSavedAt={lastSavedAt}
+            errorMessage={syncError}
+            onRetry={retrySync}
+          />
           <Button
             size="small"
             variant="outlined"
