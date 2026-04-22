@@ -56,6 +56,7 @@ import useSocketListener from "../hooks/useSocketListener";
 import { FaGlobe } from "react-icons/fa";
 import LanguagePill from "../components/LanguagePill";
 import UserProfileMenu from "../components/UserProfileMenu";
+import usePlanStatus from "../hooks/usePlanStatus";
 
 const backendUrl = getBackendUrl();
 const drawerWidth = 240;
@@ -404,6 +405,7 @@ const SmallAvatar = withStyles((theme) => ({
 const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
   const classes = useStyles();
   const history = useHistory();
+  const { isPro, subscriptionLabel } = usePlanStatus();
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -875,7 +877,8 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
                   name={user?.name || "Usuário"}
                   email={user?.email || ""}
                   avatarUrl={profileUrl}
-                  isPro={Boolean(user?.company?.plan?.name) || Boolean(user?.super)}
+                  isPro={isPro}
+                  subscriptionLabel={subscriptionLabel}
                   onProfile={() => setUserModalOpen(true)}
                   onSubscription={() => history.push("/financeiro")}
                   onLogout={handleClickLogout}

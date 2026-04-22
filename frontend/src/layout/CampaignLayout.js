@@ -49,6 +49,7 @@ import {
 import useCanManageMeta from "../hooks/useCanManageMeta";
 import LanguagePill from "../components/LanguagePill";
 import UserProfileMenu from "../components/UserProfileMenu";
+import usePlanStatus from "../hooks/usePlanStatus";
 import { i18n } from "../translate/i18n";
 
 const drawerWidth = 260;
