@@ -31,6 +31,7 @@ import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import useAutoSaveFlush from "../../hooks/useAutoSaveFlush";
 import MetaTemplateVersionsDialog from "./MetaTemplateVersionsDialog";
+import SyncStatusBadge from "../../components/SyncStatusBadge";
 
 const STEPS = [
   "Informações Básicas",
@@ -220,6 +221,9 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
   const [showPreview, setShowPreview] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [syncStatus, setSyncStatus] = useState("idle");
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [syncError, setSyncError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const [name, setName] = useState("");
@@ -284,22 +288,41 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
     payload: { headerFmt, headerText, body, footer, buttonType, variableValues },
   }), [name, templateType, language, category, step, headerFmt, headerText, body, footer, buttonType, variableValues]);
 
+  const persist = useCallback(async (extra = {}) => {
+    setSaving(true);
+    setSyncStatus("saving");
+    try {
+      await api.put(`/meta-templates/${templateId}`, { ...collectPayload(), ...extra });
+      setSyncStatus("saved");
+      setLastSavedAt(Date.now());
+      setSyncError("");
+    } catch (err) {
+      setSyncStatus("error");
+      const msg =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Falha ao sincronizar com o servidor";
+      setSyncError(msg);
+      throw err;
+    } finally {
+      setSaving(false);
+    }
+  }, [collectPayload, templateId]);
+
+  const retrySync = useCallback(() => {
+    persist().catch((err) => toastError(err));
+  }, [persist]);
+
   useEffect(() => {
     if (loading) return;
     if (skipNextSave.current) { skipNextSave.current = false; return; }
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
-      try {
-        setSaving(true);
-        await api.put(`/meta-templates/${templateId}`, collectPayload());
-      } catch (err) {
-        toastError(err);
-      } finally {
-        setSaving(false);
-      }
+    saveTimer.current = setTimeout(() => {
+      persist().catch(() => { /* erro já refletido no badge */ });
     }, 700);
     return () => saveTimer.current && clearTimeout(saveTimer.current);
-  }, [collectPayload, loading, templateId]);
+  }, [collectPayload, loading, persist]);
 
   // Flush ao sair da página (refresh, fechar aba, navegar) ou desmontar.
   const payloadRef = useRef(collectPayload);
@@ -401,7 +424,12 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
           <ArrowLeft size={14} /> Voltar para a lista
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {saving && <span className={classes.savingTag}>salvando…</span>}
+          <SyncStatusBadge
+            status={syncStatus}
+            lastSavedAt={lastSavedAt}
+            errorMessage={syncError}
+            onRetry={retrySync}
+          />
           <Button
             size="small"
             variant="outlined"

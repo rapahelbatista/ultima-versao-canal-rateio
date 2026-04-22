@@ -25,6 +25,7 @@ import PageHeader from "../../components/PageHeader";
 import SectionCard from "../../components/SectionCard";
 import useAutoSaveFlush from "../../hooks/useAutoSaveFlush";
 import WarmerHistory from "./WarmerHistory";
+import SyncStatusBadge from "../../components/SyncStatusBadge";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -172,10 +173,39 @@ const WhatsAppWarmer = () => {
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [syncStatus, setSyncStatus] = useState("idle"); // idle | saving | saved | error
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [syncError, setSyncError] = useState("");
   const skipNextSave = useRef(true);
   const saveTimer = useRef(null);
   const stateRef = useRef({ messages, config });
   stateRef.current = { messages, config };
+
+  const persist = useCallback(async (payload) => {
+    setSaving(true);
+    setSyncStatus("saving");
+    try {
+      await api.put("/warmer-settings", payload);
+      setSyncStatus("saved");
+      setLastSavedAt(Date.now());
+      setSyncError("");
+    } catch (err) {
+      setSyncStatus("error");
+      const msg =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Falha ao sincronizar com o servidor";
+      setSyncError(msg);
+      throw err;
+    } finally {
+      setSaving(false);
+    }
+  }, []);
+
+  const retrySync = useCallback(() => {
+    persist(stateRef.current).catch((err) => toastError(err));
+  }, [persist]);
 
   useAutoSaveFlush(async () => {
     if (saveTimer.current) {
@@ -208,18 +238,11 @@ const WhatsAppWarmer = () => {
     if (loading) return;
     if (skipNextSave.current) { skipNextSave.current = false; return; }
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
-      try {
-        setSaving(true);
-        await api.put("/warmer-settings", { messages, config });
-      } catch (err) {
-        toastError(err);
-      } finally {
-        setSaving(false);
-      }
+    saveTimer.current = setTimeout(() => {
+      persist({ messages, config }).catch(() => { /* erro já refletido no badge */ });
     }, 600);
     return () => saveTimer.current && clearTimeout(saveTimer.current);
-  }, [messages, config, loading]);
+  }, [messages, config, loading, persist]);
 
   const addMsg = () => {
     const v = draft.trim();
@@ -234,23 +257,30 @@ const WhatsAppWarmer = () => {
 
   const handleSaveConfig = async () => {
     try {
-      setSaving(true);
-      await api.put("/warmer-settings", { messages, config });
+      await persist({ messages, config });
       toast.success("Configurações salvas");
     } catch (err) {
       toastError(err);
-    } finally {
-      setSaving(false);
     }
   };
 
   return (
     <div className={classes.root}>
-      <PageHeader
-        icon={<Flame size={22} />}
-        title="Aquecedor de WhatsApp"
-        subtitle="Comportamento humano automatizado para mensagens mais seguras."
-      />
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <PageHeader
+          icon={<Flame size={22} />}
+          title="Aquecedor de WhatsApp"
+          subtitle="Comportamento humano automatizado para mensagens mais seguras."
+        />
+        <div style={{ marginTop: 8 }}>
+          <SyncStatusBadge
+            status={syncStatus}
+            lastSavedAt={lastSavedAt}
+            errorMessage={syncError}
+            onRetry={retrySync}
+          />
+        </div>
+      </div>
 
       <div className={classes.tabs}>
         <button
@@ -289,11 +319,6 @@ const WhatsAppWarmer = () => {
             <div className={classes.listHeader}>
               <div className={classes.listTitle}>
                 Mensagens
-                {saving && (
-                  <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 500, color: "#10b981" }}>
-                    salvando…
-                  </span>
-                )}
               </div>
               <Chip
                 size="small"
@@ -412,11 +437,12 @@ const WhatsAppWarmer = () => {
           </div>
 
           <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12 }}>
-            {saving && (
-              <span style={{ fontSize: 12, color: "#10b981", fontWeight: 600 }}>
-                salvando…
-              </span>
-            )}
+            <SyncStatusBadge
+              status={syncStatus}
+              lastSavedAt={lastSavedAt}
+              errorMessage={syncError}
+              onRetry={retrySync}
+            />
             <Button
               variant="contained"
               disabled={saving || loading}
