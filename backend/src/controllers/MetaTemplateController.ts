@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import MetaTemplate from "../models/MetaTemplate";
+import MetaTemplateVersion from "../models/MetaTemplateVersion";
 import AppError from "../errors/AppError";
 
 const ALLOWED_STATUS = ["draft", "pending", "approved", "rejected"];
@@ -79,6 +80,39 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
       status && ALLOWED_STATUS.includes(status) ? status : template.status,
     statusReason: statusReason ?? template.statusReason
   });
+
+  // Snapshot automático (1/60s por template, mantém últimas 50)
+  try {
+    const last = await MetaTemplateVersion.findOne({
+      where: { templateId: template.id, companyId },
+      order: [["createdAt", "DESC"]]
+    });
+    const now = Date.now();
+    const lastTs = last ? new Date(last.createdAt).getTime() : 0;
+    if (!last || now - lastTs > 60_000) {
+      await MetaTemplateVersion.create({
+        templateId: template.id,
+        companyId,
+        snapshot: {
+          name: template.name,
+          templateType: template.templateType,
+          language: template.language,
+          category: template.category,
+          payload: template.payload,
+          currentStep: template.currentStep,
+          status: template.status
+        }
+      } as any);
+      const all = await MetaTemplateVersion.findAll({
+        where: { templateId: template.id, companyId },
+        order: [["createdAt", "DESC"]]
+      });
+      if (all.length > 50) {
+        const toDel = all.slice(50).map(v => v.id);
+        await MetaTemplateVersion.destroy({ where: { id: toDel } });
+      }
+    }
+  } catch (_) { /* não bloqueia o save */ }
 
   return res.json(template);
 };

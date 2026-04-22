@@ -70,6 +70,9 @@ import InstallationLog from "../models/InstallationLog";
 import CampaignBulkUpdate from "../models/CampaignBulkUpdate";
 import WarmerSetting from "../models/WarmerSetting";
 import MetaTemplate from "../models/MetaTemplate";
+import WarmerDraft from "../models/WarmerDraft";
+import WarmerVersion from "../models/WarmerVersion";
+import MetaTemplateVersion from "../models/MetaTemplateVersion";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -148,6 +151,9 @@ const models = [
   , CampaignBulkUpdate
   , WarmerSetting
   , MetaTemplate
+  , WarmerDraft
+  , WarmerVersion
+  , MetaTemplateVersion
 ];
 
 sequelize.addModels(models);
