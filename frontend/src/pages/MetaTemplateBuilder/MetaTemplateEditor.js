@@ -639,18 +639,41 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
                   <span style={{
                     background: "#fff", borderRadius: 8, padding: "4px 10px",
                     fontSize: 10, color: "#64748b", fontWeight: 600,
-                  }}>HOJE</span>
+                  }}>{simulatedAt ? "AGORA" : "HOJE"}</span>
                 </div>
                 <div className={classes.bubble}>
                   {headerFmt === "text" && headerText && (
-                    <div className={classes.bubbleHeader}>{headerText}</div>
+                    <div className={classes.bubbleHeader}>
+                      {interpolate(headerText, { highlight: !simulatedAt })}
+                    </div>
                   )}
-                  <div>{body || "Sua mensagem aparecerá aqui..."}</div>
+                  <div style={{ whiteSpace: "pre-wrap" }}>
+                    {body
+                      ? interpolate(body, { highlight: !simulatedAt })
+                      : "Sua mensagem aparecerá aqui..."}
+                  </div>
                   {footer && (
-                    <div style={{ fontSize: 10, color: "#64748b", marginTop: 4 }}>{footer}</div>
+                    <div style={{ fontSize: 10, color: "#64748b", marginTop: 4 }}>
+                      {interpolate(footer, { highlight: !simulatedAt })}
+                    </div>
                   )}
-                  <div className={classes.bubbleFooter}>12:23 ✓✓</div>
+                  <div className={classes.bubbleFooter}>
+                    {simulatedAt
+                      ? new Date(simulatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                      : "12:23"} ✓✓
+                  </div>
                 </div>
+                {simulating && (
+                  <div style={{
+                    marginTop: 8, display: "inline-flex", gap: 4, alignItems: "center",
+                    background: "#fff", borderRadius: 12, padding: "6px 10px",
+                    boxShadow: "0 1px 1px rgba(0,0,0,0.06)",
+                  }}>
+                    <span style={dotStyle(0)} />
+                    <span style={dotStyle(150)} />
+                    <span style={dotStyle(300)} />
+                  </div>
+                )}
               </div>
               <div className={classes.phoneInput}>
                 <div className={classes.phoneInputBox}>Digite uma mensagem</div>
