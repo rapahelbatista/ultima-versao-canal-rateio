@@ -1874,9 +1874,13 @@ const CampaignKanban = () => {
                   <div className="p-6 text-center text-sm text-slate-400">Carregando...</div>
                 ) : historyRecords.length === 0 ? (
                   <div className="p-6 text-center text-sm text-slate-400">Nenhuma atualização em massa registrada.</div>
+                ) : filteredHistoryRecords.length === 0 ? (
+                  <div className="p-6 text-center text-sm text-slate-400">
+                    Nenhum registro corresponde a "<span className="font-semibold text-slate-600">{historySearch}</span>".
+                  </div>
                 ) : (
                   <ul className="divide-y divide-slate-100">
-                    {historyRecords.map((r) => {
+                    {filteredHistoryRecords.map((r) => {
                       const col = COLUMNS.find((c) => c.id === r.newStatus);
                       const cc = colorMap[col?.color || "amber"];
                       const total = (Array.isArray(r.shippingIds) ? r.shippingIds.length : 0) || (r.successCount + r.failedCount);
