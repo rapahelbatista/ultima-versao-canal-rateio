@@ -866,3 +866,160 @@ export const dashboardStats = async (
     throw new AppError(err.message || "Erro interno", 500);
   }
 };
+
+// Atualização em massa de status de envios — registra histórico (audit log)
+export const bulkUpdateShippingStatus = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { id } = req.params;
+  const { status, shippingIds, source } = req.body as {
+    status: string;
+    shippingIds: number[];
+    source?: string;
+  };
+  const { companyId, id: userId } = req.user as any;
+
+  const allowed = ["pending", "delivered", "confirmed", "failed"];
+  if (!allowed.includes(status)) {
+    throw new AppError("Status inválido", 400);
+  }
+  if (!Array.isArray(shippingIds) || shippingIds.length === 0) {
+    throw new AppError("Nenhum envio informado", 400);
+  }
+
+  const campaign = await Campaign.findByPk(id);
+  if (!campaign || campaign.companyId !== Number(companyId)) {
+    throw new AppError("Campanha não encontrada", 404);
+  }
+
+  const shippings = await CampaignShipping.findAll({
+    where: { id: { [Op.in]: shippingIds }, campaignId: Number(id) }
+  });
+
+  let successCount = 0;
+  let failedCount = 0;
+  const now = new Date();
+
+  for (const shipping of shippings) {
+    try {
+      const patch: any = {};
+      switch (status) {
+        case "pending":
+          patch.deliveredAt = null;
+          patch.confirmedAt = null;
+          break;
+        case "delivered":
+          patch.deliveredAt = shipping.deliveredAt || now;
+          patch.confirmedAt = null;
+          break;
+        case "confirmed":
+          patch.deliveredAt = shipping.deliveredAt || now;
+          patch.confirmedAt = now;
+          break;
+        case "failed":
+          patch.deliveredAt = null;
+          patch.confirmedAt = null;
+          patch.message = `[FAILED] ${(shipping.message || "").replace(/^\[FAILED\]\s*/, "")}`.slice(0, 500);
+          break;
+      }
+      await shipping.update(patch);
+      successCount += 1;
+    } catch {
+      failedCount += 1;
+    }
+  }
+  failedCount += shippingIds.length - shippings.length;
+
+  let userName: string | null = null;
+  try {
+    if (userId) {
+      const u = await User.findByPk(userId);
+      userName = u?.name || u?.email || null;
+    }
+  } catch { /* ignore */ }
+
+  const log = await CampaignBulkUpdate.create({
+    campaignId: Number(id),
+    companyId: Number(companyId),
+    userId: userId ? Number(userId) : null,
+    userName,
+    newStatus: status,
+    shippingIds,
+    successCount,
+    failedCount,
+    source: source || "kanban"
+  } as any);
+
+  const io = getIO();
+  io.of(String(companyId)).emit(`company-${companyId}-campaign`, {
+    action: "shipping-bulk-update",
+    campaignId: Number(id),
+    status,
+    shippingIds,
+    bulkUpdateId: log.id
+  });
+
+  return res.status(200).json({
+    bulkUpdateId: log.id,
+    successCount,
+    failedCount,
+    status
+  });
+};
+
+// Lista o histórico de atualizações em massa (paginado) por empresa.
+export const listBulkUpdates = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { companyId } = req.user as any;
+  const { campaignId, pageSize, pageNumber } = req.query as any;
+
+  const limit = Math.min(parseInt(pageSize || "20", 10), 100);
+  const page = Math.max(parseInt(pageNumber || "1", 10), 1);
+  const offset = (page - 1) * limit;
+
+  const where: any = { companyId: Number(companyId) };
+  if (campaignId) where.campaignId = Number(campaignId);
+
+  const { rows, count } = await CampaignBulkUpdate.findAndCountAll({
+    where,
+    order: [["createdAt", "DESC"]],
+    limit,
+    offset,
+    include: [{ model: Campaign, attributes: ["id", "name"] }]
+  });
+
+  return res.status(200).json({
+    records: rows,
+    count,
+    hasMore: offset + rows.length < count
+  });
+};
+
+// Detalhes de uma atualização em massa: traz os shippings envolvidos.
+export const showBulkUpdate = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { companyId } = req.user as any;
+  const { bulkId } = req.params;
+
+  const log = await CampaignBulkUpdate.findByPk(bulkId, {
+    include: [{ model: Campaign, attributes: ["id", "name", "companyId"] }]
+  });
+  if (!log || log.companyId !== Number(companyId)) {
+    throw new AppError("Registro não encontrado", 404);
+  }
+
+  const ids = Array.isArray(log.shippingIds) ? log.shippingIds : [];
+  const shippings = ids.length
+    ? await CampaignShipping.findAll({
+        where: { id: { [Op.in]: ids } },
+        order: [["id", "ASC"]]
+      })
+    : [];
+
+  return res.status(200).json({ log, shippings });
+};
