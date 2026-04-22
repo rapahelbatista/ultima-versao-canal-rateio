@@ -215,16 +215,26 @@ const CampaignKanban = () => {
   const [historyDetail, setHistoryDetail] = useState(null); // { log, shippings }
   const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
   const [historySearch, setHistorySearch] = useState("");
+  const [historyStatusFilter, setHistoryStatusFilter] = useState("all"); // "all" | status id
 
   const filteredHistoryRecords = useMemo(() => {
     const q = historySearch.trim().toLowerCase();
-    if (!q) return historyRecords;
     return historyRecords.filter((r) => {
+      if (historyStatusFilter !== "all" && r.newStatus !== historyStatusFilter) return false;
+      if (!q) return true;
       const name = (r.userName || "").toLowerCase();
       const id = String(r.id || "");
       return name.includes(q) || id.includes(q);
     });
-  }, [historyRecords, historySearch]);
+  }, [historyRecords, historySearch, historyStatusFilter]);
+
+  const historyStatusCounts = useMemo(() => {
+    const map = {};
+    for (const r of historyRecords) {
+      map[r.newStatus] = (map[r.newStatus] || 0) + 1;
+    }
+    return map;
+  }, [historyRecords]);
 
   const fetchHistory = useCallback(async (scope = historyScope) => {
     setHistoryLoading(true);
@@ -1865,6 +1875,42 @@ const CampaignKanban = () => {
                   {filteredHistoryRecords.length} de {historyRecords.length} registro(s)
                 </p>
               )}
+
+              {/* Filtro por Status destino */}
+              <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mr-1">
+                  Status destino:
+                </span>
+                <button
+                  onClick={() => setHistoryStatusFilter("all")}
+                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border transition-colors ${
+                    historyStatusFilter === "all"
+                      ? "bg-indigo-500 text-white border-indigo-500"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                  }`}
+                >
+                  Todos ({historyRecords.length})
+                </button>
+                {COLUMNS.map((col) => {
+                  const count = historyStatusCounts[col.id] || 0;
+                  const cc = colorMap[col.color || "amber"];
+                  const active = historyStatusFilter === col.id;
+                  return (
+                    <button
+                      key={col.id}
+                      onClick={() => setHistoryStatusFilter(col.id)}
+                      disabled={count === 0}
+                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                        active
+                          ? `${cc.chip} border-transparent ring-2 ring-offset-1 ring-indigo-300`
+                          : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
+                      }`}
+                    >
+                      {col.label} ({count})
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2">
@@ -1876,7 +1922,8 @@ const CampaignKanban = () => {
                   <div className="p-6 text-center text-sm text-slate-400">Nenhuma atualização em massa registrada.</div>
                 ) : filteredHistoryRecords.length === 0 ? (
                   <div className="p-6 text-center text-sm text-slate-400">
-                    Nenhum registro corresponde a "<span className="font-semibold text-slate-600">{historySearch}</span>".
+                    Nenhum registro corresponde aos filtros aplicados
+                    {historySearch && <> para "<span className="font-semibold text-slate-600">{historySearch}</span>"</>}.
                   </div>
                 ) : (
                   <ul className="divide-y divide-slate-100">
