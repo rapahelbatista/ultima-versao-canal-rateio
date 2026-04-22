@@ -1020,6 +1020,9 @@ const Financeiro = () => {
             </Table>
           </Paper>
         </div>
+
+        {/* FAQ */}
+        <BillingFAQ />
       </div>
     </MainContainer>
   );
