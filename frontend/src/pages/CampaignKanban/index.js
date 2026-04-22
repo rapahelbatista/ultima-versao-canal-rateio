@@ -123,7 +123,23 @@ const CampaignKanban = () => {
     });
   };
 
-  const bulkUpdateStatus = async (newStatus) => {
+  // Seleciona todos os carregados (página atual) das colunas visíveis,
+  // respeitando o filtro rápido se ativo.
+  const selectAllLoaded = () => {
+    const ids = [];
+    COLUMNS.forEach((c) => {
+      if (!visibleStatuses.has(c.id)) return;
+      (columnsState[c.id]?.items || []).forEach((it) => {
+        if (it.id && (!quickFilter || matchesQuickFilter(it))) ids.push(it.id);
+      });
+    });
+    if (ids.length === 0) {
+      toast.info("Nenhum envio carregado para selecionar");
+      return;
+    }
+    setSelectedIds(new Set(ids));
+    toast.success(`${ids.length} envio(s) da página selecionado(s)`);
+  };
     if (!hasSelection || !campaignId) return;
     const ids = Array.from(selectedIds);
     setBulkUpdating(true);
