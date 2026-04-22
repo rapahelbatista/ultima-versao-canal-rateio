@@ -27,6 +27,41 @@ import {
 } from "lucide-react";
 import api from "../../services/api";
 import { toast } from "react-toastify";
+import { makeStyles } from "@material-ui/core/styles";
+import {
+  Button,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select as MuiSelect,
+  MenuItem,
+  Menu,
+} from "@material-ui/core";
+import RefreshIcon from "@material-ui/icons/Refresh";
+import FilterListIcon from "@material-ui/icons/FilterList";
+import GetAppIcon from "@material-ui/icons/GetApp";
+import DescriptionIcon from "@material-ui/icons/Description";
+import TableChartIcon from "@material-ui/icons/TableChart";
+import MainContainer from "../../components/MainContainer";
+import MainHeader from "../../components/MainHeader";
+import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
+import Title from "../../components/Title";
+
+const useKanbanHeaderStyles = makeStyles((theme) => ({
+  headerControl: {
+    minWidth: 200,
+    marginRight: theme.spacing(1),
+    "& .MuiOutlinedInput-root": { borderRadius: 10 },
+  },
+  searchControl: {
+    minWidth: 220,
+    marginRight: theme.spacing(1),
+    "& .MuiOutlinedInput-root": { borderRadius: 10 },
+  },
+  button: {
+    borderRadius: 10,
+  },
+}));
 
 /**
  * Kanban de Campanha — visualiza e move shippings entre colunas de status.
@@ -1502,115 +1537,142 @@ const CampaignKanban = () => {
     );
   };
 
+  const headerClasses = useKanbanHeaderStyles();
+  const exportBtnRef = useRef(null);
+
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div>
-          <h1 className="text-lg font-bold text-slate-800">Kanban de Campanha</h1>
-          <p className="text-xs text-slate-500">
-            Arraste cards entre colunas para atualizar o status do envio
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <select
+    <MainContainer>
+      <MainHeader>
+        <Title>Kanban de Campanha</Title>
+        <MainHeaderButtonsWrapper>
+          <FormControl
+            variant="outlined"
+            size="small"
+            className={headerClasses.headerControl}
+          >
+            <InputLabel id="campaign-select-label">Campanha</InputLabel>
+            <MuiSelect
+              labelId="campaign-select-label"
+              label="Campanha"
               value={campaignId}
               onChange={(e) => setCampaignId(e.target.value)}
-              className="appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2 pr-8 text-sm font-medium text-slate-700 focus:border-emerald-400 focus:outline-none"
             >
-              {campaigns.length === 0 && <option value="">Nenhuma campanha</option>}
+              {campaigns.length === 0 && (
+                <MenuItem value="">
+                  <em>Nenhuma campanha</em>
+                </MenuItem>
+              )}
               {campaigns.map((c) => (
-                <option key={c.id} value={c.id}>
+                <MenuItem key={c.id} value={c.id}>
                   {c.name}
-                </option>
+                </MenuItem>
               ))}
-            </select>
-            <ChevronDown
-              size={14}
-              className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-          </div>
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
-            <Search size={14} className="text-slate-400" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && fetchShipping()}
-              placeholder="Buscar número ou nome..."
-              className="w-48 bg-transparent outline-none text-slate-700 placeholder:text-slate-400"
-            />
-          </div>
-          <button
+            </MuiSelect>
+          </FormControl>
+
+          <TextField
+            label="Buscar número/nome"
+            variant="outlined"
+            size="small"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && fetchShipping()}
+            className={headerClasses.searchControl}
+          />
+
+          <Button
+            variant={
+              showFilters || filterPhone || filterStartDate || filterEndDate
+                ? "contained"
+                : "outlined"
+            }
+            color="primary"
+            startIcon={<FilterListIcon />}
             onClick={() => setShowFilters((v) => !v)}
-            className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors
-              ${showFilters || filterPhone || filterStartDate || filterEndDate
-                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}
-            `}
+            className={headerClasses.button}
           >
-            <Filter size={14} />
             Filtros
             {(filterPhone || filterStartDate || filterEndDate) && (
-              <span className="rounded-full bg-emerald-500 px-1.5 text-[10px] text-white">
-                {[filterPhone, filterStartDate, filterEndDate].filter(Boolean).length}
+              <span style={{ marginLeft: 6 }}>
+                ({[filterPhone, filterStartDate, filterEndDate].filter(Boolean).length})
               </span>
             )}
-          </button>
+          </Button>
+
+          <span ref={exportBtnRef} style={{ display: "inline-flex" }}>
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<GetAppIcon />}
+              onClick={() => setExportMenuOpen((v) => !v)}
+              className={headerClasses.button}
+              title="Exportar envios visíveis"
+            >
+              Exportar
+            </Button>
+          </span>
+          <Menu
+            anchorEl={exportBtnRef.current}
+            open={exportMenuOpen}
+            onClose={() => setExportMenuOpen(false)}
+            getContentAnchorEl={null}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
+          >
+            <MenuItem
+              onClick={() => {
+                setExportMenuOpen(false);
+                exportCSV();
+              }}
+            >
+              <TableChartIcon
+                fontSize="small"
+                style={{ marginRight: 8, color: "#16a34a" }}
+              />
+              CSV (Excel)
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setExportMenuOpen(false);
+                exportPDF();
+              }}
+            >
+              <DescriptionIcon
+                fontSize="small"
+                style={{ marginRight: 8, color: "#e11d48" }}
+              />
+              PDF
+            </MenuItem>
+          </Menu>
+
           <LiveBadge
             tick={liveTick}
             state={connState}
             attempt={reconnectAttempt}
             onRetry={reconnectSocket}
           />
-          <div className="relative">
-            <button
-              onClick={() => setExportMenuOpen((v) => !v)}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
-              title="Exportar envios visíveis"
-            >
-              <Download size={14} />
-              Exportar
-              <ChevronDown size={12} className={exportMenuOpen ? "rotate-180 transition-transform" : "transition-transform"} />
-            </button>
-            {exportMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setExportMenuOpen(false)} />
-                <div className="absolute right-0 z-20 mt-1 w-56 rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden">
-                  <button
-                    onClick={exportCSV}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-emerald-50"
-                  >
-                    <FileSpreadsheet size={14} className="text-emerald-600" />
-                    <div className="flex-1 text-left">
-                      <div className="font-semibold">CSV (Excel)</div>
-                      <div className="text-[10px] text-slate-500">Planilha com todas as colunas</div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={exportPDF}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-emerald-50 border-t border-slate-100"
-                  >
-                    <FileText size={14} className="text-rose-600" />
-                    <div className="flex-1 text-left">
-                      <div className="font-semibold">PDF</div>
-                      <div className="text-[10px] text-slate-500">Relatório formatado para impressão</div>
-                    </div>
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-          <button
+
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={
+              <RefreshIcon
+                className={loading ? "animate-spin" : ""}
+                style={loading ? { animation: "spin 1s linear infinite" } : {}}
+              />
+            }
             onClick={fetchShipping}
             disabled={loading}
-            className="flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-500/30 hover:bg-emerald-600 disabled:opacity-50"
+            className={headerClasses.button}
           >
-            <RefreshCcw size={14} className={loading ? "animate-spin" : ""} />
             Atualizar
-          </button>
-        </div>
-      </div>
+          </Button>
+        </MainHeaderButtonsWrapper>
+      </MainHeader>
+
+      <div className="space-y-4">
+        {/* (Header migrado para MainHeader acima) */}
+
 
       {/* Painel de filtros avançados */}
       {showFilters && (
@@ -2533,7 +2595,8 @@ const CampaignKanban = () => {
           </div>
         );
       })()}
-    </div>
+      </div>
+    </MainContainer>
   );
 };
 
