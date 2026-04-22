@@ -123,6 +123,24 @@ const CampaignKanban = () => {
     });
   };
 
+  // Seleciona todos os carregados (página atual) das colunas visíveis,
+  // respeitando o filtro rápido se ativo.
+  const selectAllLoaded = () => {
+    const ids = [];
+    COLUMNS.forEach((c) => {
+      if (!visibleStatuses.has(c.id)) return;
+      (columnsState[c.id]?.items || []).forEach((it) => {
+        if (it.id && (!quickFilter || matchesQuickFilter(it))) ids.push(it.id);
+      });
+    });
+    if (ids.length === 0) {
+      toast.info("Nenhum envio carregado para selecionar");
+      return;
+    }
+    setSelectedIds(new Set(ids));
+    toast.success(`${ids.length} envio(s) da página selecionado(s)`);
+  };
+
   const bulkUpdateStatus = async (newStatus) => {
     if (!hasSelection || !campaignId) return;
     const ids = Array.from(selectedIds);
@@ -697,6 +715,13 @@ const CampaignKanban = () => {
             Mostrar todos
           </button>
         )}
+        <button
+          onClick={selectAllLoaded}
+          title="Marca todos os envios já carregados (página atual) das colunas visíveis"
+          className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-50"
+        >
+          ✓ Selecionar página
+        </button>
       </div>
 
       {/* Board */}
