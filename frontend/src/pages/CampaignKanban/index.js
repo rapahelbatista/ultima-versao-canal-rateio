@@ -195,6 +195,10 @@ const CampaignKanban = () => {
   const [saving, setSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  // Progresso visual da operação em massa: { total, processed, status, success, failed, phase }
+  // phase: "processing" | "done" | "error"
+  const [bulkProgress, setBulkProgress] = useState(null);
+  const bulkProgressTimer = useRef(null);
 
   // Última atualização em massa (botão "Desfazer" temporário)
   const [lastBulkUpdate, setLastBulkUpdate] = useState(null); // { id, status, count, expiresAt }
@@ -313,7 +317,30 @@ const CampaignKanban = () => {
   const bulkUpdateStatus = async (newStatus) => {
     if (!hasSelection || !campaignId) return;
     const ids = Array.from(selectedIds);
+    const total = ids.length;
     setBulkUpdating(true);
+
+    // Inicia indicador de progresso. Como o backend processa em lote sem streaming,
+    // simulamos avanço suave (assintótico até ~92%) e fechamos quando a resposta chega.
+    setBulkProgress({ total, processed: 0, status: newStatus, success: 0, failed: 0, phase: "processing" });
+    if (bulkProgressTimer.current) clearInterval(bulkProgressTimer.current);
+    const startedAt = Date.now();
+    bulkProgressTimer.current = setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      // Curva: ~80% em ~3s, satura em 92%; nunca passa para evitar falsa promessa
+      const ratio = 1 - Math.exp(-elapsed / 1500);
+      const projected = Math.min(0.92, ratio * 0.92);
+      setBulkProgress((p) => p && p.phase === "processing"
+        ? { ...p, processed: Math.max(p.processed, Math.floor(total * projected)) }
+        : p);
+    }, 120);
+
+    const stopProgress = () => {
+      if (bulkProgressTimer.current) {
+        clearInterval(bulkProgressTimer.current);
+        bulkProgressTimer.current = null;
+      }
+    };
 
     // Optimistic local: aplica imediatamente em columnsState (movendo os cards) e em shipping
     const prevShipping = shipping;
@@ -327,22 +354,22 @@ const CampaignKanban = () => {
       const ok = data?.successCount ?? ids.length;
       const fail = data?.failedCount ?? 0;
       const bulkId = data?.bulkUpdateId;
+      stopProgress();
+      setBulkProgress({ total, processed: total, status: newStatus, success: ok, failed: fail, phase: fail === total ? "error" : "done" });
+      // Auto-some após 2.2s
+      setTimeout(() => setBulkProgress(null), 2200);
       setBulkUpdating(false);
       if (fail === 0) {
         toast.success(`${ok} envio(s) atualizados para "${newStatus}"`);
-        // Reconciliação leve apenas (sem refetch eager)
         reconcileShipping(ids, newStatus);
       } else if (ok === 0) {
-        // Tudo falhou: reverte estado local
         setShipping(prevShipping);
         fetchShipping();
         toast.error("Falha ao atualizar envios");
       } else {
         toast.warn(`${ok} atualizados, ${fail} falharam`);
-        // Sucesso parcial: reconcilia para corrigir os que falharam
         reconcileShipping(ids, newStatus);
       }
-      // Habilita botão "Desfazer" por 30s se houve sucesso
       if (bulkId && ok > 0) {
         setLastBulkUpdate({
           id: bulkId,
@@ -353,6 +380,9 @@ const CampaignKanban = () => {
       }
       clearSelection();
     } catch (err) {
+      stopProgress();
+      setBulkProgress({ total, processed: total, status: newStatus, success: 0, failed: total, phase: "error" });
+      setTimeout(() => setBulkProgress(null), 2500);
       setBulkUpdating(false);
       setShipping(prevShipping);
       fetchShipping();
@@ -1553,6 +1583,60 @@ const CampaignKanban = () => {
           })}
         </div>
       </DragDropContext>
+
+      {/* Indicador de progresso do bulk update — barra flutuante no topo */}
+      {bulkProgress && (() => {
+        const pct = bulkProgress.total > 0
+          ? Math.min(100, Math.round((bulkProgress.processed / bulkProgress.total) * 100))
+          : 0;
+        const statusLabel = {
+          pending: "Pendente", delivered: "Entregue", confirmed: "Confirmado", failed: "Falhou",
+        }[bulkProgress.status] || bulkProgress.status;
+        const phase = bulkProgress.phase;
+        const tone = phase === "error"
+          ? { ring: "border-rose-200", bar: "bg-rose-500", text: "text-rose-700", bg: "bg-rose-50" }
+          : phase === "done"
+          ? { ring: "border-emerald-200", bar: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50" }
+          : { ring: "border-emerald-200", bar: "bg-emerald-500", text: "text-emerald-700", bg: "bg-white" };
+        return (
+          <div
+            className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[min(440px,calc(100vw-2rem))] rounded-2xl border ${tone.ring} ${tone.bg} shadow-xl shadow-emerald-500/10 px-4 py-3 animate-in fade-in slide-in-from-top-2`}
+            role="status"
+            aria-live="polite"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${tone.text}`}>
+                {phase === "processing" && <RefreshCcw size={12} className="animate-spin" />}
+                {phase === "done" && <CheckCheck size={12} />}
+                {phase === "error" && <AlertCircle size={12} />}
+                {phase === "processing" && `Atualizando para "${statusLabel}"`}
+                {phase === "done" && (bulkProgress.failed > 0
+                  ? `Concluído com ${bulkProgress.failed} falha(s)`
+                  : "Concluído")}
+                {phase === "error" && "Falha na atualização"}
+              </div>
+              <span className={`text-xs font-mono font-semibold ${tone.text}`}>
+                {bulkProgress.processed}/{bulkProgress.total}
+                <span className="ml-1 opacity-60">({pct}%)</span>
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+              <div
+                className={`h-full ${tone.bar} transition-all duration-200 ease-out ${phase === "processing" ? "" : ""}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            {phase === "done" && (
+              <div className="mt-2 flex gap-3 text-[11px] text-slate-600">
+                <span className="flex items-center gap-1"><CheckCircle2 size={11} className="text-emerald-500" /> {bulkProgress.success} sucesso</span>
+                {bulkProgress.failed > 0 && (
+                  <span className="flex items-center gap-1"><XCircle size={11} className="text-rose-500" /> {bulkProgress.failed} falha</span>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Banner flutuante "Desfazer" — aparece após bulk update bem-sucedido (30s) */}
       {lastBulkUpdate && (() => {
