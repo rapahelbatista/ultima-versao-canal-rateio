@@ -454,6 +454,7 @@ const CampaignKanban = () => {
               className="w-48 bg-transparent outline-none text-slate-700 placeholder:text-slate-400"
             />
           </div>
+          <LiveBadge tick={liveTick} connected={!!socket?.connected} />
           <button
             onClick={fetchShipping}
             disabled={loading}
