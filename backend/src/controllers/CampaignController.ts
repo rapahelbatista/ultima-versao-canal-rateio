@@ -15,6 +15,8 @@ import ShippingService from "../services/CampaignService/ShippingService";
 import CampaignStatsService from "../services/CampaignService/CampaignStatsService";
 
 import Campaign from "../models/Campaign";
+import CampaignShipping from "../models/CampaignShipping";
+import { Op, fn, col, literal } from "sequelize";
 
 import ContactTag from "../models/ContactTag";
 import Ticket from "../models/Ticket";
