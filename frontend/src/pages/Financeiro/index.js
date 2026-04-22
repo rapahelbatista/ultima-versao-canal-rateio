@@ -30,6 +30,7 @@ import moment from "moment";
 
 import MainContainer from "../../components/MainContainer";
 import SubscriptionModal from "../../components/SubscriptionModal";
+import BillingFAQ from "./BillingFAQ";
 import TableRowSkeleton from "../../components/TableRowSkeleton";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
@@ -1019,6 +1020,9 @@ const Financeiro = () => {
             </Table>
           </Paper>
         </div>
+
+        {/* FAQ */}
+        <BillingFAQ />
       </div>
     </MainContainer>
   );
