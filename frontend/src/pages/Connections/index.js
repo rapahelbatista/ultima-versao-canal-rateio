@@ -1060,52 +1060,6 @@ const Connections = () => {
       />
       <div style={{ height: 16 }} />
 
-      {/* New Instance card (visual style from design reference) */}
-      <Can
-        role={user.profile}
-        perform="connections-page:addConnection"
-        yes={() => (
-          <Box className={classes.newInstanceCard}>
-            <Box className={classes.newInstanceHeader}>
-              <Box className={classes.newInstanceIcon}>
-                <CropFree style={{ fontSize: 20, color: "#10b981" }} />
-              </Box>
-              <Box>
-                <Typography className={classes.newInstanceTitle}>Nova Instância</Typography>
-                <Typography className={classes.newInstanceSubtitle}>
-                  Gere um QR code para vincular seu WhatsApp
-                </Typography>
-              </Box>
-            </Box>
-            <Box className={classes.newInstanceForm}>
-              <Box className={classes.newInstanceInputWrap}>
-                <CropFree style={{ fontSize: 18, color: "#94a3b8", marginRight: 8 }} />
-                <input
-                  type="text"
-                  className={classes.newInstanceInput}
-                  placeholder="Nome da instância"
-                  value={newInstanceName}
-                  onChange={(e) => setNewInstanceName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && newInstanceName.trim()) {
-                      handleOpenWhatsAppModal();
-                    }
-                  }}
-                />
-              </Box>
-              <Button
-                disabled={!newInstanceName.trim() || (planConfig?.plan?.useWhatsapp === false)}
-                onClick={() => handleOpenWhatsAppModal()}
-                className={classes.newInstanceButton}
-                startIcon={<CropFree style={{ fontSize: 16 }} />}
-              >
-                Gerar QR
-              </Button>
-            </Box>
-          </Box>
-        )}
-      />
-
       {/* Empty state when no devices yet */}
       {!loading && whatsApps?.length === 0 && (
         <Box className={classes.emptyState}>
