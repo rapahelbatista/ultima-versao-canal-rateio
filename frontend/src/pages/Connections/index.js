@@ -998,9 +998,9 @@ const Connections = () => {
                 <CropFree style={{ fontSize: 20, color: "#10b981" }} />
               </Box>
               <Box>
-                <Typography className={classes.newInstanceTitle}>New Instance</Typography>
+                <Typography className={classes.newInstanceTitle}>Nova Instância</Typography>
                 <Typography className={classes.newInstanceSubtitle}>
-                  Generate a QR code to link your WhatsApp
+                  Gere um QR code para vincular seu WhatsApp
                 </Typography>
               </Box>
             </Box>
