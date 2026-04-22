@@ -455,6 +455,103 @@ const CampaignKanban = () => {
     campaignIdRef.current = campaignId ? Number(campaignId) : null;
   }, [campaignId]);
 
+  // Estado de conexão do socket: "connected" | "reconnecting" | "disconnected"
+  const [connState, setConnState] = useState(() => (socket?.connected ? "connected" : "disconnected"));
+  const [reconnectAttempt, setReconnectAttempt] = useState(0);
+  const wasConnectedRef = useRef(!!socket?.connected);
+
+  useEffect(() => {
+    if (!socket) {
+      setConnState("disconnected");
+      return;
+    }
+    setConnState(socket.connected ? "connected" : "disconnected");
+
+    const onConnect = () => {
+      setConnState("connected");
+      setReconnectAttempt(0);
+      // Avisar apenas em RECONEXÃO (não na conexão inicial)
+      if (wasConnectedRef.current === false) {
+        toast.success("Conexão em tempo real restabelecida");
+        // Refaz o fetch para garantir consistência após período offline
+        if (campaignIdRef.current) fetchShipping();
+      }
+      wasConnectedRef.current = true;
+    };
+
+    const onDisconnect = (reason) => {
+      setConnState("disconnected");
+      if (wasConnectedRef.current) {
+        // Não polui com toast em quedas silenciosas (ex.: HMR), mas avisa nas reais
+        if (reason !== "io client disconnect") {
+          toast.warn("Conexão em tempo real perdida — tentando reconectar...");
+        }
+      }
+      wasConnectedRef.current = false;
+    };
+
+    const onReconnectAttempt = (attempt) => {
+      setConnState("reconnecting");
+      setReconnectAttempt(Number(attempt) || 0);
+    };
+
+    const onReconnect = () => {
+      // Engine.io também dispara `connect` em seguida — onConnect cuidará do toast
+      setConnState("connected");
+      setReconnectAttempt(0);
+    };
+
+    const onReconnectError = () => {
+      setConnState("reconnecting");
+    };
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    // socket.io v3/v4: eventos de reconexão emitidos no manager
+    const mgr = socket.io;
+    if (mgr) {
+      mgr.on("reconnect_attempt", onReconnectAttempt);
+      mgr.on("reconnect", onReconnect);
+      mgr.on("reconnect_error", onReconnectError);
+    }
+
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      if (mgr) {
+        mgr.off("reconnect_attempt", onReconnectAttempt);
+        mgr.off("reconnect", onReconnect);
+        mgr.off("reconnect_error", onReconnectError);
+      }
+    };
+  }, [socket, fetchShipping]);
+
+  // Tenta reconectar manualmente
+  const reconnectSocket = useCallback(() => {
+    if (!socket) return;
+    if (socket.connected) {
+      toast.info("Já conectado");
+      return;
+    }
+    setConnState("reconnecting");
+    try {
+      socket.connect();
+    } catch { /* ignore */ }
+  }, [socket]);
+
+  // Quando a aba volta a ficar visível e o socket está caído, tenta reconectar
+  useEffect(() => {
+    if (!socket) return;
+    const onVis = () => {
+      if (document.visibilityState === "visible" && !socket.connected) {
+        setConnState("reconnecting");
+        try { socket.connect(); } catch { /* ignore */ }
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [socket]);
+
   // Real-time: escuta eventos do socket da empresa para refletir mudanças instantaneamente.
   // Garantias:
   //  - Só processa eventos cujo `campaignId` bate EXATAMENTE com o atualmente aberto.
