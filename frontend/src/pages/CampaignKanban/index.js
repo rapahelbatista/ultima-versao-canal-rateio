@@ -1180,7 +1180,8 @@ const CampaignKanban = () => {
               {isVirtual && <span className="rounded bg-slate-100 px-1.5 py-0.5">Virtual</span>}
             </div>
           </div>
-        )}
+          );
+        }}
       </Draggable>
     );
   };
