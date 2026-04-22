@@ -89,6 +89,10 @@ const CampaignKanban = () => {
   const { user, socket } = useContext(AuthContext);
   const [liveTick, setLiveTick] = useState(0); // pulso visual ao receber evento
   const refetchTimer = useRef(null);
+  // Refs por coluna p/ infinite scroll (usadas como root do IntersectionObserver)
+  const columnScrollRefs = useRef({ pending: null, delivered: null, confirmed: null, failed: null });
+  const setColumnScrollRef = (status) => (node) => { columnScrollRefs.current[status] = node; };
+  const getColumnScrollRef = (status) => ({ current: columnScrollRefs.current[status] });
   const [campaigns, setCampaigns] = useState([]);
   const [campaignId, setCampaignId] = useState("");
   const [shipping, setShipping] = useState([]); // mantido p/ compatibilidade c/ bulk/optimistic
