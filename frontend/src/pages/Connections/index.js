@@ -868,6 +868,66 @@ const Connections = () => {
         subtitle="Gerencie suas instâncias conectadas"
       />
       <div style={{ height: 16 }} />
+
+      {/* New Instance card (visual style from design reference) */}
+      <Can
+        role={user.profile}
+        perform="connections-page:addConnection"
+        yes={() => (
+          <Box className={classes.newInstanceCard}>
+            <Box className={classes.newInstanceHeader}>
+              <Box className={classes.newInstanceIcon}>
+                <CropFree style={{ fontSize: 20, color: "#10b981" }} />
+              </Box>
+              <Box>
+                <Typography className={classes.newInstanceTitle}>New Instance</Typography>
+                <Typography className={classes.newInstanceSubtitle}>
+                  Generate a QR code to link your WhatsApp
+                </Typography>
+              </Box>
+            </Box>
+            <Box className={classes.newInstanceForm}>
+              <Box className={classes.newInstanceInputWrap}>
+                <CropFree style={{ fontSize: 18, color: "#94a3b8", marginRight: 8 }} />
+                <input
+                  type="text"
+                  className={classes.newInstanceInput}
+                  placeholder="Nome da instância"
+                  value={newInstanceName}
+                  onChange={(e) => setNewInstanceName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newInstanceName.trim()) {
+                      handleOpenWhatsAppModal();
+                    }
+                  }}
+                />
+              </Box>
+              <Button
+                disabled={!newInstanceName.trim() || (planConfig?.plan?.useWhatsapp === false)}
+                onClick={() => handleOpenWhatsAppModal()}
+                className={classes.newInstanceButton}
+                startIcon={<CropFree style={{ fontSize: 16 }} />}
+              >
+                Gerar QR
+              </Button>
+            </Box>
+          </Box>
+        )}
+      />
+
+      {/* Empty state when no devices yet */}
+      {!loading && whatsApps?.length === 0 && (
+        <Box className={classes.emptyState}>
+          <Box className={classes.emptyStateIcon}>
+            <Smartphone size={28} color="#10b981" />
+          </Box>
+          <Typography className={classes.emptyStateTitle}>Nenhum dispositivo ainda</Typography>
+          <Typography className={classes.emptyStateText}>
+            Adicione sua primeira instância de WhatsApp para começar
+          </Typography>
+        </Box>
+      )}
+
       <ConfirmationModal
         title={confirmModalInfo.title}
         open={confirmModalOpen}
