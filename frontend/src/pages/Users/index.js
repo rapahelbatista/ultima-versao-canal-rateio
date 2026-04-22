@@ -604,7 +604,15 @@ const Users = () => {
                   const ex = extras[user.id] || {};
                   const phone = ex.phone || "—";
                   const comments = ex.comments || "—";
-                  const active = user.active !== false;
+                  const status = onlineMap[user.id] || {
+                    online: !!user.online,
+                    lastSeen: user.lastSeen,
+                  };
+                  const isOnline = !!status.online;
+                  const lastSeenLabel = status.lastSeen
+                    ? new Date(status.lastSeen).toLocaleString()
+                    : "—";
+                  const convCount = ticketCounts[user.id];
                   return (
                     <tr key={user.id}>
                       <td className={classes.td}>
