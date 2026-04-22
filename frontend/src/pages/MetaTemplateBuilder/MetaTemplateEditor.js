@@ -603,6 +603,12 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
               </Button>
               <div style={{ display: "flex", gap: 8 }}>
                 <Button className={classes.navBtn}
+                  startIcon={<Play size={14} />}
+                  onClick={handleSimulate}
+                  disabled={simulating || (!body && !headerText)}>
+                  {simulating ? "Simulando…" : "Simular envio"}
+                </Button>
+                <Button className={classes.navBtn}
                   startIcon={showPreview ? <EyeOff size={14} /> : <Eye size={14} />}
                   onClick={() => setShowPreview((v) => !v)}>
                   {showPreview ? "Ocultar Prévia" : "Mostrar Prévia"}
