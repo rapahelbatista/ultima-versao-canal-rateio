@@ -1,4 +1,5 @@
 import React, { useState, useContext, useEffect, useMemo, useCallback } from "react";
+import { useHistory } from "react-router-dom";
 import clsx from "clsx";
 import {
   makeStyles,
@@ -402,6 +403,7 @@ const SmallAvatar = withStyles((theme) => ({
 
 const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
   const classes = useStyles();
+  const history = useHistory();
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -875,6 +877,7 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
                   avatarUrl={profileUrl}
                   isPro={Boolean(user?.company?.plan?.name) || Boolean(user?.super)}
                   onProfile={() => setUserModalOpen(true)}
+                  onSubscription={() => history.push("/financeiro")}
                   onLogout={handleClickLogout}
                 />
 
