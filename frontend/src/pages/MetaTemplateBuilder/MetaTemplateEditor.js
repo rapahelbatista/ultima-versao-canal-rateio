@@ -22,6 +22,7 @@ import {
   FileText,
   ArrowLeft,
   Send,
+  Play,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import SectionCard from "../../components/SectionCard";
@@ -214,9 +215,13 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
   const [body, setBody] = useState("");
   const [footer, setFooter] = useState("");
   const [buttonType, setButtonType] = useState("none");
+  const [variableValues, setVariableValues] = useState({});
+  const [simulating, setSimulating] = useState(false);
+  const [simulatedAt, setSimulatedAt] = useState(null);
 
   const skipNextSave = useRef(true);
   const saveTimer = useRef(null);
+  const simTimer = useRef(null);
 
   // Carrega template
   useEffect(() => {
