@@ -84,6 +84,15 @@ const CampaignKanban = () => {
     });
   const showOnly = (id) => setVisibleStatuses(new Set([id]));
   const showAll = () => setVisibleStatuses(new Set(["pending", "delivered", "confirmed", "failed"]));
+  // Quick filter: busca local no nome/número (não dispara fetch)
+  const [quickFilter, setQuickFilter] = useState("");
+  const matchesQuickFilter = useCallback((item) => {
+    const q = quickFilter.trim().toLowerCase();
+    if (!q) return true;
+    const name = (item.contact?.name || "").toLowerCase();
+    const number = (item.number || "").toLowerCase();
+    return name.includes(q) || number.includes(q);
+  }, [quickFilter]);
   // Estado por coluna: { items, page, total, hasMore, loading }
   const [columnsState, setColumnsState] = useState(() => ({
     pending: { items: [], page: 0, total: 0, hasMore: true, loading: false },
