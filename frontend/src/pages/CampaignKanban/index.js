@@ -84,6 +84,15 @@ const CampaignKanban = () => {
     });
   const showOnly = (id) => setVisibleStatuses(new Set([id]));
   const showAll = () => setVisibleStatuses(new Set(["pending", "delivered", "confirmed", "failed"]));
+  // Quick filter: busca local no nome/número (não dispara fetch)
+  const [quickFilter, setQuickFilter] = useState("");
+  const matchesQuickFilter = useCallback((item) => {
+    const q = quickFilter.trim().toLowerCase();
+    if (!q) return true;
+    const name = (item.contact?.name || "").toLowerCase();
+    const number = (item.number || "").toLowerCase();
+    return name.includes(q) || number.includes(q);
+  }, [quickFilter]);
   // Estado por coluna: { items, page, total, hasMore, loading }
   const [columnsState, setColumnsState] = useState(() => ({
     pending: { items: [], page: 0, total: 0, hasMore: true, loading: false },
@@ -697,6 +706,50 @@ const CampaignKanban = () => {
             Mostrar todos
           </button>
         )}
+
+        {/* Busca rápida por contato (filtra cards já carregados) */}
+        <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs">
+            <Search size={12} className="text-slate-400" />
+            <input
+              value={quickFilter}
+              onChange={(e) => setQuickFilter(e.target.value)}
+              placeholder="Filtrar por nome ou número..."
+              className="w-44 bg-transparent outline-none text-slate-700 placeholder:text-slate-400"
+            />
+            {quickFilter && (
+              <button
+                onClick={() => setQuickFilter("")}
+                title="Limpar filtro"
+                className="text-slate-400 hover:text-slate-700"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+          {quickFilter && (
+            <button
+              onClick={() => {
+                const ids = [];
+                COLUMNS.forEach((c) => {
+                  if (!visibleStatuses.has(c.id)) return;
+                  (columnsState[c.id]?.items || []).forEach((it) => {
+                    if (it.id && matchesQuickFilter(it)) ids.push(it.id);
+                  });
+                });
+                if (ids.length === 0) {
+                  toast.info("Nenhum envio corresponde ao filtro");
+                  return;
+                }
+                setSelectedIds(new Set(ids));
+                toast.success(`${ids.length} envio(s) selecionado(s)`);
+              }}
+              className="rounded-xl bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-600 shadow-sm shadow-emerald-500/30"
+            >
+              Selecionar filtrados
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Board */}
@@ -711,7 +764,8 @@ const CampaignKanban = () => {
             const c = colorMap[col.color];
             const Icon = col.icon;
             const colState = columnsState[col.id] || { items: [], total: 0, hasMore: false, loading: false };
-            const items = colState.items;
+            const allItems = colState.items;
+            const items = quickFilter ? allItems.filter(matchesQuickFilter) : allItems;
             return (
               <div
                 key={col.id}
@@ -728,14 +782,17 @@ const CampaignKanban = () => {
                     {items.some((i) => i.id) && (
                       <button
                         onClick={() => selectAllInColumn(items)}
-                        title="Selecionar todos desta coluna"
+                        title="Selecionar todos os visíveis nesta coluna"
                         className={`text-[10px] font-semibold underline-offset-2 hover:underline ${c.text} opacity-70 hover:opacity-100`}
                       >
                         {items.filter((i) => i.id).every((i) => isSelected(i.id)) ? "Limpar" : "Todos"}
                       </button>
                     )}
                     <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${c.chip}`}>
-                      {items.length}{colState.total > items.length ? `/${colState.total}` : ""}
+                      {items.length}
+                      {(quickFilter ? allItems.length : colState.total) > items.length
+                        ? `/${quickFilter ? allItems.length : colState.total}`
+                        : ""}
                     </span>
                   </div>
                 </div>
