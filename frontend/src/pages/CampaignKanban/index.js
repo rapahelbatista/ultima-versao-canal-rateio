@@ -143,29 +143,42 @@ const useKanbanHeaderStyles = makeStyles((theme) => ({
   board: {
     display: "grid",
     gridTemplateColumns: "1fr",
-    gap: theme.spacing(2),
+    gap: theme.spacing(3),
+    padding: theme.spacing(0.5),
     [theme.breakpoints.up("md")]: {
       gridTemplateColumns: "repeat(2, 1fr)",
+      gap: theme.spacing(3),
     },
     [theme.breakpoints.up("lg")]: {
       gridTemplateColumns: "repeat(var(--cols, 4), 1fr)",
+      gap: theme.spacing(3),
     },
   },
   column: {
     display: "flex",
     flexDirection: "column",
-    borderRadius: 12,
-    border: `1px solid ${theme.palette.divider}`,
-    background: theme.palette.background.default,
+    borderRadius: 14,
+    border: `1px solid ${theme.palette.type === "dark" ? "rgba(255,255,255,0.08)" : "#e2e8f0"}`,
+    background: theme.palette.type === "dark" ? "rgba(255,255,255,0.02)" : "#ffffff",
     overflow: "hidden",
-    minHeight: 320,
+    minHeight: 360,
+    boxShadow: theme.palette.type === "dark"
+      ? "0 1px 2px rgba(0,0,0,0.3)"
+      : "0 1px 3px rgba(15,23,42,0.04), 0 1px 2px rgba(15,23,42,0.03)",
+    transition: "box-shadow .2s, transform .2s",
+    "&:hover": {
+      boxShadow: theme.palette.type === "dark"
+        ? "0 4px 12px rgba(0,0,0,0.4)"
+        : "0 4px 12px rgba(15,23,42,0.08)",
+    },
   },
   columnHeader: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: theme.spacing(1.5, 2),
-    borderBottom: `1px solid ${theme.palette.divider}`,
+    padding: theme.spacing(1.75, 2),
+    borderBottom: `1px solid ${theme.palette.type === "dark" ? "rgba(255,255,255,0.06)" : "#f1f5f9"}`,
+    background: theme.palette.type === "dark" ? "rgba(255,255,255,0.02)" : "#fafbfc",
   },
   columnHeaderLeft: {
     display: "flex",
