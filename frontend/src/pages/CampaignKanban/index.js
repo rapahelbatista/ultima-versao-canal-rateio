@@ -224,6 +224,54 @@ const CampaignKanban = () => {
     fetchShipping();
   }, [fetchShipping]);
 
+  // Real-time: escuta eventos do socket da empresa para refletir mudanças instantaneamente
+  useEffect(() => {
+    if (!socket || !user?.companyId || !campaignId) return;
+    const channel = `company-${user.companyId}-campaign`;
+
+    const scheduleRefetch = () => {
+      if (refetchTimer.current) return;
+      refetchTimer.current = setTimeout(() => {
+        refetchTimer.current = null;
+        fetchShipping();
+      }, 400); // debounce p/ rajadas de eventos
+    };
+
+    const pulse = () => setLiveTick((t) => t + 1);
+
+    const onEvent = (data) => {
+      if (!data) return;
+      // Só processa eventos da campanha ativa, quando a info estiver presente
+      if (data.campaignId && Number(data.campaignId) !== Number(campaignId)) return;
+
+      switch (data.action) {
+        case "shipping-update":
+        case "shipping-content-update":
+        case "delivered":
+        case "confirmed":
+        case "update":
+        case "create":
+        case "delete":
+          pulse();
+          scheduleRefetch();
+          break;
+        default:
+          // Ações de campanha (start/finish) também justificam refresh
+          pulse();
+          scheduleRefetch();
+      }
+    };
+
+    socket.on(channel, onEvent);
+    return () => {
+      socket.off(channel, onEvent);
+      if (refetchTimer.current) {
+        clearTimeout(refetchTimer.current);
+        refetchTimer.current = null;
+      }
+    };
+  }, [socket, user?.companyId, campaignId, fetchShipping]);
+
   const grouped = useMemo(() => {
     const g = { pending: [], delivered: [], confirmed: [], failed: [] };
     shipping.forEach((s) => {
