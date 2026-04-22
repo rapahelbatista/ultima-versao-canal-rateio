@@ -529,10 +529,48 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
             )}
 
             {step === 4 && (
-              <div className={classes.hint}>
-                <CreditCard size={16} />
-                <div>
-                  Configure os valores de exemplo para cada variável usada no corpo da mensagem.
+              <div style={{ display: "grid", gap: 16 }}>
+                <div className={classes.hint}>
+                  <CreditCard size={16} />
+                  <div>
+                    Defina os valores de exemplo para cada variável usada no modelo.
+                    Use o botão <strong>Simular envio</strong> para visualizar o resultado no preview.
+                  </div>
+                </div>
+                {allVariables.length === 0 ? (
+                  <div style={{
+                    padding: 16, textAlign: "center", color: "#94a3b8",
+                    fontSize: 13, border: "1px dashed #e2e8f0", borderRadius: 10,
+                  }}>
+                    Nenhuma variável detectada. Adicione <code>{"{{1}}"}</code>, <code>{"{{2}}"}</code> etc. no corpo da mensagem.
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {allVariables.map((key) => (
+                      <TextField
+                        key={key}
+                        label={`Variável {{${key}}}`}
+                        variant="outlined"
+                        size="small"
+                        fullWidth
+                        value={variableValues[key] || ""}
+                        onChange={(e) =>
+                          setVariableValues((v) => ({ ...v, [key]: e.target.value }))
+                        }
+                        placeholder={`Valor de exemplo para {{${key}}}`}
+                      />
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <Button
+                    className={classes.primaryBtn}
+                    startIcon={<Play size={14} />}
+                    onClick={handleSimulate}
+                    disabled={simulating}
+                  >
+                    {simulating ? "Simulando…" : "Simular envio"}
+                  </Button>
                 </div>
               </div>
             )}
