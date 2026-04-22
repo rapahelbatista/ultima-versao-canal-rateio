@@ -17,6 +17,8 @@ import {
 import { toast } from "react-toastify";
 import PageHeader from "../../components/PageHeader";
 import SectionCard from "../../components/SectionCard";
+import useCanManageMeta from "../../hooks/useCanManageMeta";
+import LockedPage from "../../components/LockedPage";
 
 const useStyles = makeStyles((theme) => ({
   root: { display: "flex", flexDirection: "column", gap: theme.spacing(2) },
