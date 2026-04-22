@@ -386,15 +386,17 @@ const CampaignKanban = () => {
       // Auto-some após 2.2s
       setTimeout(() => setBulkProgress(null), 2200);
       setBulkUpdating(false);
+      const statusLabelMap = { pending: "Pendente", delivered: "Entregue", confirmed: "Confirmado", failed: "Falhou" };
+      const targetLabel = statusLabelMap[newStatus] || newStatus;
       if (fail === 0) {
-        toast.success(`${ok} envio(s) atualizados para "${newStatus}"`);
+        toast.success(`✅ ${ok}/${total} envio(s) movidos para "${targetLabel}" — 0 falhas`, { autoClose: 4000 });
         reconcileShipping(ids, newStatus);
       } else if (ok === 0) {
         setShipping(prevShipping);
         fetchShipping();
-        toast.error("Falha ao atualizar envios");
+        toast.error(`❌ Falha ao mover envios para "${targetLabel}" — 0 sucesso, ${fail} falha(s)`, { autoClose: 6000 });
       } else {
-        toast.warn(`${ok} atualizados, ${fail} falharam`);
+        toast.warn(`⚠️ Movidos para "${targetLabel}": ${ok} com sucesso, ${fail} falha(s) (de ${total})`, { autoClose: 6000 });
         reconcileShipping(ids, newStatus);
       }
       if (bulkId && ok > 0) {
