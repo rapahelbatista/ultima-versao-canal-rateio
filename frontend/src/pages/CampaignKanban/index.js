@@ -140,6 +140,8 @@ const CampaignKanban = () => {
     setSelectedIds(new Set(ids));
     toast.success(`${ids.length} envio(s) da página selecionado(s)`);
   };
+
+  const bulkUpdateStatus = async (newStatus) => {
     if (!hasSelection || !campaignId) return;
     const ids = Array.from(selectedIds);
     setBulkUpdating(true);
