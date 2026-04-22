@@ -214,6 +214,17 @@ const CampaignKanban = () => {
   const [historyScope, setHistoryScope] = useState("campaign"); // "campaign" | "all"
   const [historyDetail, setHistoryDetail] = useState(null); // { log, shippings }
   const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
+  const [historySearch, setHistorySearch] = useState("");
+
+  const filteredHistoryRecords = useMemo(() => {
+    const q = historySearch.trim().toLowerCase();
+    if (!q) return historyRecords;
+    return historyRecords.filter((r) => {
+      const name = (r.userName || "").toLowerCase();
+      const id = String(r.id || "");
+      return name.includes(q) || id.includes(q);
+    });
+  }, [historyRecords, historySearch]);
 
   const fetchHistory = useCallback(async (scope = historyScope) => {
     setHistoryLoading(true);
@@ -1828,6 +1839,34 @@ const CampaignKanban = () => {
               </div>
             </div>
 
+            {/* Busca */}
+            <div className="px-4 pt-3 pb-2 border-b border-slate-100 bg-white">
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  placeholder="Buscar por usuário ou ID da atualização..."
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-9 py-2 text-xs text-slate-700 placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                />
+                {historySearch && (
+                  <button
+                    onClick={() => setHistorySearch("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                    title="Limpar busca"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+              {historySearch && (
+                <p className="mt-1 text-[10px] text-slate-400">
+                  {filteredHistoryRecords.length} de {historyRecords.length} registro(s)
+                </p>
+              )}
+            </div>
+
             <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2">
               {/* Lista */}
               <div className="overflow-y-auto border-r border-slate-100">
@@ -1835,9 +1874,13 @@ const CampaignKanban = () => {
                   <div className="p-6 text-center text-sm text-slate-400">Carregando...</div>
                 ) : historyRecords.length === 0 ? (
                   <div className="p-6 text-center text-sm text-slate-400">Nenhuma atualização em massa registrada.</div>
+                ) : filteredHistoryRecords.length === 0 ? (
+                  <div className="p-6 text-center text-sm text-slate-400">
+                    Nenhum registro corresponde a "<span className="font-semibold text-slate-600">{historySearch}</span>".
+                  </div>
                 ) : (
                   <ul className="divide-y divide-slate-100">
-                    {historyRecords.map((r) => {
+                    {filteredHistoryRecords.map((r) => {
                       const col = COLUMNS.find((c) => c.id === r.newStatus);
                       const cc = colorMap[col?.color || "amber"];
                       const total = (Array.isArray(r.shippingIds) ? r.shippingIds.length : 0) || (r.successCount + r.failedCount);
@@ -1858,7 +1901,7 @@ const CampaignKanban = () => {
                                     {r.userName || "Usuário desconhecido"}
                                   </p>
                                   <p className="text-[10px] text-slate-400">
-                                    {new Date(r.createdAt).toLocaleString("pt-BR")}
+                                    #{r.id} · {new Date(r.createdAt).toLocaleString("pt-BR")}
                                   </p>
                                 </div>
                               </div>
