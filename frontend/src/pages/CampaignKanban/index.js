@@ -669,6 +669,39 @@ const CampaignKanban = () => {
       setLiveTick((t) => t + 1);
     };
 
+    // Aplica mudança incremental de status diretamente nas colunas, evitando refetch.
+    // Retorna true se conseguiu aplicar localmente; false se precisa de refetch.
+    const tryApplyEventLocally = (data) => {
+      // Caso 1: bulk com lista explícita de ids + status alvo
+      if (
+        (data.action === "shipping-bulk-update" || data.action === "shipping-bulk-undo") &&
+        Array.isArray(data.shippingIds) && data.shippingIds.length > 0 &&
+        typeof data.status === "string"
+      ) {
+        applyStatusLocally(data.shippingIds, data.status);
+        return true;
+      }
+      // Caso 2: update individual — precisa do id do shipping e de algum sinal de status
+      const sid = data.shippingId ?? data.shipping?.id ?? data.record?.id;
+      if (sid != null) {
+        let newStatus = null;
+        if (typeof data.status === "string") {
+          newStatus = data.status;
+        } else if (data.shipping || data.record) {
+          newStatus = inferStatus(data.shipping || data.record);
+        } else if (data.action === "delivered") {
+          newStatus = "delivered";
+        } else if (data.action === "confirmed") {
+          newStatus = "confirmed";
+        }
+        if (newStatus && ["pending", "delivered", "confirmed", "failed"].includes(newStatus)) {
+          applyStatusLocally([sid], newStatus);
+          return true;
+        }
+      }
+      return false;
+    };
+
     const onEvent = (data) => {
       if (!data) return;
 
@@ -676,29 +709,53 @@ const CampaignKanban = () => {
       if (campaignIdRef.current !== boundCampaignId) return;
 
       // 2. Só aceita eventos com campaignId explícito que bata com a campanha atual.
-      //    Eventos sem campaignId podem pertencer a qualquer campanha — descartamos
-      //    para evitar refetch indevido durante transições.
       const evtCampaignId = data.campaignId != null ? Number(data.campaignId) : null;
       if (evtCampaignId == null) return;
       if (evtCampaignId !== boundCampaignId) return;
 
+      pulse();
+
       switch (data.action) {
         case "shipping-update":
-        case "shipping-content-update":
         case "shipping-bulk-update":
         case "shipping-bulk-undo":
         case "delivered":
         case "confirmed":
-        case "update":
+        case "update": {
+          // Tenta aplicar incrementalmente; se não conseguir, faz reconciliação leve
+          const applied = tryApplyEventLocally(data);
+          if (!applied) scheduleRefetch();
+          break;
+        }
+        case "shipping-content-update": {
+          // Mudança de conteúdo (mensagem/observações) — não muda coluna nem total.
+          // Patch in-place se tivermos os dados; caso contrário, ignora (sem refetch).
+          const sid = data.shippingId ?? data.shipping?.id;
+          const patch = data.shipping || data.changes;
+          if (sid != null && patch && typeof patch === "object") {
+            setColumnsState((prev) => {
+              const next = { ...prev };
+              ["pending", "delivered", "confirmed", "failed"].forEach((col) => {
+                let touched = false;
+                const items = prev[col].items.map((it) => {
+                  if (Number(it.id) === Number(sid)) { touched = true; return { ...it, ...patch }; }
+                  return it;
+                });
+                if (touched) next[col] = { ...prev[col], items };
+              });
+              return next;
+            });
+            setShipping((cur) => cur.map((s) => (Number(s.id) === Number(sid) ? { ...s, ...patch } : s)));
+          }
+          break;
+        }
         case "create":
         case "delete":
-          pulse();
+          // Criação/remoção mexe nos totals — refetch leve para refletir corretamente
           scheduleRefetch();
           break;
         default:
-          // Outras ações de campanha (start/finish/etc.) — refresh somente se também
-          // estiverem marcadas com a campanha correta (já validado acima).
-          pulse();
+          // Ações desconhecidas (start/finish/etc.) — refetch defensivo
           scheduleRefetch();
       }
     };
