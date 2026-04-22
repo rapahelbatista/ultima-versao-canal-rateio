@@ -647,6 +647,71 @@ export const getShipping = async (req: Request, res: Response): Promise<Response
   }
 };
 
+// Atualiza status manual de um shipping (uso pelo Kanban de Campanha)
+// status aceitos: pending | delivered | confirmed | failed
+export const updateShippingStatus = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { id, shippingId } = req.params;
+  const { status } = req.body as { status: string };
+  const { companyId } = req.user;
+
+  const allowed = ["pending", "delivered", "confirmed", "failed"];
+  if (!allowed.includes(status)) {
+    throw new AppError("Status inválido", 400);
+  }
+
+  try {
+    const campaign = await Campaign.findByPk(id);
+    if (!campaign || campaign.companyId !== Number(companyId)) {
+      throw new AppError("Campanha não encontrada", 404);
+    }
+
+    const CampaignShipping = (await import("../models/CampaignShipping")).default;
+    const shipping = await CampaignShipping.findByPk(shippingId);
+    if (!shipping || shipping.campaignId !== Number(id)) {
+      throw new AppError("Envio não encontrado", 404);
+    }
+
+    const now = new Date();
+    const patch: any = {};
+    switch (status) {
+      case "pending":
+        patch.deliveredAt = null;
+        patch.confirmedAt = null;
+        break;
+      case "delivered":
+        patch.deliveredAt = shipping.deliveredAt || now;
+        patch.confirmedAt = null;
+        break;
+      case "confirmed":
+        patch.deliveredAt = shipping.deliveredAt || now;
+        patch.confirmedAt = now;
+        break;
+      case "failed":
+        patch.deliveredAt = null;
+        patch.confirmedAt = null;
+        patch.message = `[FAILED] ${shipping.message || ""}`.slice(0, 500);
+        break;
+    }
+
+    await shipping.update(patch);
+
+    const io = getIO();
+    io.of(String(companyId)).emit(`company-${companyId}-campaign`, {
+      action: "shipping-update",
+      campaignId: Number(id),
+      shippingId: Number(shippingId),
+      status
+    });
+
+    return res.status(200).json({ id: shipping.id, status });
+  } catch (err: any) {
+    throw new AppError(err.message || "Erro ao atualizar envio", 500);
+  }
+};
+
 // Novo endpoint para estatísticas da campanha
 export const getStats = async (req: Request, res: Response): Promise<Response> => {
   const { id } = req.params;
