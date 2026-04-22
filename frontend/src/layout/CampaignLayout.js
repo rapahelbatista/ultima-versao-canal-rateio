@@ -66,8 +66,6 @@ const NAV_GROUPS = [
   {
     label: "APIs & Integrações",
     items: [
-      { to: "/api-keys", label: "API Keys", icon: Code2 },
-      { to: "/webhooks", label: "Webhooks", icon: Webhook },
       { to: "/messages-api", label: "Documentação API", icon: Layers },
     ],
   },
