@@ -66,8 +66,89 @@ const CampaignKanban = () => {
   const [editMessage, setEditMessage] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+
+  const isSelected = (id) => selectedIds.has(id);
+  const hasSelection = selectedIds.size > 0;
+
+  const toggleSelect = (id) => {
+    if (!id) return;
+    setSelectedIds((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const selectAllInColumn = (items) => {
+    setSelectedIds((prev) => {
+      const n = new Set(prev);
+      const ids = items.map((i) => i.id).filter(Boolean);
+      const allIn = ids.every((id) => n.has(id));
+      if (allIn) ids.forEach((id) => n.delete(id));
+      else ids.forEach((id) => n.add(id));
+      return n;
+    });
+  };
+
+  const bulkUpdateStatus = async (newStatus) => {
+    if (!hasSelection || !campaignId) return;
+    const ids = Array.from(selectedIds);
+    setBulkUpdating(true);
+
+    // Optimistic
+    const prev = shipping;
+    const now = new Date().toISOString();
+    const next = shipping.map((s) => {
+      if (!ids.includes(s.id)) return s;
+      const patch = { ...s };
+      switch (newStatus) {
+        case "pending":
+          patch.deliveredAt = null; patch.confirmedAt = null; break;
+        case "delivered":
+          patch.deliveredAt = patch.deliveredAt || now; patch.confirmedAt = null; break;
+        case "confirmed":
+          patch.deliveredAt = patch.deliveredAt || now; patch.confirmedAt = now; break;
+        case "failed":
+          patch.deliveredAt = null; patch.confirmedAt = null;
+          patch.message = `[FAILED] ${(patch.message || "").replace(/^\[FAILED\]\s*/, "")}`;
+          break;
+        default: break;
+      }
+      return patch;
+    });
+    setShipping(next);
+
+    const results = await Promise.allSettled(
+      ids.map((id) =>
+        api.patch(`/campaigns/${campaignId}/shipping/${id}`, { status: newStatus })
+      )
+    );
+    const failed = results.filter((r) => r.status === "rejected").length;
+    setBulkUpdating(false);
+
+    if (failed === 0) {
+      toast.success(`${ids.length} envio(s) atualizados para "${newStatus}"`);
+      clearSelection();
+    } else if (failed === ids.length) {
+      setShipping(prev);
+      toast.error("Falha ao atualizar envios");
+    } else {
+      toast.warn(`${ids.length - failed} atualizados, ${failed} falharam`);
+      fetchShipping();
+      clearSelection();
+    }
+  };
 
   const openDetails = (item) => {
+    // Em modo seleção, clique no card alterna seleção em vez de abrir modal
+    if (hasSelection) {
+      toggleSelect(item.id);
+      return;
+    }
     if (!item.id) {
       toast.warn("Envio ainda não processado — sem detalhes para exibir");
       return;
@@ -206,20 +287,45 @@ const CampaignKanban = () => {
     const isVirtual = !item.id;
     const parsed = parseMessage(item.message);
     const status = inferStatus(item);
+    const checked = !isVirtual && isSelected(item.id);
+
+    const handleCardClick = (e) => {
+      if (e.ctrlKey || e.metaKey || e.shiftKey) {
+        e.preventDefault();
+        toggleSelect(item.id);
+        return;
+      }
+      openDetails(item);
+    };
+
     return (
-      <Draggable draggableId={draggableId} index={index} isDragDisabled={isVirtual}>
+      <Draggable draggableId={draggableId} index={index} isDragDisabled={isVirtual || hasSelection}>
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
             {...provided.draggableProps}
             {...provided.dragHandleProps}
-            onClick={() => !snapshot.isDragging && openDetails(item)}
-            className={`mb-2 rounded-xl border bg-white p-3 shadow-sm transition-all cursor-pointer
+            onClick={(e) => !snapshot.isDragging && handleCardClick(e)}
+            className={`group relative mb-2 rounded-xl border bg-white p-3 shadow-sm transition-all cursor-pointer
               ${snapshot.isDragging ? "shadow-lg ring-2 ring-emerald-300" : "hover:shadow-md hover:border-emerald-300"}
+              ${checked ? "ring-2 ring-emerald-500 border-emerald-400 bg-emerald-50/40" : ""}
               ${isVirtual ? "opacity-60 cursor-not-allowed" : ""}
             `}
           >
             <div className="flex items-center gap-2">
+              {!isVirtual && (
+                <span
+                  onClick={(e) => { e.stopPropagation(); toggleSelect(item.id); }}
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-all cursor-pointer
+                    ${checked
+                      ? "bg-emerald-500 border-emerald-500 text-white"
+                      : "border-slate-300 bg-white text-transparent group-hover:border-emerald-400"}
+                    ${hasSelection || checked ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
+                  `}
+                >
+                  {checked && <CheckCircle2 size={12} />}
+                </span>
+              )}
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
                 {(item.contact?.name || item.number || "?").slice(0, 2).toUpperCase()}
               </div>
@@ -326,9 +432,20 @@ const CampaignKanban = () => {
                     </span>
                     <span className={`text-sm font-bold ${c.text}`}>{col.label}</span>
                   </div>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${c.chip}`}>
-                    {items.length}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {items.some((i) => i.id) && (
+                      <button
+                        onClick={() => selectAllInColumn(items)}
+                        title="Selecionar todos desta coluna"
+                        className={`text-[10px] font-semibold underline-offset-2 hover:underline ${c.text} opacity-70 hover:opacity-100`}
+                      >
+                        {items.filter((i) => i.id).every((i) => isSelected(i.id)) ? "Limpar" : "Todos"}
+                      </button>
+                    )}
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${c.chip}`}>
+                      {items.length}
+                    </span>
+                  </div>
                 </div>
                 <Droppable droppableId={col.id}>
                   {(provided, snapshot) => (
@@ -359,6 +476,42 @@ const CampaignKanban = () => {
           })}
         </div>
       </DragDropContext>
+
+      {/* Barra flutuante de ações em massa */}
+      {hasSelection && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-2xl border border-emerald-200 bg-white px-4 py-3 shadow-2xl shadow-emerald-500/20">
+          <div className="flex items-center gap-2 pr-2 border-r border-slate-200">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white">
+              {selectedIds.size}
+            </span>
+            <span className="text-sm font-semibold text-slate-700">selecionado(s)</span>
+          </div>
+          <span className="text-xs text-slate-500 mr-1">Mover para:</span>
+          {COLUMNS.map((col) => {
+            const cc = colorMap[col.color];
+            const Icon = col.icon;
+            return (
+              <button
+                key={col.id}
+                onClick={() => bulkUpdateStatus(col.id)}
+                disabled={bulkUpdating}
+                className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${cc.chip}`}
+              >
+                <Icon size={12} />
+                {col.label}
+              </button>
+            );
+          })}
+          <button
+            onClick={clearSelection}
+            disabled={bulkUpdating}
+            className="ml-1 flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+          >
+            <X size={12} />
+            Cancelar
+          </button>
+        </div>
+      )}
 
       {/* Modal de detalhes do envio */}
       {selected && (() => {
