@@ -299,6 +299,61 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
     }
   };
 
+  // ===== Variáveis e simulação =====
+  const detectVariables = useCallback((text) => {
+    const matches = String(text || "").match(/\{\{(\d+)\}\}/g) || [];
+    const set = new Set(matches.map((m) => m.replace(/[{}]/g, "")));
+    return Array.from(set).sort((a, b) => Number(a) - Number(b));
+  }, []);
+
+  const allVariables = React.useMemo(
+    () => detectVariables(`${headerText} ${body} ${footer}`),
+    [headerText, body, footer, detectVariables]
+  );
+
+  const interpolate = useCallback(
+    (text, { highlight = false } = {}) => {
+      if (!text) return text;
+      const parts = String(text).split(/(\{\{\d+\}\})/g);
+      return parts.map((part, idx) => {
+        const m = part.match(/^\{\{(\d+)\}\}$/);
+        if (!m) return part;
+        const key = m[1];
+        const value = variableValues[key];
+        if (value) return value;
+        if (highlight) {
+          return (
+            <span
+              key={idx}
+              style={{
+                background: "#fef3c7",
+                color: "#92400e",
+                padding: "0 4px",
+                borderRadius: 4,
+                fontWeight: 600,
+              }}
+            >
+              {`{{${key}}}`}
+            </span>
+          );
+        }
+        return part;
+      });
+    },
+    [variableValues]
+  );
+
+  const handleSimulate = useCallback(() => {
+    if (simTimer.current) clearTimeout(simTimer.current);
+    setSimulating(true);
+    simTimer.current = setTimeout(() => {
+      setSimulating(false);
+      setSimulatedAt(Date.now());
+    }, 900);
+  }, []);
+
+  useEffect(() => () => simTimer.current && clearTimeout(simTimer.current), []);
+
   if (loading) {
     return <div style={{ padding: 24, color: "#64748b" }}>Carregando modelo…</div>;
   }
