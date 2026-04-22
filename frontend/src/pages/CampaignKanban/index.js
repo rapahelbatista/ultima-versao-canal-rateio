@@ -863,6 +863,141 @@ const CampaignKanban = () => {
     failed: columnsState.failed.items,
   }), [columnsState]);
 
+  // ===== Exportação (CSV/PDF) dos envios filtrados/carregados =====
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+
+  // Coleta envios atualmente visíveis (colunas ativas + quickFilter aplicado).
+  const collectExportRows = useCallback(() => {
+    const statusLabel = {
+      pending: "Pendente",
+      delivered: "Entregue",
+      confirmed: "Confirmado",
+      failed: "Falhou",
+    };
+    const rows = [];
+    ["pending", "delivered", "confirmed", "failed"].forEach((st) => {
+      if (!visibleStatuses.has(st)) return;
+      const all = columnsState[st]?.items || [];
+      const filtered = quickFilter ? all.filter(matchesQuickFilter) : all;
+      filtered.forEach((it) => {
+        if (!it) return;
+        const { message, notes } = parseMessage(it.message);
+        rows.push({
+          id: it.id ?? "",
+          contactName: it.contact?.name || "",
+          number: it.number || "",
+          status: statusLabel[st],
+          message: message || "",
+          notes: notes || "",
+          createdAt: it.createdAt || "",
+          deliveredAt: it.deliveredAt || "",
+          confirmedAt: it.confirmedAt || "",
+        });
+      });
+    });
+    return rows;
+  }, [columnsState, visibleStatuses, quickFilter, matchesQuickFilter]);
+
+  const formatDateBR = (v) => {
+    if (!v) return "";
+    const d = new Date(v);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleString("pt-BR");
+  };
+
+  const downloadFile = (filename, content, mime) => {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const exportCSV = useCallback(() => {
+    const rows = collectExportRows();
+    if (rows.length === 0) { toast.warn("Nada para exportar"); return; }
+    const headers = ["ID", "Contato", "Telefone", "Status", "Mensagem", "Observações", "Criado em", "Entregue em", "Confirmado em"];
+    const esc = (v) => {
+      const s = String(v ?? "").replace(/"/g, '""');
+      return /[",\n;]/.test(s) ? `"${s}"` : s;
+    };
+    const lines = [headers.join(";")];
+    rows.forEach((r) => {
+      lines.push([
+        r.id, r.contactName, r.number, r.status, r.message, r.notes,
+        formatDateBR(r.createdAt), formatDateBR(r.deliveredAt), formatDateBR(r.confirmedAt),
+      ].map(esc).join(";"));
+    });
+    // BOM para Excel reconhecer UTF-8
+    const csv = "\uFEFF" + lines.join("\n");
+    const campName = (campaigns.find((c) => String(c.id) === String(campaignId))?.name || "campanha")
+      .replace(/[^\w\-]+/g, "_").slice(0, 40);
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    downloadFile(`kanban_${campName}_${stamp}.csv`, csv, "text/csv;charset=utf-8");
+    toast.success(`${rows.length} envio(s) exportados`);
+    setExportMenuOpen(false);
+  }, [collectExportRows, campaigns, campaignId]);
+
+  const exportPDF = useCallback(() => {
+    const rows = collectExportRows();
+    if (rows.length === 0) { toast.warn("Nada para exportar"); return; }
+    const campName = campaigns.find((c) => String(c.id) === String(campaignId))?.name || "Campanha";
+    const generatedAt = new Date().toLocaleString("pt-BR");
+    const escHtml = (s) => String(s ?? "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const statusBadge = (s) => {
+      const map = {
+        Pendente: "#fef3c7;color:#92400e",
+        Entregue: "#dbeafe;color:#1e40af",
+        Confirmado: "#d1fae5;color:#065f46",
+        Falhou: "#fee2e2;color:#991b1b",
+      };
+      return `<span style="background:${map[s] || "#e5e7eb;color:#374151"};padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600">${escHtml(s)}</span>`;
+    };
+    const tableRows = rows.map((r) => `
+      <tr>
+        <td>${escHtml(r.contactName || "—")}<div style="color:#64748b;font-size:10px">${escHtml(r.number)}</div></td>
+        <td>${statusBadge(r.status)}</td>
+        <td style="max-width:380px">${escHtml(r.message).slice(0, 500)}</td>
+        <td style="font-size:10px;color:#475569">
+          ${r.createdAt ? `Criado: ${escHtml(formatDateBR(r.createdAt))}<br/>` : ""}
+          ${r.deliveredAt ? `Entregue: ${escHtml(formatDateBR(r.deliveredAt))}<br/>` : ""}
+          ${r.confirmedAt ? `Confirmado: ${escHtml(formatDateBR(r.confirmedAt))}` : ""}
+        </td>
+      </tr>`).join("");
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/>
+<title>Kanban — ${escHtml(campName)}</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px;color:#0f172a}
+  h1{font-size:18px;margin:0 0 4px}
+  .meta{color:#64748b;font-size:11px;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th{background:#f1f5f9;text-align:left;padding:8px;border-bottom:2px solid #cbd5e1;text-transform:uppercase;font-size:10px;letter-spacing:.04em}
+  td{padding:8px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+  tr:nth-child(even) td{background:#fafafa}
+  @media print{ @page{size:A4 landscape;margin:12mm} }
+</style></head><body>
+<h1>Kanban — ${escHtml(campName)}</h1>
+<div class="meta">Gerado em ${escHtml(generatedAt)} • ${rows.length} envio(s)${quickFilter ? ` • filtro: "${escHtml(quickFilter)}"` : ""}</div>
+<table>
+  <thead><tr><th>Contato</th><th>Status</th><th>Mensagem</th><th>Datas</th></tr></thead>
+  <tbody>${tableRows}</tbody>
+</table>
+<script>window.onload=()=>{setTimeout(()=>window.print(),300)}</script>
+</body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) { toast.error("Bloqueado pelo navegador. Permita pop-ups."); return; }
+    w.document.open(); w.document.write(html); w.document.close();
+    toast.success(`${rows.length} envio(s) prontos para PDF`);
+    setExportMenuOpen(false);
+  }, [collectExportRows, campaigns, campaignId, quickFilter]);
+
+
   const onDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
     if (!destination || destination.droppableId === source.droppableId) return;
