@@ -2210,41 +2210,50 @@ const CampaignKanban = () => {
 
       {/* Board */}
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className={`grid grid-cols-1 gap-4 ${
-          visibleStatuses.size === 1 ? "md:grid-cols-1" :
-          visibleStatuses.size === 2 ? "md:grid-cols-2" :
-          visibleStatuses.size === 3 ? "md:grid-cols-2 xl:grid-cols-3" :
-          "md:grid-cols-2 xl:grid-cols-4"
-        }`}>
+        <div
+          className={headerClasses.board}
+          style={{ "--cols": Math.max(visibleStatuses.size, 1) }}
+        >
           {COLUMNS.filter((col) => visibleStatuses.has(col.id)).map((col) => {
-            const c = colorMap[col.color];
+            const tokens = columnColorTokens[col.color] || columnColorTokens.amber;
             const Icon = col.icon;
             const colState = columnsState[col.id] || { items: [], total: 0, hasMore: false, loading: false };
             const allItems = colState.items;
             const items = quickFilter ? allItems.filter(matchesQuickFilter) : allItems;
+            const allSelected = items.filter((i) => i.id).every((i) => isSelected(i.id));
             return (
-              <div
-                key={col.id}
-                className={`flex flex-col rounded-2xl border ${col.border} bg-slate-50/60 overflow-hidden`}
-              >
-                <div className={`flex items-center justify-between px-4 py-3 ${c.bg} border-b ${col.border}`}>
-                  <div className="flex items-center gap-2">
-                    <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${c.chip}`}>
+              <div key={col.id} className={headerClasses.column}>
+                <div
+                  className={headerClasses.columnHeader}
+                  style={{ background: tokens.headerBg }}
+                >
+                  <div className={headerClasses.columnHeaderLeft}>
+                    <span
+                      className={headerClasses.columnIcon}
+                      style={{ background: tokens.chipBg, color: tokens.chipText }}
+                    >
                       <Icon size={14} />
                     </span>
-                    <span className={`text-sm font-bold ${c.text}`}>{col.label}</span>
+                    <span className={headerClasses.columnTitle} style={{ color: tokens.text }}>
+                      {col.label}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className={headerClasses.columnHeaderLeft}>
                     {items.some((i) => i.id) && (
-                      <button
+                      <Button
+                        size="small"
                         onClick={() => selectAllInColumn(items)}
                         title="Selecionar todos os visíveis nesta coluna"
-                        className={`text-[10px] font-semibold underline-offset-2 hover:underline ${c.text} opacity-70 hover:opacity-100`}
+                        className={headerClasses.columnSelectAll}
+                        style={{ color: tokens.text }}
                       >
-                        {items.filter((i) => i.id).every((i) => isSelected(i.id)) ? "Limpar" : "Todos"}
-                      </button>
+                        {allSelected ? "Limpar" : "Todos"}
+                      </Button>
                     )}
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${c.chip}`}>
+                    <span
+                      className={headerClasses.columnCount}
+                      style={{ background: tokens.chipBg, color: tokens.chipText }}
+                    >
                       {items.length}
                       {(quickFilter ? allItems.length : colState.total) > items.length
                         ? `/${quickFilter ? allItems.length : colState.total}`
@@ -2257,23 +2266,20 @@ const CampaignKanban = () => {
                     <div
                       ref={(node) => { provided.innerRef(node); setColumnScrollRef(col.id)(node); }}
                       {...provided.droppableProps}
-                      className={`flex-1 min-h-[300px] max-h-[70vh] overflow-y-auto p-3 transition-colors
-                        ${snapshot.isDraggingOver ? `${c.bg}` : ""}`}
+                      className={`${headerClasses.columnList} ${snapshot.isDraggingOver ? headerClasses.columnDraggingOver : ""}`}
                     >
                       {items.length === 0 && !colState.loading && (
-                        <div className="flex h-32 items-center justify-center rounded-xl border-2 border-dashed border-slate-200 text-xs text-slate-400">
-                          Sem envios
-                        </div>
+                        <div className={headerClasses.emptyState}>Sem envios</div>
                       )}
                       {items.map((item, idx) => (
                         <Card
                           key={item.id ?? `virtual-${item.number}-${idx}`}
                           item={item}
                           index={idx}
+                          classes={headerClasses}
                         />
                       ))}
                       {provided.placeholder}
-                      {/* Sentinela: dispara loadColumn ~400px antes do fim p/ pré-carregar */}
                       {colState.hasMore && !quickFilter && (
                         <InfiniteSentinel
                           rootRef={getColumnScrollRef(col.id)}
@@ -2282,18 +2288,20 @@ const CampaignKanban = () => {
                         />
                       )}
                       {colState.hasMore && (
-                        <button
+                        <Button
+                          variant="outlined"
                           onClick={() => loadColumn(col.id)}
                           disabled={colState.loading}
-                          className={`mt-2 w-full rounded-xl border ${col.border} bg-white py-2 text-xs font-semibold ${c.text} hover:bg-slate-50 disabled:opacity-50`}
+                          className={headerClasses.loadMoreBtn}
+                          style={{ color: tokens.text, borderColor: tokens.chipBg }}
                         >
                           {colState.loading
                             ? "Carregando..."
                             : `Carregar mais (${Math.max(colState.total - items.length, 0)} restantes)`}
-                        </button>
+                        </Button>
                       )}
                       {colState.loading && items.length === 0 && (
-                        <div className="flex h-32 items-center justify-center text-xs text-slate-400">
+                        <div className={headerClasses.emptyState} style={{ border: "none" }}>
                           Carregando...
                         </div>
                       )}
