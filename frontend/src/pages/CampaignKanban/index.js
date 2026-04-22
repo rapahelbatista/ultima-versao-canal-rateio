@@ -2626,7 +2626,7 @@ const CampaignKanban = () => {
             }}
             role="status"
             aria-live="polite"
-            className="kanban-overlay-top"
+            className="kanban-overlay-progress"
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: tone.text }}>
@@ -2667,7 +2667,7 @@ const CampaignKanban = () => {
         const col = COLUMNS.find((c) => c.id === lastBulkUpdate.status);
         return (
           <div
-            className="kanban-overlay-bottom"
+            className="kanban-overlay-undo"
             style={{
               position: "fixed",
               left: "50%",
@@ -2725,7 +2725,7 @@ const CampaignKanban = () => {
       {/* Barra flutuante de ações em massa */}
       {hasSelection && (
         <div
-          className="kanban-overlay-bottom"
+          className="kanban-overlay-bulk"
           style={{
             position: "fixed",
             bottom: 24,
