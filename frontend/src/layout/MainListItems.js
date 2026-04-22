@@ -678,21 +678,25 @@ const MainListItems = ({ collapsed, drawerClose }) => {
       />
       )}
 
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && (
       <ListItemLink
         to="/quick-messages"
         primary={i18n.t("mainDrawer.listItems.quickMessages")}
         icon={<FlashOnIcon />}
         tooltip={collapsed}
       />
+      )}
 
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && (
       <ListItemLink
         to="/template-manager"
         primary="Templates Meta"
         icon={<Description />}
         tooltip={collapsed}
       />
+      )}
 
-      {showKanban && (
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && showKanban && (
         <>
           <ListItemLink
             to="/kanban"
@@ -703,7 +707,7 @@ const MainListItems = ({ collapsed, drawerClose }) => {
         </>
       )}
 
-      {user.showContacts === "enabled" && (
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && user.showContacts === "enabled" && (
         <ListItemLink
           to="/contacts"
           primary={i18n.t("mainDrawer.listItems.contacts")}
@@ -723,14 +727,16 @@ const MainListItems = ({ collapsed, drawerClose }) => {
         </>
       )}
 
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && (
       <ListItemLink
         to="/tags"
         primary={i18n.t("mainDrawer.listItems.tags")}
         icon={<LocalOfferIcon />}
         tooltip={collapsed}
       />
+      )}
 
-      {showInternalChat && (
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && showInternalChat && (
         <>
           <ListItemLink
             to="/chats"
@@ -745,14 +751,6 @@ const MainListItems = ({ collapsed, drawerClose }) => {
         </>
       )}
 
-      {/* 
-      <ListItemLink
-        to="/todolist"
-        primary={i18n.t("ToDoList")}
-        icon={<EventAvailableIcon />}
-      /> 
-      */}
-
       {hasHelps && (
         <ListItemLink
           to="/helps"
@@ -762,10 +760,10 @@ const MainListItems = ({ collapsed, drawerClose }) => {
         />
       )}
 
-      {user?.showCampaign === "enabled" && showCampaigns && (
+      {(FEATURE_FLAGS.CAMPAIGN_ONLY_MODE || (user?.showCampaign === "enabled" && showCampaigns)) && (
         <ListItemLink
           to="/campaigns"
-          primary={i18n.t("mainDrawer.listItems.campaigns")}
+          primary={i18n.t("mainDrawer.listItems.campaigns") || "Campanhas"}
           icon={<EventAvailableIcon />}
           tooltip={collapsed}
         />
