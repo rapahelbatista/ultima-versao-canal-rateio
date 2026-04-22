@@ -17,6 +17,9 @@ import {
   Hash,
   AlertCircle,
   Filter,
+  History,
+  User as UserIcon,
+  ExternalLink,
 } from "lucide-react";
 import api from "../../services/api";
 import { toast } from "react-toastify";
@@ -107,6 +110,47 @@ const CampaignKanban = () => {
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
 
+  // Histórico de atualizações em massa
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyRecords, setHistoryRecords] = useState([]);
+  const [historyScope, setHistoryScope] = useState("campaign"); // "campaign" | "all"
+  const [historyDetail, setHistoryDetail] = useState(null); // { log, shippings }
+  const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
+
+  const fetchHistory = useCallback(async (scope = historyScope) => {
+    setHistoryLoading(true);
+    try {
+      const params = { pageSize: 50, pageNumber: 1 };
+      if (scope === "campaign" && campaignId) params.campaignId = campaignId;
+      const { data } = await api.get("/campaigns/bulk-updates/history", { params });
+      setHistoryRecords(data?.records || []);
+    } catch (e) {
+      toast.error("Falha ao carregar histórico");
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [campaignId, historyScope]);
+
+  const openHistory = () => {
+    setHistoryOpen(true);
+    fetchHistory(historyScope);
+  };
+
+  const openHistoryDetail = async (logId) => {
+    setHistoryDetailLoading(true);
+    setHistoryDetail({ log: null, shippings: [] });
+    try {
+      const { data } = await api.get(`/campaigns/bulk-updates/${logId}`);
+      setHistoryDetail(data);
+    } catch (e) {
+      toast.error("Falha ao carregar detalhes");
+      setHistoryDetail(null);
+    } finally {
+      setHistoryDetailLoading(false);
+    }
+  };
+
   const isSelected = (id) => selectedIds.has(id);
   const hasSelection = selectedIds.size > 0;
 
@@ -160,24 +204,28 @@ const CampaignKanban = () => {
     });
     setShipping(next);
 
-    const results = await Promise.allSettled(
-      ids.map((id) =>
-        api.patch(`/campaigns/${campaignId}/shipping/${id}`, { status: newStatus })
-      )
-    );
-    const failed = results.filter((r) => r.status === "rejected").length;
-    setBulkUpdating(false);
-
-    if (failed === 0) {
-      toast.success(`${ids.length} envio(s) atualizados para "${newStatus}"`);
+    try {
+      const { data } = await api.post(
+        `/campaigns/${campaignId}/shipping/bulk-status`,
+        { status: newStatus, shippingIds: ids, source: "kanban" }
+      );
+      const ok = data?.successCount ?? ids.length;
+      const fail = data?.failedCount ?? 0;
+      setBulkUpdating(false);
+      if (fail === 0) {
+        toast.success(`${ok} envio(s) atualizados para "${newStatus}"`);
+      } else if (ok === 0) {
+        setShipping(prev);
+        toast.error("Falha ao atualizar envios");
+      } else {
+        toast.warn(`${ok} atualizados, ${fail} falharam`);
+        fetchShipping();
+      }
       clearSelection();
-    } else if (failed === ids.length) {
+    } catch (err) {
+      setBulkUpdating(false);
       setShipping(prev);
       toast.error("Falha ao atualizar envios");
-    } else {
-      toast.warn(`${ids.length - failed} atualizados, ${failed} falharam`);
-      fetchShipping();
-      clearSelection();
     }
   };
 
@@ -765,6 +813,14 @@ const CampaignKanban = () => {
               Selecionar filtrados
             </button>
           )}
+          <button
+            onClick={openHistory}
+            title="Histórico de atualizações em massa"
+            className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
+          >
+            <History size={12} />
+            Histórico
+          </button>
         </div>
       </div>
 
@@ -895,6 +951,161 @@ const CampaignKanban = () => {
       )}
 
       {/* Modal de detalhes do envio */}
+      {/* Modal de histórico de atualizações em massa */}
+      {historyOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
+          onClick={() => { setHistoryOpen(false); setHistoryDetail(null); }}
+        >
+          <div
+            className="w-full max-w-4xl max-h-[85vh] flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 bg-indigo-50 border-b border-indigo-100">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-700">
+                  <History size={18} />
+                </span>
+                <div>
+                  <h3 className="font-bold text-slate-800">Histórico de atualizações em massa</h3>
+                  <p className="text-[11px] text-slate-500">Quem atualizou, quando e quais envios foram afetados</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex rounded-xl border border-slate-200 bg-white p-0.5 text-[11px] font-semibold">
+                  <button
+                    onClick={() => { setHistoryScope("campaign"); fetchHistory("campaign"); setHistoryDetail(null); }}
+                    disabled={!campaignId}
+                    className={`px-3 py-1 rounded-lg ${historyScope === "campaign" ? "bg-indigo-500 text-white" : "text-slate-600 hover:bg-slate-100"} disabled:opacity-40`}
+                  >
+                    Esta campanha
+                  </button>
+                  <button
+                    onClick={() => { setHistoryScope("all"); fetchHistory("all"); setHistoryDetail(null); }}
+                    className={`px-3 py-1 rounded-lg ${historyScope === "all" ? "bg-indigo-500 text-white" : "text-slate-600 hover:bg-slate-100"}`}
+                  >
+                    Todas
+                  </button>
+                </div>
+                <button
+                  onClick={() => { setHistoryOpen(false); setHistoryDetail(null); }}
+                  className="rounded-lg p-2 text-slate-400 hover:bg-white hover:text-slate-700"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2">
+              {/* Lista */}
+              <div className="overflow-y-auto border-r border-slate-100">
+                {historyLoading ? (
+                  <div className="p-6 text-center text-sm text-slate-400">Carregando...</div>
+                ) : historyRecords.length === 0 ? (
+                  <div className="p-6 text-center text-sm text-slate-400">Nenhuma atualização em massa registrada.</div>
+                ) : (
+                  <ul className="divide-y divide-slate-100">
+                    {historyRecords.map((r) => {
+                      const col = COLUMNS.find((c) => c.id === r.newStatus);
+                      const cc = colorMap[col?.color || "amber"];
+                      const total = (Array.isArray(r.shippingIds) ? r.shippingIds.length : 0) || (r.successCount + r.failedCount);
+                      const isActive = historyDetail?.log?.id === r.id;
+                      return (
+                        <li key={r.id}>
+                          <button
+                            onClick={() => openHistoryDetail(r.id)}
+                            className={`w-full text-left px-4 py-3 hover:bg-indigo-50/40 transition-colors ${isActive ? "bg-indigo-50" : ""}`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                                  <UserIcon size={12} />
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-slate-800 truncate">
+                                    {r.userName || "Usuário desconhecido"}
+                                  </p>
+                                  <p className="text-[10px] text-slate-400">
+                                    {new Date(r.createdAt).toLocaleString("pt-BR")}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${cc.chip}`}>
+                                {col?.label || r.newStatus}
+                              </span>
+                            </div>
+                            <div className="mt-2 flex items-center gap-3 text-[11px] text-slate-500">
+                              <span>📦 {total} envio(s)</span>
+                              <span className="text-emerald-600">✓ {r.successCount}</span>
+                              {r.failedCount > 0 && <span className="text-rose-600">✗ {r.failedCount}</span>}
+                              {r.campaign?.name && (
+                                <span className="ml-auto truncate text-slate-400">📣 {r.campaign.name}</span>
+                              )}
+                            </div>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              {/* Detalhe */}
+              <div className="overflow-y-auto bg-slate-50">
+                {!historyDetail ? (
+                  <div className="p-6 text-center text-sm text-slate-400">
+                    Selecione um registro para ver os envios afetados.
+                  </div>
+                ) : historyDetailLoading ? (
+                  <div className="p-6 text-center text-sm text-slate-400">Carregando detalhes...</div>
+                ) : (
+                  <div className="p-4">
+                    <div className="mb-3 rounded-xl border border-slate-200 bg-white p-3 text-xs">
+                      <p className="font-bold text-slate-700">
+                        {historyDetail.log?.userName || "Usuário"} alterou {historyDetail.shippings?.length || 0} envio(s) para{" "}
+                        <span className="text-indigo-700">"{historyDetail.log?.newStatus}"</span>
+                      </p>
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        {historyDetail.log && new Date(historyDetail.log.createdAt).toLocaleString("pt-BR")}
+                        {" · "}
+                        Origem: {historyDetail.log?.source || "—"}
+                      </p>
+                    </div>
+                    <ul className="space-y-1">
+                      {(historyDetail.shippings || []).map((s) => (
+                        <li key={s.id}>
+                          <button
+                            onClick={() => {
+                              setHistoryOpen(false);
+                              setHistoryDetail(null);
+                              openDetails(s);
+                            }}
+                            className="w-full flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors"
+                          >
+                            <div className="min-w-0 text-left">
+                              <p className="font-semibold text-slate-700 truncate">
+                                {s.contact?.name || s.number || `#${s.id}`}
+                              </p>
+                              <p className="text-[10px] text-slate-400 truncate">{s.number}</p>
+                            </div>
+                            <ExternalLink size={12} className="text-indigo-500 shrink-0" />
+                          </button>
+                        </li>
+                      ))}
+                      {(!historyDetail.shippings || historyDetail.shippings.length === 0) && (
+                        <li className="text-center text-xs text-slate-400 py-4">
+                          Nenhum envio encontrado (podem ter sido removidos).
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {selected && (() => {
         const status = inferStatus(selected);
         const col = COLUMNS.find((c) => c.id === status);
