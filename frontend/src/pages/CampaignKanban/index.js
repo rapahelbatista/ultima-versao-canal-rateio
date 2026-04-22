@@ -551,6 +551,22 @@ const CampaignKanban = () => {
               className="w-48 bg-transparent outline-none text-slate-700 placeholder:text-slate-400"
             />
           </div>
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors
+              ${showFilters || filterPhone || filterStartDate || filterEndDate
+                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}
+            `}
+          >
+            <Filter size={14} />
+            Filtros
+            {(filterPhone || filterStartDate || filterEndDate) && (
+              <span className="rounded-full bg-emerald-500 px-1.5 text-[10px] text-white">
+                {[filterPhone, filterStartDate, filterEndDate].filter(Boolean).length}
+              </span>
+            )}
+          </button>
           <LiveBadge tick={liveTick} connected={!!socket?.connected} />
           <button
             onClick={fetchShipping}
