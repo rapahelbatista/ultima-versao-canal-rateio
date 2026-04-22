@@ -47,6 +47,9 @@ import {
   Instagram,
   WhatsApp,
   Sync,
+  Add,
+  Autorenew,
+  HelpOutline,
 } from "@material-ui/icons";
 import { Smartphone } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
@@ -222,6 +225,76 @@ const useStyles = makeStyles((theme) => ({
   emptyStateText: {
     fontSize: 13,
     color: theme.palette.type === "dark" ? "rgba(167,243,208,0.7)" : "#10b981",
+  },
+  toolbar: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 12,
+    padding: "10px 4px",
+    marginBottom: 12,
+  },
+  toolbarLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+  },
+  toolbarTitle: {
+    fontWeight: 700,
+    fontSize: 16,
+    letterSpacing: "-0.01em",
+    color: theme.palette.text.primary,
+  },
+  toolbarCount: {
+    minWidth: 24,
+    height: 22,
+    padding: "0 8px",
+    borderRadius: 999,
+    background: theme.palette.type === "dark" ? "rgba(16,185,129,0.18)" : "#d1fae5",
+    color: theme.palette.type === "dark" ? "#a7f3d0" : "#065f46",
+    fontSize: 12,
+    fontWeight: 700,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    lineHeight: 1,
+  },
+  toolbarRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  toolbarSecondary: {
+    background: theme.palette.type === "dark" ? "rgba(255,255,255,0.04)" : "#ffffff",
+    border: `1px solid ${theme.palette.type === "dark" ? "rgba(255,255,255,0.08)" : "#e2e8f0"}`,
+    color: theme.palette.text.secondary,
+    borderRadius: 10,
+    padding: "6px 14px",
+    textTransform: "none",
+    fontWeight: 600,
+    fontSize: 13,
+    boxShadow: "none",
+    "&:hover": {
+      background: theme.palette.type === "dark" ? "rgba(255,255,255,0.06)" : "#f1f5f9",
+      borderColor: theme.palette.type === "dark" ? "rgba(255,255,255,0.14)" : "#cbd5e1",
+      color: theme.palette.text.primary,
+    },
+  },
+  toolbarPrimary: {
+    background: "linear-gradient(135deg, #10b981, #059669)",
+    color: "#fff",
+    borderRadius: 10,
+    padding: "6px 18px",
+    textTransform: "none",
+    fontWeight: 700,
+    fontSize: 13,
+    boxShadow: "0 4px 12px rgba(16,185,129,0.25)",
+    "&:hover": {
+      background: "linear-gradient(135deg, #059669, #047857)",
+      boxShadow: "0 6px 16px rgba(16,185,129,0.35)",
+    },
   },
   connectionCard: {
     borderRadius: 16,
@@ -998,9 +1071,9 @@ const Connections = () => {
                 <CropFree style={{ fontSize: 20, color: "#10b981" }} />
               </Box>
               <Box>
-                <Typography className={classes.newInstanceTitle}>New Instance</Typography>
+                <Typography className={classes.newInstanceTitle}>Nova Instância</Typography>
                 <Typography className={classes.newInstanceSubtitle}>
-                  Generate a QR code to link your WhatsApp
+                  Gere um QR code para vincular seu WhatsApp
                 </Typography>
               </Box>
             </Box>
@@ -1205,32 +1278,40 @@ const Connections = () => {
         <ForbiddenPage />
         :
         <>
-          <MainHeader>
-            <Title>{i18n.t("connections.title")} ({whatsApps.length})</Title>
-            <MainHeaderButtonsWrapper>
+          <Box className={classes.toolbar}>
+            <Box className={classes.toolbarLeft}>
+              <Typography className={classes.toolbarTitle}>Conexões</Typography>
+              <Box className={classes.toolbarCount}>{whatsApps.length}</Box>
+            </Box>
+
+            <Box className={classes.toolbarRight}>
               <Button
-                variant="contained"
-                color="primary"
+                size="small"
                 onClick={handleOpenTransferModal}
+                className={classes.toolbarSecondary}
+                startIcon={<Sync style={{ fontSize: 16 }} />}
               >
                 Transferir Tickets
               </Button>
 
               <Button
-                variant="contained"
-                color="primary"
+                size="small"
                 onClick={restartWhatsapps}
+                className={classes.toolbarSecondary}
+                startIcon={<Autorenew style={{ fontSize: 16 }} />}
               >
                 {i18n.t("connections.restartConnections")}
               </Button>
 
               <Button
-                variant="contained"
-                color="primary"
+                size="small"
                 onClick={() => openInNewTab(`https://wa.me/${supportNumber}`)}
+                className={classes.toolbarSecondary}
+                startIcon={<HelpOutline style={{ fontSize: 16 }} />}
               >
                 {i18n.t("connections.callSupport")}
               </Button>
+
               <PopupState variant="popover" popupId="demo-popup-menu">
                 {(popupState) => (
                   <React.Fragment>
@@ -1240,8 +1321,9 @@ const Connections = () => {
                       yes={() => (
                         <>
                           <Button
-                            variant="contained"
-                            color="primary"
+                            size="small"
+                            className={classes.toolbarPrimary}
+                            startIcon={<Add style={{ fontSize: 16 }} />}
                             {...bindTrigger(popupState)}
                           >
                             {i18n.t("connections.newConnection")}
@@ -1340,8 +1422,8 @@ const Connections = () => {
                   </React.Fragment>
                 )}
               </PopupState>
-            </MainHeaderButtonsWrapper>
-          </MainHeader>
+            </Box>
+          </Box>
 
 
           <Paper className={classes.mainPaper} variant="outlined">
