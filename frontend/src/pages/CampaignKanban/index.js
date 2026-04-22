@@ -1753,8 +1753,7 @@ const CampaignKanban = () => {
     const rows = [];
     ["pending", "delivered", "confirmed", "failed"].forEach((st) => {
       if (!visibleStatuses.has(st)) return;
-      const all = columnsState[st]?.items || [];
-      const filtered = quickFilter ? all.filter(matchesQuickFilter) : all;
+      const filtered = columnViews[st]?.items || [];
       filtered.forEach((it) => {
         if (!it) return;
         const { message, notes } = parseMessage(it.message);
@@ -1772,7 +1771,8 @@ const CampaignKanban = () => {
       });
     });
     return rows;
-  }, [columnsState, visibleStatuses, quickFilter, matchesQuickFilter]);
+  }, [columnViews, visibleStatuses]);
+
 
   const formatDateBR = (v) => {
     if (!v) return "";
