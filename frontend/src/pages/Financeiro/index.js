@@ -552,60 +552,84 @@ const Financeiro = () => {
             <div className={classes.loaderBox}>Nenhum plano disponível no momento.</div>
           ) : (
             <div className={classes.plansGrid}>
-              {plans.map((p, idx) => {
-                const current = isCurrent(p);
-                const popular = !current && idx === Math.min(1, plans.length - 1);
-                const tone = current ? TONE.current : popular ? TONE.popular : null;
-                return (
-                  <div
-                    key={p.id}
-                    className={`${classes.planCard} ${current ? classes.planCardCurrent : ""} ${
-                      popular ? classes.planCardPopular : ""
-                    }`}
-                  >
-                    <div className={classes.planTopRow}>
-                      <div className={classes.planTitle}>{p.name}</div>
-                      {tone && (
-                        <span
-                          className={classes.planTag}
-                          style={{ background: tone.bg, color: tone.color }}
-                        >
-                          {tone.label}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className={classes.planPrice}>
-                      <span className={classes.priceValue}>{fmtMoney(p.value || p.price)}</span>
-                      <span className={classes.priceUnit}>/ mês</span>
-                    </div>
-
-                    <ul className={classes.planFeatures}>
-                      {planFeatures(p).map((f, i) => {
-                        const Ic = f.icon;
-                        return (
-                          <li key={i} className={classes.planFeature}>
-                            <Check size={14} style={{ color: "#10b981" }} />
-                            <Ic size={14} style={{ color: "#64748b" }} />
-                            {f.label}
-                          </li>
-                        );
-                      })}
-                    </ul>
-
-                    <Button
-                      className={classes.selectBtn}
-                      variant={current ? "outlined" : "contained"}
-                      color="primary"
-                      disabled={current}
-                      onClick={() => handleSelectPlan(p)}
-                      startIcon={<CreditCard size={16} />}
+              {(() => {
+                const visible = plans
+                  .filter((p) => p.isPublic !== false && p.deletedAt == null)
+                  .slice()
+                  .sort(
+                    (a, b) =>
+                      Number(a.value || a.price || 0) - Number(b.value || b.price || 0)
+                  );
+                const popularIdx =
+                  visible.length >= 3 ? Math.floor(visible.length / 2) : visible.length - 1;
+                return visible.map((p, idx) => {
+                  const current = isCurrent(p);
+                  const popular = !current && idx === popularIdx && visible.length > 1;
+                  const tone = current ? TONE.current : popular ? TONE.popular : null;
+                  const price = Number(p.value || p.price || 0);
+                  return (
+                    <div
+                      key={p.id}
+                      className={`${classes.planCard} ${current ? classes.planCardCurrent : ""} ${
+                        popular ? classes.planCardPopular : ""
+                      }`}
+                      style={popular ? { transform: "translateY(-4px)" } : undefined}
                     >
-                      {current ? "Plano atual" : "Selecionar plano"}
-                    </Button>
-                  </div>
-                );
-              })}
+                      <div className={classes.planTopRow}>
+                        <div className={classes.planTitle}>{p.name}</div>
+                        {tone && (
+                          <span
+                            className={classes.planTag}
+                            style={{ background: tone.bg, color: tone.color }}
+                          >
+                            {tone.label}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className={classes.planPrice}>
+                        {price === 0 ? (
+                          <span className={classes.priceValue}>Grátis</span>
+                        ) : (
+                          <>
+                            <span className={classes.priceValue}>{fmtMoney(price)}</span>
+                            <span className={classes.priceUnit}>/ mês</span>
+                          </>
+                        )}
+                      </div>
+
+                      <ul className={classes.planFeatures}>
+                        {planFeatures(p).map((f, i) => {
+                          const Ic = f.icon;
+                          return (
+                            <li key={i} className={classes.planFeature}>
+                              <Check size={14} style={{ color: "#10b981" }} />
+                              <Ic size={14} style={{ color: "#64748b" }} />
+                              {f.label}
+                            </li>
+                          );
+                        })}
+                      </ul>
+
+                      <Button
+                        className={classes.selectBtn}
+                        variant={current ? "outlined" : "contained"}
+                        color="primary"
+                        disabled={current}
+                        onClick={() => handleSelectPlan(p)}
+                        startIcon={<CreditCard size={16} />}
+                        fullWidth
+                      >
+                        {current
+                          ? "Plano atual"
+                          : price === 0
+                          ? "Começar agora"
+                          : "Assinar este plano"}
+                      </Button>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           )}
         </div>
