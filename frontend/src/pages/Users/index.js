@@ -364,6 +364,14 @@ const Users = () => {
         });
       }
       toast.success("Agente adicionado");
+      const created = { name: form.name.trim(), email: form.email.trim() };
+      setLastCreated(created);
+      // some o badge de sucesso após 5s
+      setTimeout(() => {
+        setLastCreated((curr) =>
+          curr && curr.email === created.email ? null : curr
+        );
+      }, 5000);
       setForm({ email: "", password: "", name: "", phone: "", comments: "" });
       // Recarrega
       setPageNumber(1);
