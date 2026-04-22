@@ -300,7 +300,7 @@ const KanbanCard = ({ ticket, index, updateTicket }) => {
                 onChange={(e) => setNewValue(e.target.value)}
                 variant="outlined"
                 size="small"
-                className={classes.textField} personalizados
+                className={classes.textField}
               />
             </DialogContent>
             <DialogActions>
