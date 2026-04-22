@@ -4,7 +4,6 @@ import { makeStyles } from "@material-ui/core/styles";
 import {
   Button,
   IconButton,
-  Switch,
   TextField,
   TablePagination,
   CircularProgress,
@@ -237,6 +236,10 @@ const Users = () => {
   const [deletingUser, setDeletingUser] = useState(null);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
 
+  // Live: status online + contagem de conversas (tickets) por usuário
+  const [onlineMap, setOnlineMap] = useState({}); // { [userId]: { online, lastSeen } }
+  const [ticketCounts, setTicketCounts] = useState({}); // { [userId]: number }
+
   useEffect(() => {
     dispatch({ type: "RESET" });
     setPageNumber(1);
@@ -263,6 +266,68 @@ const Users = () => {
       active = false;
     };
   }, [searchParam, pageNumber]);
+
+  // Buscar status online e contagem de tickets quando a lista de users mudar
+  useEffect(() => {
+    if (!users || users.length === 0) return;
+    let cancelled = false;
+
+    const fetchStats = async () => {
+      // 1) Status online (endpoint dedicado)
+      try {
+        const { data } = await api.get("/users/online");
+        if (!cancelled && Array.isArray(data)) {
+          const map = {};
+          data.forEach((u) => {
+            map[u.id] = { online: !!u.online, lastSeen: u.lastSeen };
+          });
+          setOnlineMap((prev) => ({ ...prev, ...map }));
+        }
+      } catch {
+        // fallback: usa campo `online` do próprio user
+        const map = {};
+        users.forEach((u) => {
+          map[u.id] = { online: !!u.online, lastSeen: u.lastSeen };
+        });
+        if (!cancelled) setOnlineMap((prev) => ({ ...prev, ...map }));
+      }
+
+      // 2) Contagem de conversas (tickets) por usuário — em paralelo
+      const results = await Promise.all(
+        users.map(async (u) => {
+          try {
+            const { data } = await api.get("/tickets", {
+              params: {
+                users: JSON.stringify([u.id]),
+                pageNumber: 1,
+                status: "open,pending,closed",
+                showAll: "true",
+              },
+            });
+            return [u.id, data?.count ?? (data?.tickets?.length || 0)];
+          } catch {
+            return [u.id, 0];
+          }
+        })
+      );
+      if (!cancelled) {
+        setTicketCounts((prev) => {
+          const next = { ...prev };
+          results.forEach(([id, c]) => {
+            next[id] = c;
+          });
+          return next;
+        });
+      }
+    };
+
+    fetchStats();
+    const interval = setInterval(fetchStats, 30000); // refresh a cada 30s
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [users]);
 
   const setExtra = (userId, patch) => {
     setExtras((prev) => {
@@ -305,26 +370,6 @@ const Users = () => {
       toast.error(msg);
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleToggleActive = async (user) => {
-    // active=true → admin/user normal; active=false → bloqueia via tokenVersion incrementando
-    const nextActive = !(user.active === false);
-    try {
-      // Tenta endpoint dedicado se existir; se não, faz update do profile genérico
-      await api.put(`/users/${user.id}`, { ...user, active: !nextActive });
-      dispatch({
-        type: "UPDATE_USERS",
-        payload: { ...user, active: !nextActive },
-      });
-      toast.success(nextActive ? "Agente desativado" : "Agente ativado");
-    } catch (err) {
-      const msg =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        "Não foi possível alterar o status";
-      toast.error(msg);
     }
   };
 
@@ -559,7 +604,15 @@ const Users = () => {
                   const ex = extras[user.id] || {};
                   const phone = ex.phone || "—";
                   const comments = ex.comments || "—";
-                  const active = user.active !== false;
+                  const status = onlineMap[user.id] || {
+                    online: !!user.online,
+                    lastSeen: user.lastSeen,
+                  };
+                  const isOnline = !!status.online;
+                  const lastSeenLabel = status.lastSeen
+                    ? new Date(status.lastSeen).toLocaleString()
+                    : "—";
+                  const convCount = ticketCounts[user.id];
                   return (
                     <tr key={user.id}>
                       <td className={classes.td}>
@@ -617,21 +670,55 @@ const Users = () => {
                         />
                       </td>
                       <td className={classes.td} style={{ textAlign: "center" }}>
-                        <Switch
-                          checked={active}
-                          onChange={() => handleToggleActive(user)}
-                          size="small"
-                        />
+                        <Tooltip
+                          title={
+                            isOnline
+                              ? "Online agora"
+                              : `Offline — visto por último: ${lastSeenLabel}`
+                          }
+                        >
+                          <Chip
+                            size="small"
+                            label={isOnline ? "Online" : "Offline"}
+                            style={{
+                              background: isOnline ? "#d1fae5" : "#f1f5f9",
+                              color: isOnline ? "#047857" : "#64748b",
+                              fontWeight: 700,
+                              fontSize: 11,
+                            }}
+                          />
+                        </Tooltip>
                       </td>
                       <td className={classes.td} style={{ textAlign: "center" }}>
                         <Tooltip title="Ver conversas do agente">
-                          <IconButton
-                            size="small"
-                            className={classes.iconActionBlue}
-                            onClick={() => handleViewConversations(user)}
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
                           >
-                            <Eye size={16} />
-                          </IconButton>
+                            <Chip
+                              size="small"
+                              label={
+                                convCount === undefined ? "…" : convCount
+                              }
+                              style={{
+                                background: "#dbeafe",
+                                color: "#1d4ed8",
+                                fontWeight: 700,
+                                fontSize: 11,
+                                minWidth: 28,
+                              }}
+                            />
+                            <IconButton
+                              size="small"
+                              className={classes.iconActionBlue}
+                              onClick={() => handleViewConversations(user)}
+                            >
+                              <Eye size={16} />
+                            </IconButton>
+                          </span>
                         </Tooltip>
                       </td>
                       <td className={classes.td} style={{ textAlign: "center" }}>
