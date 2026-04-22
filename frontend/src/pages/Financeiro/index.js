@@ -336,6 +336,17 @@ const Financeiro = () => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [contactModalOpen, setContactModalOpen] = useState(false);
+  // Assentos extras escolhidos por plano: { [planId]: extraSeats }
+  const [extraSeats, setExtraSeats] = useState({});
+  const SEAT_PRICE = 11; // R$ por usuário extra/mês (alinhado ao PaymentForm)
+  const MAX_EXTRA_SEATS = 50;
+
+  const getExtra = (id) => extraSeats[id] || 0;
+  const changeSeats = (id, delta) =>
+    setExtraSeats((s) => {
+      const next = Math.min(MAX_EXTRA_SEATS, Math.max(0, (s[id] || 0) + delta));
+      return { ...s, [id]: next };
+    });
 
   const isCompanyExpired =
     user?.company?.dueDate && moment().isAfter(moment(user.company.dueDate));
