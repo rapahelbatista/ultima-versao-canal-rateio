@@ -58,6 +58,9 @@ const parseMessage = (raw) => {
 };
 
 const CampaignKanban = () => {
+  const { user, socket } = useContext(AuthContext);
+  const [liveTick, setLiveTick] = useState(0); // pulso visual ao receber evento
+  const refetchTimer = useRef(null);
   const [campaigns, setCampaigns] = useState([]);
   const [campaignId, setCampaignId] = useState("");
   const [shipping, setShipping] = useState([]);
