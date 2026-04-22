@@ -670,7 +670,6 @@ export const updateShippingStatus = async (
       throw new AppError("Campanha não encontrada", 404);
     }
 
-    const CampaignShipping = (await import("../models/CampaignShipping")).default;
     const shipping = await CampaignShipping.findByPk(shippingId);
     if (!shipping || shipping.campaignId !== Number(id)) {
       throw new AppError("Envio não encontrado", 404);
@@ -724,5 +723,98 @@ export const getStats = async (req: Request, res: Response): Promise<Response> =
   } catch (err: any) {
     console.error("Erro ao buscar estatísticas da campanha:", err);
     throw new AppError(err.message || "Erro interno do servidor", 500);
+  }
+};
+
+/**
+ * Estatísticas agregadas de TODAS as campanhas da empresa.
+ * Usado pela home (CampaignsHome) — uma única chamada para preencher os cards.
+ */
+export const dashboardStats = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { companyId } = req.user;
+  const days = Math.min(Math.max(parseInt((req.query.days as string) || "7", 10), 1), 90);
+
+  try {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+
+    // IDs das campanhas da empresa
+    const companyCampaigns = await Campaign.findAll({
+      where: { companyId },
+      attributes: ["id", "status", "contactListId"]
+    });
+
+    const campaignIds = companyCampaigns.map(c => c.id);
+    const activeCampaigns = companyCampaigns.filter(c =>
+      ["EM_ANDAMENTO", "PROGRAMADA", "RUNNING"].includes(String(c.status))
+    ).length;
+
+    let sentMessages = 0;
+    let totalMessages = 0;
+    let confirmedMessages = 0;
+    let series: { date: string; sent: number }[] = [];
+
+    if (campaignIds.length > 0) {
+      const where = { campaignId: { [Op.in]: campaignIds } } as any;
+
+      [sentMessages, totalMessages, confirmedMessages] = await Promise.all([
+        CampaignShipping.count({ where: { ...where, deliveredAt: { [Op.ne]: null } } }),
+        CampaignShipping.count({ where }),
+        CampaignShipping.count({ where: { ...where, confirmedAt: { [Op.ne]: null } } })
+      ]);
+
+      // Série diária (últimos N dias)
+      const rows: any[] = await CampaignShipping.findAll({
+        where: {
+          ...where,
+          deliveredAt: { [Op.ne]: null, [Op.gte]: since }
+        },
+        attributes: [
+          [fn("DATE", col("deliveredAt")), "date"],
+          [fn("COUNT", col("id")), "sent"]
+        ],
+        group: [literal('DATE("deliveredAt")')],
+        order: [[literal('DATE("deliveredAt")'), "ASC"]],
+        raw: true
+      });
+
+      series = rows.map(r => ({
+        date: String(r.date),
+        sent: Number(r.sent || 0)
+      }));
+    }
+
+    const deliveryRate =
+      totalMessages > 0
+        ? Math.round((sentMessages / totalMessages) * 1000) / 10
+        : 0;
+
+    // Contatos únicos enviados (aproximação rápida)
+    const uniqueContacts =
+      campaignIds.length > 0
+        ? await CampaignShipping.count({
+            where: { campaignId: { [Op.in]: campaignIds } },
+            distinct: true,
+            col: "number"
+          })
+        : 0;
+
+    return res.status(200).json({
+      activeCampaigns,
+      totalCampaigns: companyCampaigns.length,
+      sentMessages,
+      totalMessages,
+      confirmedMessages,
+      deliveryRate,
+      uniqueContacts,
+      series,
+      generatedAt: new Date().toISOString()
+    });
+  } catch (err: any) {
+    console.error("Erro ao calcular dashboard de campanhas:", err);
+    throw new AppError(err.message || "Erro interno", 500);
   }
 };
