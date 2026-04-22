@@ -47,6 +47,9 @@ import {
   BookOpen,
 } from "lucide-react";
 import useCanManageMeta from "../hooks/useCanManageMeta";
+import LanguagePill from "../components/LanguagePill";
+import UserProfileMenu from "../components/UserProfileMenu";
+import { i18n } from "../translate/i18n";
 
 const drawerWidth = 260;
 const collapsedWidth = 72;
@@ -456,7 +459,19 @@ const CampaignLayout = ({ children }) => {
             </div>
 
             <div className={classes.topActions}>
-              <button className={classes.langBtn}>🇧🇷 Português</button>
+              <LanguagePill
+                value={i18n.language || localStorage.getItem("language") || "pt-BR"}
+                options={[
+                  { code: "pt-BR", label: "Português" },
+                  { code: "en", label: "English" },
+                  { code: "es", label: "Español" },
+                ]}
+                onChange={(lng) => {
+                  i18n.changeLanguage(lng);
+                  localStorage.setItem("language", lng);
+                  window.location.reload();
+                }}
+              />
               <Tooltip title="Notificações">
                 <IconButton className={classes.iconBtn} size="small">
                   <Badge badgeContent={0} color="primary">
@@ -464,19 +479,17 @@ const CampaignLayout = ({ children }) => {
                   </Badge>
                 </IconButton>
               </Tooltip>
-              <Avatar className={classes.avatar}>{initials}</Avatar>
-              <Tooltip title="Sair">
-                <IconButton
-                  className={classes.iconBtn}
-                  size="small"
-                  onClick={() => {
-                    handleLogout && handleLogout();
-                    history.push("/login");
-                  }}
-                >
-                  <LogOut size={15} />
-                </IconButton>
-              </Tooltip>
+              <UserProfileMenu
+                name={user?.name || "Usuário"}
+                email={user?.email || ""}
+                isPro={Boolean(user?.company?.plan?.name) || Boolean(user?.super)}
+                onProfile={() => history.push("/")}
+                onSubscription={() => history.push("/financeiro")}
+                onLogout={() => {
+                  handleLogout && handleLogout();
+                  history.push("/login");
+                }}
+              />
             </div>
           </Toolbar>
         </AppBar>
