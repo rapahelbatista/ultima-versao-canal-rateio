@@ -230,28 +230,9 @@ const CampaignKanban = () => {
     const ids = Array.from(selectedIds);
     setBulkUpdating(true);
 
-    // Optimistic
-    const prev = shipping;
-    const now = new Date().toISOString();
-    const next = shipping.map((s) => {
-      if (!ids.includes(s.id)) return s;
-      const patch = { ...s };
-      switch (newStatus) {
-        case "pending":
-          patch.deliveredAt = null; patch.confirmedAt = null; break;
-        case "delivered":
-          patch.deliveredAt = patch.deliveredAt || now; patch.confirmedAt = null; break;
-        case "confirmed":
-          patch.deliveredAt = patch.deliveredAt || now; patch.confirmedAt = now; break;
-        case "failed":
-          patch.deliveredAt = null; patch.confirmedAt = null;
-          patch.message = `[FAILED] ${(patch.message || "").replace(/^\[FAILED\]\s*/, "")}`;
-          break;
-        default: break;
-      }
-      return patch;
-    });
-    setShipping(next);
+    // Optimistic local: aplica imediatamente em columnsState (movendo os cards) e em shipping
+    const prevShipping = shipping;
+    applyStatusLocally(ids, newStatus);
 
     try {
       const { data } = await api.post(
@@ -264,12 +245,17 @@ const CampaignKanban = () => {
       setBulkUpdating(false);
       if (fail === 0) {
         toast.success(`${ok} envio(s) atualizados para "${newStatus}"`);
+        // Reconciliação leve apenas (sem refetch eager)
+        reconcileShipping(ids, newStatus);
       } else if (ok === 0) {
-        setShipping(prev);
+        // Tudo falhou: reverte estado local
+        setShipping(prevShipping);
+        fetchShipping();
         toast.error("Falha ao atualizar envios");
       } else {
         toast.warn(`${ok} atualizados, ${fail} falharam`);
-        fetchShipping();
+        // Sucesso parcial: reconcilia para corrigir os que falharam
+        reconcileShipping(ids, newStatus);
       }
       // Habilita botão "Desfazer" por 30s se houve sucesso
       if (bulkId && ok > 0) {
@@ -283,7 +269,8 @@ const CampaignKanban = () => {
       clearSelection();
     } catch (err) {
       setBulkUpdating(false);
-      setShipping(prev);
+      setShipping(prevShipping);
+      fetchShipping();
       toast.error("Falha ao atualizar envios");
     }
   };
