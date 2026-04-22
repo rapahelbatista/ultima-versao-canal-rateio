@@ -407,13 +407,16 @@ const Financeiro = () => {
     return diasRestantes < 0 ? "Vencido" : "Em Aberto";
   };
 
-  const handleSelectPlan = (plan) => {
-    // Envia o plano selecionado ao checkout (sem invoiceId, pois é nova assinatura)
+  const handleSelectPlan = (plan, extra = 0) => {
+    const basePrice = Number(plan.value || plan.price || 0);
+    const totalUsers = Number(plan.users || 0) + Number(extra || 0);
+    const totalPrice = basePrice + Number(extra || 0) * SEAT_PRICE;
+
     setSelectedInvoice({
       id: plan.id,
       detail: plan.name,
-      value: plan.value || plan.price || 0,
-      users: plan.users,
+      value: totalPrice,
+      users: totalUsers,
       connections: plan.connections,
       queues: plan.queues,
       planId: plan.id,
@@ -421,10 +424,10 @@ const Financeiro = () => {
     setSelectedPlan({
       id: plan.id,
       name: plan.name,
-      value: plan.value || plan.price || 0,
-      price: plan.value || plan.price || 0,
-      amount: plan.value || plan.price || 0,
-      users: plan.users,
+      value: totalPrice,
+      price: totalPrice,
+      amount: totalPrice,
+      users: totalUsers,
       connections: plan.connections,
       queues: plan.queues,
     });
