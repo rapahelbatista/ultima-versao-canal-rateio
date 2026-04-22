@@ -1922,7 +1922,8 @@ const CampaignKanban = () => {
                   <div className="p-6 text-center text-sm text-slate-400">Nenhuma atualização em massa registrada.</div>
                 ) : filteredHistoryRecords.length === 0 ? (
                   <div className="p-6 text-center text-sm text-slate-400">
-                    Nenhum registro corresponde a "<span className="font-semibold text-slate-600">{historySearch}</span>".
+                    Nenhum registro corresponde aos filtros aplicados
+                    {historySearch && <> para "<span className="font-semibold text-slate-600">{historySearch}</span>"</>}.
                   </div>
                 ) : (
                   <ul className="divide-y divide-slate-100">
