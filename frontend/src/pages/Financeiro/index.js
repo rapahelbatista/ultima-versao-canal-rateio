@@ -23,6 +23,8 @@ import {
   Sparkles,
   Minus,
   Plus,
+  X as XIcon,
+  GitCompare,
 } from "lucide-react";
 import moment from "moment";
 
