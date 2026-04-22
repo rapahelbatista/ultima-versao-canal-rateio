@@ -232,6 +232,48 @@ const initials = (name = "") =>
     .map((n) => n[0]?.toUpperCase() || "")
     .join("") || "?";
 
+// ===== Validação do formulário "Adicionar Agente" =====
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const NAME_RE = /^[\p{L}][\p{L}\s'.-]{1,79}$/u; // letras (qualquer idioma), espaço, apóstrofo, ponto, hífen
+const PHONE_DIGITS_MIN = 10;
+const PHONE_DIGITS_MAX = 15;
+
+const validateAgentForm = (form) => {
+  const errors = {};
+  const email = (form.email || "").trim();
+  const password = form.password || "";
+  const name = (form.name || "").trim();
+  const phone = (form.phone || "").trim();
+  const comments = (form.comments || "").trim();
+
+  if (!email) errors.email = "E-mail é obrigatório";
+  else if (email.length > 255) errors.email = "E-mail muito longo (máx. 255)";
+  else if (!EMAIL_RE.test(email)) errors.email = "E-mail inválido";
+
+  if (!password) errors.password = "Senha é obrigatória";
+  else if (password.length < 6) errors.password = "Mínimo de 6 caracteres";
+  else if (password.length > 72) errors.password = "Máximo de 72 caracteres";
+
+  if (!name) errors.name = "Nome é obrigatório";
+  else if (name.length < 2) errors.name = "Nome muito curto";
+  else if (name.length > 80) errors.name = "Nome muito longo (máx. 80)";
+  else if (!NAME_RE.test(name))
+    errors.name = "Use apenas letras, espaços, apóstrofo, ponto ou hífen";
+
+  if (phone) {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < PHONE_DIGITS_MIN || digits.length > PHONE_DIGITS_MAX)
+      errors.phone = `Celular deve ter entre ${PHONE_DIGITS_MIN} e ${PHONE_DIGITS_MAX} dígitos`;
+    else if (!/^[+\d\s().-]+$/.test(phone))
+      errors.phone = "Use apenas números e os símbolos + ( ) - .";
+  }
+
+  if (comments && comments.length > 500)
+    errors.comments = "Comentário muito longo (máx. 500)";
+
+  return errors;
+};
+
 const Users = () => {
   const classes = useStyles();
   const history = useHistory();
