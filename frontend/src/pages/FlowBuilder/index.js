@@ -53,16 +53,15 @@ import ConfirmationModal from "../../components/ConfirmationModal";
 import FlowBuilderModal from "../../components/FlowBuilderModal";
 
 import { i18n } from "../../translate/i18n";
-import MainHeader from "../../components/MainHeader";
-import Title from "../../components/Title";
-import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
-import MainContainer from "../../components/MainContainer";
+import PageHeader from "../../components/PageHeader";
+import SectionCard from "../../components/SectionCard";
 import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { Can } from "../../components/Can";
 import ForbiddenPage from "../../components/ForbiddenPage";
 import NewTicketModal from "../../components/NewTicketModal";
 import { SocketContext } from "../../context/Socket/SocketContext";
+import { GitBranch } from "lucide-react";
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_CONTACTS") {
@@ -746,7 +745,7 @@ const FlowBuilder = () => {
   }
 
   return (
-    <MainContainer className={classes.mainContainer}>
+    <div style={{ padding: 16 }}>
       {/* Modais - mantendo todos originais */}
       <NewTicketModal
         modalOpen={newTicketModalOpen}
@@ -755,7 +754,7 @@ const FlowBuilder = () => {
           handleCloseOrOpenTicket(ticket);
         }}
       />
-      
+
       <FlowBuilderModal
         open={contactModalOpen}
         onClose={handleCloseContactModal}
@@ -764,7 +763,7 @@ const FlowBuilder = () => {
         nameWebhook={selectedWebhookName}
         onSave={() => setReloadData((old) => !old)}
       />
-      
+
       <ConfirmationModal
         title={
           deletingContact
@@ -783,7 +782,7 @@ const FlowBuilder = () => {
           ? `Esta ação não pode ser desfeita. Todas as integrações relacionadas serão perdidas.`
           : `${i18n.t("contacts.confirmationModal.importMessage")}`}
       </ConfirmationModal>
-      
+
       <ConfirmationModal
         title={
           deletingContact
@@ -803,112 +802,133 @@ const FlowBuilder = () => {
           : `${i18n.t("contacts.confirmationModal.importMessage")}`}
       </ConfirmationModal>
 
-      {/* Header seguindo padrão da página Tags */}
-      <MainHeader>
-        <Title>Fluxos de Conversa ({webhooks.length})</Title>
-        <MainHeaderButtonsWrapper>
-          <input
-            type="file"
-            accept=".zip,application/zip"
-            ref={(ref) => setImportInputRef(ref)}
-            style={{ display: 'none' }}
-            onChange={handleImportChange}
-          />
+      <PageHeader
+        icon={<GitBranch size={22} />}
+        title={`Fluxos de Conversa (${webhooks.length})`}
+        subtitle="Crie, edite e gerencie seus fluxos de automação."
+        actions={
+          <Stack direction="row" spacing={1} alignItems="center">
+            <input
+              type="file"
+              accept=".zip,application/zip"
+              ref={(ref) => setImportInputRef(ref)}
+              style={{ display: "none" }}
+              onChange={handleImportChange}
+            />
+            <Button
+              variant="outlined"
+              onClick={handleImportClick}
+              style={{
+                textTransform: "none",
+                borderRadius: 10,
+                borderColor: "#a7f3d0",
+                color: "#047857",
+                fontWeight: 600,
+              }}
+            >
+              Importar (.zip)
+            </Button>
+            <Button
+              onClick={handleOpenContactModal}
+              startIcon={<AddCircle />}
+              style={{
+                textTransform: "none",
+                borderRadius: 10,
+                background: "linear-gradient(135deg,#10b981,#059669)",
+                color: "#fff",
+                fontWeight: 700,
+                boxShadow: "0 4px 10px rgba(16,185,129,0.35)",
+              }}
+            >
+              Novo Fluxo
+            </Button>
+          </Stack>
+        }
+      />
+
+      <div style={{ marginTop: 16 }}>
+        <SectionCard>
           <TextField
-            className={classes.searchField}
+            fullWidth
             placeholder="Buscar fluxos..."
             type="search"
             value={searchParam}
             onChange={handleSearch}
+            variant="outlined"
+            size="small"
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon style={{ color: theme.palette.text.secondary }} />
+                  <SearchIcon style={{ color: "#94a3b8" }} />
                 </InputAdornment>
               ),
+              style: { background: "#f8fafc", borderRadius: 10 },
             }}
+            style={{ marginBottom: 16 }}
           />
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={handleImportClick}
-            style={{ marginRight: 8 }}
-          >
-            Importar (.zip)
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleOpenContactModal}
-          >
-            Novo Fluxo
-          </Button>
-        </MainHeaderButtonsWrapper>
-      </MainHeader>
 
-      <Paper
-        className={classes.mainPaper}
-        variant="outlined"
-        onScroll={handleScroll}
-      >
-        {loading && !webhooks.length ? (
-          <div className={classes.loadingContainer}>
-            <CircularProgress style={{ color: theme.palette.primary.main }} />
-          </div>
-        ) : filteredWebhooks.length === 0 ? (
-          <div className={classes.emptyState}>
-            <DevicesFold className={classes.emptyIcon} />
-            <Typography className={classes.emptyTitle}>
-              {searchParam ? 'Nenhum fluxo encontrado' : 'Nenhum fluxo criado ainda'}
-            </Typography>
-            <Typography className={classes.emptyDescription}>
-              {searchParam 
-                ? 'Tente usar outros termos de pesquisa'
-                : 'Crie seu primeiro fluxo de conversa para automatizar atendimentos'
-              }
-            </Typography>
-            
-            {!searchParam && (
-              <Button
-                className={classes.addButton}
-                onClick={handleOpenContactModal}
-                startIcon={<AddCircle />}
-                style={{ marginTop: 24 }}
-              >
-                Criar Primeiro Fluxo
-              </Button>
-            )}
-          </div>
-        ) : (
-          <Stack spacing={2}>
-            {filteredWebhooks.map((flow) => (
-              <FlowCard
-                key={flow.id}
-                flow={flow}
-                classes={classes}
-                onEdit={() => handleEditContact(flow)}
-                onDuplicate={() => {
-                  setDeletingContact(flow);
-                  setConfirmDuplicateOpen(true);
-                }}
-                onDelete={() => {
-                  setDeletingContact(flow);
-                  setConfirmOpen(true);
-                }}
-                onNavigate={(id) => history.push(`/flowbuilder/${id}`)}
-                onToggleActive={(id, active) => handleToggleFlowActive(id, active)}
-                onExport={handleExportFlow}
-              />
-            ))}
+          {loading && !webhooks.length ? (
+            <div className={classes.loadingContainer}>
+              <CircularProgress style={{ color: "#10b981" }} />
+            </div>
+          ) : filteredWebhooks.length === 0 ? (
+            <div className={classes.emptyState}>
+              <DevicesFold className={classes.emptyIcon} />
+              <Typography className={classes.emptyTitle}>
+                {searchParam
+                  ? "Nenhum fluxo encontrado"
+                  : "Nenhum fluxo criado ainda"}
+              </Typography>
+              <Typography className={classes.emptyDescription}>
+                {searchParam
+                  ? "Tente usar outros termos de pesquisa"
+                  : "Crie seu primeiro fluxo de conversa para automatizar atendimentos"}
+              </Typography>
 
-            {loading && webhooks.length > 0 && (
-              <Box display="flex" justifyContent="center" p={3}>
-                <CircularProgress size={24} style={{ color: theme.palette.primary.main }} />
-              </Box>
-            )}
-          </Stack>
-        )}
-      </Paper>
+              {!searchParam && (
+                <Button
+                  className={classes.addButton}
+                  onClick={handleOpenContactModal}
+                  startIcon={<AddCircle />}
+                  style={{ marginTop: 24 }}
+                >
+                  Criar Primeiro Fluxo
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Stack spacing={2}>
+              {filteredWebhooks.map((flow) => (
+                <FlowCard
+                  key={flow.id}
+                  flow={flow}
+                  classes={classes}
+                  onEdit={() => handleEditContact(flow)}
+                  onDuplicate={() => {
+                    setDeletingContact(flow);
+                    setConfirmDuplicateOpen(true);
+                  }}
+                  onDelete={() => {
+                    setDeletingContact(flow);
+                    setConfirmOpen(true);
+                  }}
+                  onNavigate={(id) => history.push(`/flowbuilder/${id}`)}
+                  onToggleActive={(id, active) =>
+                    handleToggleFlowActive(id, active)
+                  }
+                  onExport={handleExportFlow}
+                />
+              ))}
+
+              {loading && webhooks.length > 0 && (
+                <Box display="flex" justifyContent="center" p={3}>
+                  <CircularProgress size={24} style={{ color: "#10b981" }} />
+                </Box>
+              )}
+            </Stack>
+          )}
+        </SectionCard>
+      </div>
 
       {isMobile && (
         <HideOnScroll>
@@ -921,7 +941,7 @@ const FlowBuilder = () => {
           </Fab>
         </HideOnScroll>
       )}
-    </MainContainer>
+    </div>
   );
 };
 
