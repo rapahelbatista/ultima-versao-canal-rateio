@@ -19,10 +19,12 @@ import {
   Send,
   Settings as SettingsIcon,
   ListChecks,
+  History,
 } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import SectionCard from "../../components/SectionCard";
 import useAutoSaveFlush from "../../hooks/useAutoSaveFlush";
+import WarmerHistory from "./WarmerHistory";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -264,6 +266,13 @@ const WhatsAppWarmer = () => {
         >
           <SettingsIcon size={14} />
           Configurar Aquecedor
+        </button>
+        <button
+          className={`${classes.tab} ${tab === "history" ? classes.tabActive : ""}`}
+          onClick={() => setTab("history")}
+        >
+          <History size={14} />
+          Histórico / Rascunhos
         </button>
       </div>
 
