@@ -1126,9 +1126,19 @@ const CampaignKanban = () => {
                                   </p>
                                 </div>
                               </div>
-                              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${cc.chip}`}>
-                                {col?.label || r.newStatus}
-                              </span>
+                              <div className="shrink-0 flex items-center gap-1">
+                                {r.undoneAt && (
+                                  <span
+                                    title={`Desfeito em ${new Date(r.undoneAt).toLocaleString("pt-BR")}`}
+                                    className="inline-flex items-center gap-0.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-500"
+                                  >
+                                    <Undo2 size={9} /> desfeito
+                                  </span>
+                                )}
+                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${cc.chip}`}>
+                                  {col?.label || r.newStatus}
+                                </span>
+                              </div>
                             </div>
                             <div className="mt-2 flex items-center gap-3 text-[11px] text-slate-500">
                               <span>📦 {total} envio(s)</span>
