@@ -57,6 +57,7 @@ import CampaignsPhrase from "../pages/CampaignsPhrase";
 import Floup from "../pages/Floup";
 import FloupDashboard from "../pages/FloupDashboard";
 import TemplateManager from "../pages/TemplateManager";
+import CampaignKanban from "../pages/CampaignKanban";
 
 const RoutesContent = () => {
   const [showCampaigns, setShowCampaigns] = useState(false);
@@ -294,6 +295,12 @@ const RoutesContent = () => {
                       exact
                       path="/campaign/:campaignId/report"
                       component={CampaignReport}
+                      isPrivate
+                    />
+                    <Route
+                      exact
+                      path="/campaigns-kanban"
+                      component={CampaignKanban}
                       isPrivate
                     />
                   </>
