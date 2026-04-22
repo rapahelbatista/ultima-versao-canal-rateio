@@ -34,25 +34,39 @@ const useStyles = makeStyles((theme) => ({
   root: {
     display: "flex",
     flexDirection: "column",
-    gap: 24,
+    gap: theme.spacing(3),
+    padding: theme.spacing(3),
+    [theme.breakpoints.down("sm")]: {
+      gap: theme.spacing(2),
+      padding: theme.spacing(2),
+    },
   },
   card: {
-    padding: 20,
-    borderRadius: 16,
+    padding: theme.spacing(2.5),
+    borderRadius: theme.shape.borderRadius * 2,
     border: "1px solid #e2e8f0",
     background: "#fff",
     boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
     transition: "box-shadow .2s",
     "&:hover": { boxShadow: "0 6px 18px rgba(0,0,0,0.06)" },
+    [theme.breakpoints.down("xs")]: {
+      padding: theme.spacing(2),
+    },
   },
   welcome: {
     display: "flex",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    padding: 24,
-    borderRadius: 16,
+    gap: theme.spacing(2),
+    padding: theme.spacing(3),
+    borderRadius: theme.shape.borderRadius * 2,
     background: "#fff",
     border: "1px solid #e2e8f0",
+    [theme.breakpoints.down("xs")]: {
+      flexDirection: "column",
+      alignItems: "stretch",
+      padding: theme.spacing(2),
+    },
   },
   welcomeIcon: {
     width: 48,
@@ -63,6 +77,21 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
+  },
+  welcomeTitle: {
+    fontWeight: 700,
+    color: "#1e293b",
+    fontSize: "1.125rem",
+    lineHeight: 1.3,
+    [theme.breakpoints.down("xs")]: {
+      fontSize: "1rem",
+    },
+  },
+  welcomeSubtitle: {
+    color: "#64748b",
+    fontSize: "0.8125rem",
+    marginTop: theme.spacing(0.5),
   },
   primaryBtn: {
     background: "#10b981",
@@ -70,25 +99,36 @@ const useStyles = makeStyles((theme) => ({
     fontWeight: 600,
     textTransform: "none",
     borderRadius: 12,
+    paddingLeft: theme.spacing(2),
+    paddingRight: theme.spacing(2),
     boxShadow: "0 4px 12px rgba(16,185,129,0.35)",
     "&:hover": { background: "#059669" },
+    [theme.breakpoints.down("xs")]: {
+      width: "100%",
+    },
   },
   statHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
+    gap: theme.spacing(1),
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: "0.6875rem",
     fontWeight: 700,
-    letterSpacing: 1,
+    letterSpacing: "0.08em",
     textTransform: "uppercase",
     color: "#64748b",
+    lineHeight: 1.4,
   },
   statValue: {
-    marginTop: 8,
-    fontSize: 28,
+    marginTop: theme.spacing(1),
+    fontSize: "1.75rem",
     fontWeight: 700,
+    lineHeight: 1.15,
+    [theme.breakpoints.down("sm")]: {
+      fontSize: "1.5rem",
+    },
   },
   statIcon: {
     width: 40,
@@ -97,9 +137,10 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
   bars: {
-    marginTop: 16,
+    marginTop: theme.spacing(2),
     display: "flex",
     alignItems: "flex-end",
     gap: 4,
@@ -111,28 +152,33 @@ const useStyles = makeStyles((theme) => ({
     minHeight: 2,
   },
   sectionLabel: {
-    fontSize: 12,
+    fontSize: "0.75rem",
     fontWeight: 700,
-    letterSpacing: 1,
+    letterSpacing: "0.08em",
     textTransform: "uppercase",
     color: "#64748b",
-    marginBottom: 12,
+    marginBottom: theme.spacing(1.5),
   },
   quick: {
     display: "flex",
     alignItems: "center",
-    gap: 12,
-    padding: "12px 16px",
+    gap: theme.spacing(1.5),
+    padding: theme.spacing(1.5, 2),
     border: "1px solid #e2e8f0",
     borderRadius: 12,
     background: "#fff",
     cursor: "pointer",
     width: "100%",
     textAlign: "left",
+    fontFamily: "inherit",
     transition: "all .15s",
     "&:hover": {
       borderColor: "#6ee7b7",
       boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+    },
+    "&:focus-visible": {
+      outline: "2px solid #10b981",
+      outlineOffset: 2,
     },
   },
   quickIcon: {
@@ -142,15 +188,40 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
+  },
+  quickLabel: {
+    fontSize: "0.8125rem",
+    fontWeight: 600,
+    color: "#1e293b",
+    lineHeight: 1.3,
+  },
+  quickHint: {
+    fontSize: "0.6875rem",
+    color: "#94a3b8",
+    marginTop: 2,
+  },
+  panelTitle: {
+    fontWeight: 700,
+    color: "#1e293b",
+    fontSize: "0.9375rem",
+  },
+  panelCaption: {
+    color: "#94a3b8",
+    fontSize: "0.75rem",
   },
   chartHost: {
-    marginTop: 24,
+    marginTop: theme.spacing(3),
     display: "flex",
     alignItems: "flex-end",
-    gap: 8,
+    gap: theme.spacing(1),
     height: 192,
-    paddingLeft: 8,
-    paddingRight: 8,
+    paddingLeft: theme.spacing(1),
+    paddingRight: theme.spacing(1),
+    [theme.breakpoints.down("xs")]: {
+      height: 150,
+      gap: theme.spacing(0.5),
+    },
   },
   chartBar: {
     width: "100%",
@@ -159,7 +230,7 @@ const useStyles = makeStyles((theme) => ({
     background: "linear-gradient(to top, #34d399, #6ee7b7)",
   },
   chartEmpty: {
-    marginTop: 24,
+    marginTop: theme.spacing(3),
     height: 192,
     display: "flex",
     alignItems: "center",
@@ -167,7 +238,9 @@ const useStyles = makeStyles((theme) => ({
     border: "2px dashed #e2e8f0",
     borderRadius: 12,
     color: "#94a3b8",
-    fontSize: 13,
+    fontSize: "0.8125rem",
+    textAlign: "center",
+    padding: theme.spacing(2),
   },
 }));
 
@@ -213,16 +286,16 @@ const QuickAction = ({ icon: Icon, label, onClick, accent = "emerald" }) => {
   const classes = useStyles();
   const palette = PALETTES[accent];
   return (
-    <button onClick={onClick} className={classes.quick}>
+    <button onClick={onClick} className={classes.quick} type="button">
       <div
         className={classes.quickIcon}
         style={{ background: palette.bg, color: palette.text }}
       >
         <Icon size={18} />
       </div>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>{label}</div>
-        <div style={{ fontSize: 11, color: "#94a3b8" }}>Acessar →</div>
+      <div style={{ minWidth: 0 }}>
+        <div className={classes.quickLabel}>{label}</div>
+        <div className={classes.quickHint}>Acessar →</div>
       </div>
     </button>
   );
@@ -299,15 +372,15 @@ const CampaignsHome = () => {
     <div className={classes.root}>
       {/* Welcome */}
       <Paper className={classes.welcome} elevation={0}>
-        <Box display="flex" alignItems="flex-start" style={{ gap: 16 }}>
+        <Box display="flex" alignItems="flex-start" style={{ gap: 16, minWidth: 0 }}>
           <div className={classes.welcomeIcon}>
             <TrendingUp size={22} />
           </div>
-          <div>
-            <Typography variant="h6" style={{ fontWeight: 700, color: "#1e293b" }}>
+          <div style={{ minWidth: 0 }}>
+            <Typography component="h1" className={classes.welcomeTitle}>
               Bem-vindo de volta!
             </Typography>
-            <Typography variant="body2" style={{ color: "#64748b" }}>
+            <Typography className={classes.welcomeSubtitle}>
               Última atualização: {formatted}
               {loading && (
                 <span style={{ marginLeft: 8, color: "#059669" }}>• atualizando...</span>
@@ -319,6 +392,7 @@ const CampaignsHome = () => {
           onClick={fetchStats}
           disabled={loading}
           className={classes.primaryBtn}
+          size="medium"
           startIcon={
             loading ? (
               <CircularProgress size={14} style={{ color: "#fff" }} />
@@ -369,12 +443,12 @@ const CampaignsHome = () => {
       {/* Atividade real */}
       <Grid container spacing={2}>
         <Grid item xs={12} lg={8}>
-          <Paper className={classes.card} elevation={0} style={{ padding: 24 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center">
-              <Typography style={{ fontWeight: 700, color: "#1e293b" }}>
+          <Paper className={classes.card} elevation={0}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" style={{ gap: 8 }}>
+              <Typography component="h2" className={classes.panelTitle}>
                 Atividade de Envios
               </Typography>
-              <Typography variant="caption" style={{ color: "#94a3b8" }}>
+              <Typography className={classes.panelCaption}>
                 Últimos 7 dias
               </Typography>
             </Box>
@@ -405,8 +479,8 @@ const CampaignsHome = () => {
         </Grid>
 
         <Grid item xs={12} lg={4}>
-          <Paper className={classes.card} elevation={0} style={{ padding: 24 }}>
-            <Typography style={{ fontWeight: 700, color: "#1e293b" }}>
+          <Paper className={classes.card} elevation={0}>
+            <Typography component="h2" className={classes.panelTitle}>
               Conexões WhatsApp
             </Typography>
             <Box
@@ -431,10 +505,10 @@ const CampaignsHome = () => {
               >
                 <Smartphone size={20} />
               </div>
-              <Typography style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>
+              <Typography style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#334155" }}>
                 Tudo certo!
               </Typography>
-              <Typography style={{ fontSize: 11, color: "#94a3b8" }}>
+              <Typography style={{ fontSize: "0.6875rem", color: "#94a3b8" }}>
                 Gerencie seus chips em Conexões
               </Typography>
               <Button
