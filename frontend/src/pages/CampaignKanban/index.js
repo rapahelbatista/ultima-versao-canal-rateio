@@ -837,7 +837,12 @@ const CampaignKanban = () => {
               </span>
             )}
           </button>
-          <LiveBadge tick={liveTick} connected={!!socket?.connected} />
+          <LiveBadge
+            tick={liveTick}
+            state={connState}
+            attempt={reconnectAttempt}
+            onRetry={reconnectSocket}
+          />
           <button
             onClick={fetchShipping}
             disabled={loading}
@@ -1510,8 +1515,8 @@ const InfoRow = ({ icon: Icon, label, value }) => (
   </div>
 );
 
-// Indicador de "ao vivo" — pulsa quando recebe um evento do socket
-const LiveBadge = ({ tick, connected }) => {
+// Indicador de "ao vivo" — pulsa quando recebe um evento, mostra estado de conexão e botão de retry
+const LiveBadge = ({ tick, state = "disconnected", attempt = 0, onRetry }) => {
   const [pulsing, setPulsing] = useState(false);
   useEffect(() => {
     if (!tick) return;
@@ -1520,26 +1525,59 @@ const LiveBadge = ({ tick, connected }) => {
     return () => clearTimeout(t);
   }, [tick]);
 
+  const isConnected = state === "connected";
+  const isReconnecting = state === "reconnecting";
+
+  const styles = isConnected
+    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+    : isReconnecting
+    ? "border-amber-200 bg-amber-50 text-amber-700"
+    : "border-rose-200 bg-rose-50 text-rose-600";
+
+  const dot = isConnected
+    ? "bg-emerald-500"
+    : isReconnecting
+    ? "bg-amber-500"
+    : "bg-rose-500";
+
+  const label = isConnected
+    ? "AO VIVO"
+    : isReconnecting
+    ? `RECONECTANDO${attempt ? ` ${attempt}` : "…"}`
+    : "OFFLINE";
+
+  const title = isConnected
+    ? "Atualizações em tempo real ativas"
+    : isReconnecting
+    ? `Tentando reconectar${attempt ? ` (tentativa ${attempt})` : "..."}`
+    : "Conexão em tempo real perdida — clique para tentar novamente";
+
   return (
-    <div
-      title={connected ? "Atualizações em tempo real ativas" : "Conexão em tempo real indisponível"}
-      className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-bold transition-colors
-        ${connected
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-          : "border-slate-200 bg-slate-50 text-slate-400"}
-      `}
-    >
-      <span className="relative flex h-2 w-2">
-        {connected && pulsing && (
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-        )}
-        <span
-          className={`relative inline-flex h-2 w-2 rounded-full ${
-            connected ? "bg-emerald-500" : "bg-slate-300"
-          }`}
-        />
-      </span>
-      {connected ? "AO VIVO" : "OFFLINE"}
+    <div className="flex items-center gap-1">
+      <div
+        title={title}
+        className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-bold transition-colors ${styles}`}
+      >
+        <span className="relative flex h-2 w-2">
+          {isConnected && pulsing && (
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          )}
+          {isReconnecting && (
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+          )}
+          <span className={`relative inline-flex h-2 w-2 rounded-full ${dot}`} />
+        </span>
+        {label}
+      </div>
+      {!isConnected && (
+        <button
+          onClick={onRetry}
+          title="Reconectar agora"
+          className="flex items-center justify-center rounded-xl border border-slate-200 bg-white p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+        >
+          <RefreshCcw size={12} className={isReconnecting ? "animate-spin" : ""} />
+        </button>
+      )}
     </div>
   );
 };
