@@ -237,7 +237,7 @@ const SessionSchema = Yup.object().shape({
     .required("Required"),
 });
 
-const WhatsAppModal = ({ open, onClose, whatsAppId, channel }) => {
+const WhatsAppModal = ({ open, onClose, whatsAppId, channel, initialName }) => {
   const classes = useStyles();
   const [autoToken, setAutoToken] = useState("");
 
