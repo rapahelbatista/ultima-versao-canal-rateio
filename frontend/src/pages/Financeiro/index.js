@@ -388,8 +388,8 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const TONE = {
-  current: { bg: "#6366f1", color: "#fff", label: "Plano atual" },
-  popular: { bg: "#10b981", color: "#fff", label: "Mais popular" },
+  current: { bg: "#6366f1", color: "#fff", label: "✓ Seu plano ativo" },
+  popular: { bg: "#10b981", color: "#fff", label: "★ Escolha da maioria" },
 };
 
 const Financeiro = () => {
