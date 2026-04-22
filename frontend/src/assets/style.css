@@ -17,17 +17,32 @@
 	0%   { transform: scale(1);   opacity: 0.75; }
 	75%, 100% { transform: scale(2.2); opacity: 0; }
 }
-@keyframes lv-fade-slide-down {
-	0%   { opacity: 0; transform: translate(-50%, -8px); }
-	100% { opacity: 1; transform: translate(-50%, 0); }
-}
-@keyframes lv-fade-slide-up {
-	0%   { opacity: 0; transform: translate(-50%, 8px); }
-	100% { opacity: 1; transform: translate(-50%, 0); }
-}
 @keyframes lv-pulse {
 	0%, 100% { opacity: 1; }
 	50%      { opacity: 0.55; }
+}
+
+/* Overlay de PROGRESSO (topo) — desce suave + leve respirar */
+@keyframes kb-progress-in {
+	0%   { opacity: 0; transform: translate(-50%, -12px) scale(0.98); }
+	100% { opacity: 1; transform: translate(-50%, 0)     scale(1); }
+}
+@keyframes kb-progress-glow {
+	0%, 100% { box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08); }
+	50%      { box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14); }
+}
+
+/* Overlay de DESFAZER (rodapé) — sobe com bounce sutil */
+@keyframes kb-undo-in {
+	0%   { opacity: 0; transform: translate(-50%, 16px); }
+	60%  { opacity: 1; transform: translate(-50%, -3px); }
+	100% { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Barra de AÇÕES EM MASSA (rodapé) — sobe e fixa */
+@keyframes kb-bulk-in {
+	0%   { opacity: 0; transform: translate(-50%, 24px); }
+	100% { opacity: 1; transform: translate(-50%, 0); }
 }
 
 /* Compat com qualquer remanescente de `animate-spin` do Tailwind */
@@ -44,12 +59,26 @@
 .kanban-pulse {
 	animation: lv-pulse 1.6s ease-in-out infinite;
 }
-.kanban-overlay-top {
-	animation: lv-fade-slide-down 220ms ease-out;
+
+/* Classes dedicadas para cada overlay do CampaignKanban */
+.kanban-overlay-progress {
+	animation:
+		kb-progress-in 240ms cubic-bezier(0.16, 1, 0.3, 1) both,
+		kb-progress-glow 2.4s ease-in-out 240ms infinite;
+	will-change: transform, opacity, box-shadow;
 }
-.kanban-overlay-bottom {
-	animation: lv-fade-slide-up 220ms ease-out;
+.kanban-overlay-undo {
+	animation: kb-undo-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+	will-change: transform, opacity;
 }
+.kanban-overlay-bulk {
+	animation: kb-bulk-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+	will-change: transform, opacity;
+}
+
+/* Aliases legados (compat retroativa) */
+.kanban-overlay-top    { animation: kb-progress-in 220ms ease-out both; }
+.kanban-overlay-bottom { animation: kb-bulk-in 220ms ease-out both; }
 
 body{
     font-family: 'Poppins', sans-serif;
