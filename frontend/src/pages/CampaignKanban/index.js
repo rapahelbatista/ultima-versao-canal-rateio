@@ -214,6 +214,17 @@ const CampaignKanban = () => {
   const [historyScope, setHistoryScope] = useState("campaign"); // "campaign" | "all"
   const [historyDetail, setHistoryDetail] = useState(null); // { log, shippings }
   const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
+  const [historySearch, setHistorySearch] = useState("");
+
+  const filteredHistoryRecords = useMemo(() => {
+    const q = historySearch.trim().toLowerCase();
+    if (!q) return historyRecords;
+    return historyRecords.filter((r) => {
+      const name = (r.userName || "").toLowerCase();
+      const id = String(r.id || "");
+      return name.includes(q) || id.includes(q);
+    });
+  }, [historyRecords, historySearch]);
 
   const fetchHistory = useCallback(async (scope = historyScope) => {
     setHistoryLoading(true);
