@@ -126,7 +126,231 @@ const useKanbanHeaderStyles = makeStyles((theme) => ({
     fontWeight: 700,
     "&:hover": { opacity: 0.9 },
   },
+  // ---- Board / Columns / Cards (Phase 3) ----
+  board: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: theme.spacing(2),
+    [theme.breakpoints.up("md")]: {
+      gridTemplateColumns: "repeat(2, 1fr)",
+    },
+    [theme.breakpoints.up("lg")]: {
+      gridTemplateColumns: "repeat(var(--cols, 4), 1fr)",
+    },
+  },
+  column: {
+    display: "flex",
+    flexDirection: "column",
+    borderRadius: 12,
+    border: `1px solid ${theme.palette.divider}`,
+    background: theme.palette.background.default,
+    overflow: "hidden",
+    minHeight: 320,
+  },
+  columnHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: theme.spacing(1.5, 2),
+    borderBottom: `1px solid ${theme.palette.divider}`,
+  },
+  columnHeaderLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1),
+  },
+  columnIcon: {
+    width: 28,
+    height: 28,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+  },
+  columnTitle: {
+    fontSize: "0.875rem",
+    fontWeight: 700,
+  },
+  columnCount: {
+    fontSize: "0.75rem",
+    fontWeight: 700,
+    padding: theme.spacing(0.25, 1),
+    borderRadius: 999,
+  },
+  columnSelectAll: {
+    fontSize: "0.7rem",
+    fontWeight: 600,
+    textTransform: "none",
+    padding: theme.spacing(0.25, 0.75),
+    minWidth: 0,
+  },
+  columnList: {
+    flex: 1,
+    minHeight: 280,
+    maxHeight: "70vh",
+    overflowY: "auto",
+    padding: theme.spacing(1.5),
+    transition: "background-color .2s",
+    ...theme.scrollbarStyles,
+  },
+  columnDraggingOver: {
+    background: theme.palette.action.hover,
+  },
+  emptyState: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 128,
+    borderRadius: 12,
+    border: `2px dashed ${theme.palette.divider}`,
+    fontSize: "0.75rem",
+    color: theme.palette.text.secondary,
+  },
+  loadMoreBtn: {
+    width: "100%",
+    marginTop: theme.spacing(1),
+    borderRadius: 10,
+    textTransform: "none",
+    fontSize: "0.75rem",
+    fontWeight: 600,
+  },
+  // Card
+  card: {
+    position: "relative",
+    background: theme.palette.background.paper,
+    borderRadius: 12,
+    border: `1px solid ${theme.palette.divider}`,
+    padding: theme.spacing(1.25),
+    marginBottom: theme.spacing(1),
+    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+    cursor: "pointer",
+    transition: "box-shadow .15s, border-color .15s, background .15s",
+    "&:hover": {
+      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+      borderColor: theme.palette.primary.light,
+    },
+  },
+  cardDragging: {
+    boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+    borderColor: theme.palette.primary.main,
+  },
+  cardSelected: {
+    borderColor: theme.palette.primary.main,
+    background: theme.palette.action.selected,
+  },
+  cardVirtual: {
+    opacity: 0.6,
+    cursor: "not-allowed",
+  },
+  cardRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1),
+  },
+  cardCheck: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    border: `1px solid ${theme.palette.divider}`,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    background: theme.palette.background.paper,
+    color: "transparent",
+    transition: "all .15s",
+  },
+  cardCheckActive: {
+    background: theme.palette.primary.main,
+    borderColor: theme.palette.primary.main,
+    color: "#fff",
+  },
+  cardAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: "50%",
+    background: theme.palette.action.hover,
+    color: theme.palette.text.secondary,
+    fontSize: "0.7rem",
+    fontWeight: 700,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  cardName: {
+    fontSize: "0.85rem",
+    fontWeight: 600,
+    color: theme.palette.text.primary,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  cardNumber: {
+    fontSize: "0.7rem",
+    color: theme.palette.text.secondary,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  cardMessage: {
+    marginTop: theme.spacing(1),
+    fontSize: "0.75rem",
+    color: theme.palette.text.secondary,
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+  },
+  cardNotes: {
+    marginTop: theme.spacing(0.5),
+    fontSize: "0.65rem",
+    color: "#92400e",
+    background: "#fef3c7",
+    borderRadius: 4,
+    padding: theme.spacing(0.25, 0.75),
+    display: "-webkit-box",
+    WebkitLineClamp: 1,
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+  },
+  cardFooter: {
+    marginTop: theme.spacing(1),
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    fontSize: "0.65rem",
+    color: theme.palette.text.disabled,
+  },
+  cardBadgeMulti: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    minWidth: 24,
+    height: 24,
+    padding: theme.spacing(0, 0.75),
+    borderRadius: 999,
+    background: theme.palette.primary.main,
+    color: "#fff",
+    fontSize: "0.7rem",
+    fontWeight: 700,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.18)",
+    border: "2px solid #fff",
+    zIndex: 2,
+  },
 }));
+
+// Color tokens used by columns (header background/chip/text). Hex values keep
+// the same visual identity used previously by Tailwind classes.
+const columnColorTokens = {
+  amber:   { headerBg: "#fffbeb", text: "#b45309", chipBg: "#fde68a", chipText: "#92400e" },
+  sky:     { headerBg: "#f0f9ff", text: "#0369a1", chipBg: "#bae6fd", chipText: "#075985" },
+  emerald: { headerBg: "#ecfdf5", text: "#047857", chipBg: "#a7f3d0", chipText: "#065f46" },
+  rose:    { headerBg: "#fff1f2", text: "#be123c", chipBg: "#fecdd3", chipText: "#9f1239" },
+};
 
 /**
  * Kanban de Campanha — visualiza e move shippings entre colunas de status.
@@ -1515,7 +1739,7 @@ const CampaignKanban = () => {
     }
   };
 
-  const Card = ({ item, index }) => {
+  const Card = ({ item, index, classes }) => {
     const draggableId = `ship-${item.id ?? `virtual-${item.number}`}`;
     const isVirtual = !item.id;
     const parsed = parseMessage(item.message);
@@ -1531,6 +1755,12 @@ const CampaignKanban = () => {
       openDetails(item);
     };
 
+    const cardClassName = [
+      classes.card,
+      checked ? classes.cardSelected : "",
+      isVirtual ? classes.cardVirtual : "",
+    ].filter(Boolean).join(" ");
+
     return (
       <Draggable draggableId={draggableId} index={index} isDragDisabled={isVirtual}>
         {(provided, snapshot) => (
@@ -1539,54 +1769,38 @@ const CampaignKanban = () => {
             {...provided.draggableProps}
             {...provided.dragHandleProps}
             onClick={(e) => !snapshot.isDragging && handleCardClick(e)}
-            className={`group relative mb-2 rounded-xl border bg-white p-3 shadow-sm transition-all cursor-pointer
-              ${snapshot.isDragging ? "shadow-lg ring-2 ring-emerald-300" : "hover:shadow-md hover:border-emerald-300"}
-              ${checked ? "ring-2 ring-emerald-500 border-emerald-400 bg-emerald-50/40" : ""}
-              ${isVirtual ? "opacity-60 cursor-not-allowed" : ""}
-            `}
+            className={`${cardClassName} ${snapshot.isDragging ? classes.cardDragging : ""}`}
           >
-            {/* Badge "+N" quando arrastando um card que faz parte de uma seleção múltipla */}
             {snapshot.isDragging && checked && selectedIds.size > 1 && (
-              <span className="absolute -top-2 -right-2 z-10 flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[11px] font-bold text-white shadow-lg ring-2 ring-white">
-                +{selectedIds.size - 1}
-              </span>
+              <span className={classes.cardBadgeMulti}>+{selectedIds.size - 1}</span>
             )}
-            <div className="flex items-center gap-2">
+            <div className={classes.cardRow}>
               {!isVirtual && (
                 <span
                   onClick={(e) => { e.stopPropagation(); toggleSelect(item.id); }}
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-all cursor-pointer
-                    ${checked
-                      ? "bg-emerald-500 border-emerald-500 text-white"
-                      : "border-slate-300 bg-white text-transparent group-hover:border-emerald-400"}
-                    ${hasSelection || checked ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
-                  `}
+                  className={`${classes.cardCheck} ${checked ? classes.cardCheckActive : ""}`}
                 >
                   {checked && <CheckCircle2 size={12} />}
                 </span>
               )}
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
+              <span className={classes.cardAvatar}>
                 {(item.contact?.name || item.number || "?").slice(0, 2).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800 truncate">
-                  {item.contact?.name || "Sem nome"}
-                </p>
-                <p className="text-[11px] text-slate-500 truncate">{item.number}</p>
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className={classes.cardName}>{item.contact?.name || "Sem nome"}</div>
+                <div className={classes.cardNumber}>{item.number}</div>
               </div>
               {status === "failed" && (
-                <AlertCircle size={14} className="text-rose-500 shrink-0" />
+                <AlertCircle size={14} style={{ color: "#f43f5e", flexShrink: 0 }} />
               )}
             </div>
             {parsed.message && (
-              <p className="mt-2 text-xs text-slate-600 line-clamp-2">{parsed.message}</p>
+              <div className={classes.cardMessage}>{parsed.message}</div>
             )}
             {parsed.notes && (
-              <p className="mt-1 text-[10px] text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 line-clamp-1">
-                📝 {parsed.notes}
-              </p>
+              <div className={classes.cardNotes}>📝 {parsed.notes}</div>
             )}
-            <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
+            <div className={classes.cardFooter}>
               <span>
                 {item.deliveredAt
                   ? new Date(item.deliveredAt).toLocaleString("pt-BR")
@@ -1594,7 +1808,11 @@ const CampaignKanban = () => {
                   ? new Date(item.createdAt).toLocaleString("pt-BR")
                   : "Aguardando"}
               </span>
-              {isVirtual && <span className="rounded bg-slate-100 px-1.5 py-0.5">Virtual</span>}
+              {isVirtual && (
+                <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 4 }}>
+                  Virtual
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -1992,41 +2210,50 @@ const CampaignKanban = () => {
 
       {/* Board */}
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className={`grid grid-cols-1 gap-4 ${
-          visibleStatuses.size === 1 ? "md:grid-cols-1" :
-          visibleStatuses.size === 2 ? "md:grid-cols-2" :
-          visibleStatuses.size === 3 ? "md:grid-cols-2 xl:grid-cols-3" :
-          "md:grid-cols-2 xl:grid-cols-4"
-        }`}>
+        <div
+          className={headerClasses.board}
+          style={{ "--cols": Math.max(visibleStatuses.size, 1) }}
+        >
           {COLUMNS.filter((col) => visibleStatuses.has(col.id)).map((col) => {
-            const c = colorMap[col.color];
+            const tokens = columnColorTokens[col.color] || columnColorTokens.amber;
             const Icon = col.icon;
             const colState = columnsState[col.id] || { items: [], total: 0, hasMore: false, loading: false };
             const allItems = colState.items;
             const items = quickFilter ? allItems.filter(matchesQuickFilter) : allItems;
+            const allSelected = items.filter((i) => i.id).every((i) => isSelected(i.id));
             return (
-              <div
-                key={col.id}
-                className={`flex flex-col rounded-2xl border ${col.border} bg-slate-50/60 overflow-hidden`}
-              >
-                <div className={`flex items-center justify-between px-4 py-3 ${c.bg} border-b ${col.border}`}>
-                  <div className="flex items-center gap-2">
-                    <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${c.chip}`}>
+              <div key={col.id} className={headerClasses.column}>
+                <div
+                  className={headerClasses.columnHeader}
+                  style={{ background: tokens.headerBg }}
+                >
+                  <div className={headerClasses.columnHeaderLeft}>
+                    <span
+                      className={headerClasses.columnIcon}
+                      style={{ background: tokens.chipBg, color: tokens.chipText }}
+                    >
                       <Icon size={14} />
                     </span>
-                    <span className={`text-sm font-bold ${c.text}`}>{col.label}</span>
+                    <span className={headerClasses.columnTitle} style={{ color: tokens.text }}>
+                      {col.label}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className={headerClasses.columnHeaderLeft}>
                     {items.some((i) => i.id) && (
-                      <button
+                      <Button
+                        size="small"
                         onClick={() => selectAllInColumn(items)}
                         title="Selecionar todos os visíveis nesta coluna"
-                        className={`text-[10px] font-semibold underline-offset-2 hover:underline ${c.text} opacity-70 hover:opacity-100`}
+                        className={headerClasses.columnSelectAll}
+                        style={{ color: tokens.text }}
                       >
-                        {items.filter((i) => i.id).every((i) => isSelected(i.id)) ? "Limpar" : "Todos"}
-                      </button>
+                        {allSelected ? "Limpar" : "Todos"}
+                      </Button>
                     )}
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${c.chip}`}>
+                    <span
+                      className={headerClasses.columnCount}
+                      style={{ background: tokens.chipBg, color: tokens.chipText }}
+                    >
                       {items.length}
                       {(quickFilter ? allItems.length : colState.total) > items.length
                         ? `/${quickFilter ? allItems.length : colState.total}`
@@ -2039,23 +2266,20 @@ const CampaignKanban = () => {
                     <div
                       ref={(node) => { provided.innerRef(node); setColumnScrollRef(col.id)(node); }}
                       {...provided.droppableProps}
-                      className={`flex-1 min-h-[300px] max-h-[70vh] overflow-y-auto p-3 transition-colors
-                        ${snapshot.isDraggingOver ? `${c.bg}` : ""}`}
+                      className={`${headerClasses.columnList} ${snapshot.isDraggingOver ? headerClasses.columnDraggingOver : ""}`}
                     >
                       {items.length === 0 && !colState.loading && (
-                        <div className="flex h-32 items-center justify-center rounded-xl border-2 border-dashed border-slate-200 text-xs text-slate-400">
-                          Sem envios
-                        </div>
+                        <div className={headerClasses.emptyState}>Sem envios</div>
                       )}
                       {items.map((item, idx) => (
                         <Card
                           key={item.id ?? `virtual-${item.number}-${idx}`}
                           item={item}
                           index={idx}
+                          classes={headerClasses}
                         />
                       ))}
                       {provided.placeholder}
-                      {/* Sentinela: dispara loadColumn ~400px antes do fim p/ pré-carregar */}
                       {colState.hasMore && !quickFilter && (
                         <InfiniteSentinel
                           rootRef={getColumnScrollRef(col.id)}
@@ -2064,18 +2288,20 @@ const CampaignKanban = () => {
                         />
                       )}
                       {colState.hasMore && (
-                        <button
+                        <Button
+                          variant="outlined"
                           onClick={() => loadColumn(col.id)}
                           disabled={colState.loading}
-                          className={`mt-2 w-full rounded-xl border ${col.border} bg-white py-2 text-xs font-semibold ${c.text} hover:bg-slate-50 disabled:opacity-50`}
+                          className={headerClasses.loadMoreBtn}
+                          style={{ color: tokens.text, borderColor: tokens.chipBg }}
                         >
                           {colState.loading
                             ? "Carregando..."
                             : `Carregar mais (${Math.max(colState.total - items.length, 0)} restantes)`}
-                        </button>
+                        </Button>
                       )}
                       {colState.loading && items.length === 0 && (
-                        <div className="flex h-32 items-center justify-center text-xs text-slate-400">
+                        <div className={headerClasses.emptyState} style={{ border: "none" }}>
                           Carregando...
                         </div>
                       )}
