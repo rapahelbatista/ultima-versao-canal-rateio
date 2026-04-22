@@ -114,14 +114,29 @@ const CampaignsHome = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const now = new Date();
-  const formatted = now.toLocaleString("pt-BR", {
+  const formatted = (lastUpdate || new Date()).toLocaleString("pt-BR", {
     day: "2-digit",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  // Sparkline normalizado (últimos 7 dias) — preenche com 0 onde não houver dado
+  const sparkline = (() => {
+    const days = 7;
+    const today = new Date();
+    const map = new Map((stats.series || []).map(p => [p.date, p.sent]));
+    const arr = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      arr.push(map.get(key) || 0);
+    }
+    const max = Math.max(...arr, 1);
+    return arr.map(v => Math.round((v / max) * 100));
+  })();
 
   return (
     <div className="space-y-6">
@@ -135,7 +150,10 @@ const CampaignsHome = () => {
             <h1 className="text-xl font-bold text-slate-800">
               Bem-vindo de volta!
             </h1>
-            <p className="text-sm text-slate-500">Última atualização: {formatted}</p>
+            <p className="text-sm text-slate-500">
+              Última atualização: {formatted}
+              {loading && <span className="ml-2 text-emerald-600">• atualizando...</span>}
+            </p>
           </div>
         </div>
         <button
@@ -150,10 +168,10 @@ const CampaignsHome = () => {
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Send} label="Campanhas Ativas" value={stats.activeCampaigns} accent="emerald" />
-        <StatCard icon={CheckCircle2} label="Mensagens Enviadas" value={stats.sentMessages} accent="amber" />
-        <StatCard icon={TrendingUp} label="Taxa de Entrega" value={`${stats.deliveryRate}%`} accent="sky" />
-        <StatCard icon={Users} label="Contatos" value={stats.contacts} accent="violet" />
+        <StatCard icon={Send} label="Campanhas Ativas" value={stats.activeCampaigns} accent="emerald" trend={sparkline} />
+        <StatCard icon={CheckCircle2} label="Mensagens Enviadas" value={stats.sentMessages.toLocaleString("pt-BR")} accent="amber" trend={sparkline} />
+        <StatCard icon={TrendingUp} label="Taxa de Entrega" value={`${stats.deliveryRate}%`} accent="sky" trend={sparkline} />
+        <StatCard icon={Users} label="Contatos Únicos" value={stats.contacts.toLocaleString("pt-BR")} accent="violet" trend={sparkline} />
       </div>
 
       {/* Quick actions */}
@@ -169,16 +187,36 @@ const CampaignsHome = () => {
         </div>
       </div>
 
-      {/* Activity placeholder */}
+      {/* Atividade real */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-slate-800">Atividade de Envios</h3>
             <span className="text-xs text-slate-400">Últimos 7 dias</span>
           </div>
-          <div className="mt-6 flex h-48 items-center justify-center rounded-xl border-2 border-dashed border-slate-200 text-sm text-slate-400">
-            Sem dados ainda — crie sua primeira campanha
-          </div>
+          {sparkline.some(v => v > 0) ? (
+            <div className="mt-6 flex items-end gap-2 h-48 px-2">
+              {sparkline.map((h, i) => {
+                const day = new Date();
+                day.setDate(day.getDate() - (6 - i));
+                const label = day.toLocaleDateString("pt-BR", { weekday: "short" });
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <div
+                      className="w-full rounded-t-lg bg-gradient-to-t from-emerald-400 to-emerald-300 transition-all"
+                      style={{ height: `${Math.max(h, 4)}%` }}
+                      title={`${label}`}
+                    />
+                    <span className="text-[10px] text-slate-400">{label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="mt-6 flex h-48 items-center justify-center rounded-xl border-2 border-dashed border-slate-200 text-sm text-slate-400">
+              Sem dados ainda — crie sua primeira campanha
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
