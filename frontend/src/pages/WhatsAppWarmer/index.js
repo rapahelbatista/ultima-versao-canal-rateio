@@ -25,6 +25,7 @@ import PageHeader from "../../components/PageHeader";
 import SectionCard from "../../components/SectionCard";
 import useAutoSaveFlush from "../../hooks/useAutoSaveFlush";
 import WarmerHistory from "./WarmerHistory";
+import SyncStatusBadge from "../../components/SyncStatusBadge";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -172,10 +173,39 @@ const WhatsAppWarmer = () => {
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [syncStatus, setSyncStatus] = useState("idle"); // idle | saving | saved | error
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [syncError, setSyncError] = useState("");
   const skipNextSave = useRef(true);
   const saveTimer = useRef(null);
   const stateRef = useRef({ messages, config });
   stateRef.current = { messages, config };
+
+  const persist = useCallback(async (payload) => {
+    setSaving(true);
+    setSyncStatus("saving");
+    try {
+      await api.put("/warmer-settings", payload);
+      setSyncStatus("saved");
+      setLastSavedAt(Date.now());
+      setSyncError("");
+    } catch (err) {
+      setSyncStatus("error");
+      const msg =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Falha ao sincronizar com o servidor";
+      setSyncError(msg);
+      throw err;
+    } finally {
+      setSaving(false);
+    }
+  }, []);
+
+  const retrySync = useCallback(() => {
+    persist(stateRef.current).catch((err) => toastError(err));
+  }, [persist]);
 
   useAutoSaveFlush(async () => {
     if (saveTimer.current) {
