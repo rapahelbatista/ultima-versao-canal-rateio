@@ -22,6 +22,7 @@ import {
   FileText,
   ArrowLeft,
   Send,
+  Play,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import SectionCard from "../../components/SectionCard";
@@ -192,7 +193,23 @@ const useStyles = makeStyles((theme) => ({
     background: "#10b981", color: "#fff",
     display: "flex", alignItems: "center", justifyContent: "center",
   },
+  "@global": {
+    "@keyframes mtb-typing-blink": {
+      "0%, 80%, 100%": { opacity: 0.25, transform: "translateY(0)" },
+      "40%": { opacity: 1, transform: "translateY(-2px)" },
+    },
+  },
 }));
+
+const dotStyle = (delay) => ({
+  display: "inline-block",
+  width: 6,
+  height: 6,
+  borderRadius: "50%",
+  background: "#94a3b8",
+  animation: "mtb-typing-blink 1s infinite ease-in-out",
+  animationDelay: `${delay}ms`,
+});
 
 const MetaTemplateEditor = ({ templateId, onBack }) => {
   const classes = useStyles();
@@ -214,9 +231,13 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
   const [body, setBody] = useState("");
   const [footer, setFooter] = useState("");
   const [buttonType, setButtonType] = useState("none");
+  const [variableValues, setVariableValues] = useState({});
+  const [simulating, setSimulating] = useState(false);
+  const [simulatedAt, setSimulatedAt] = useState(null);
 
   const skipNextSave = useRef(true);
   const saveTimer = useRef(null);
+  const simTimer = useRef(null);
 
   // Carrega template
   useEffect(() => {
@@ -238,6 +259,7 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
         setBody(p.body || "");
         setFooter(p.footer || "");
         setButtonType(p.buttonType || "none");
+        setVariableValues(p.variableValues && typeof p.variableValues === "object" ? p.variableValues : {});
       } catch (err) {
         toastError(err);
       } finally {
@@ -254,8 +276,8 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
     language,
     category,
     currentStep: step,
-    payload: { headerFmt, headerText, body, footer, buttonType },
-  }), [name, templateType, language, category, step, headerFmt, headerText, body, footer, buttonType]);
+    payload: { headerFmt, headerText, body, footer, buttonType, variableValues },
+  }), [name, templateType, language, category, step, headerFmt, headerText, body, footer, buttonType, variableValues]);
 
   useEffect(() => {
     if (loading) return;
@@ -292,6 +314,61 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
       setSubmitting(false);
     }
   };
+
+  // ===== Variáveis e simulação =====
+  const detectVariables = useCallback((text) => {
+    const matches = String(text || "").match(/\{\{(\d+)\}\}/g) || [];
+    const set = new Set(matches.map((m) => m.replace(/[{}]/g, "")));
+    return Array.from(set).sort((a, b) => Number(a) - Number(b));
+  }, []);
+
+  const allVariables = React.useMemo(
+    () => detectVariables(`${headerText} ${body} ${footer}`),
+    [headerText, body, footer, detectVariables]
+  );
+
+  const interpolate = useCallback(
+    (text, { highlight = false } = {}) => {
+      if (!text) return text;
+      const parts = String(text).split(/(\{\{\d+\}\})/g);
+      return parts.map((part, idx) => {
+        const m = part.match(/^\{\{(\d+)\}\}$/);
+        if (!m) return part;
+        const key = m[1];
+        const value = variableValues[key];
+        if (value) return value;
+        if (highlight) {
+          return (
+            <span
+              key={idx}
+              style={{
+                background: "#fef3c7",
+                color: "#92400e",
+                padding: "0 4px",
+                borderRadius: 4,
+                fontWeight: 600,
+              }}
+            >
+              {`{{${key}}}`}
+            </span>
+          );
+        }
+        return part;
+      });
+    },
+    [variableValues]
+  );
+
+  const handleSimulate = useCallback(() => {
+    if (simTimer.current) clearTimeout(simTimer.current);
+    setSimulating(true);
+    simTimer.current = setTimeout(() => {
+      setSimulating(false);
+      setSimulatedAt(Date.now());
+    }, 900);
+  }, []);
+
+  useEffect(() => () => simTimer.current && clearTimeout(simTimer.current), []);
 
   if (loading) {
     return <div style={{ padding: 24, color: "#64748b" }}>Carregando modelo…</div>;
@@ -468,10 +545,48 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
             )}
 
             {step === 4 && (
-              <div className={classes.hint}>
-                <CreditCard size={16} />
-                <div>
-                  Configure os valores de exemplo para cada variável usada no corpo da mensagem.
+              <div style={{ display: "grid", gap: 16 }}>
+                <div className={classes.hint}>
+                  <CreditCard size={16} />
+                  <div>
+                    Defina os valores de exemplo para cada variável usada no modelo.
+                    Use o botão <strong>Simular envio</strong> para visualizar o resultado no preview.
+                  </div>
+                </div>
+                {allVariables.length === 0 ? (
+                  <div style={{
+                    padding: 16, textAlign: "center", color: "#94a3b8",
+                    fontSize: 13, border: "1px dashed #e2e8f0", borderRadius: 10,
+                  }}>
+                    Nenhuma variável detectada. Adicione <code>{"{{1}}"}</code>, <code>{"{{2}}"}</code> etc. no corpo da mensagem.
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {allVariables.map((key) => (
+                      <TextField
+                        key={key}
+                        label={`Variável {{${key}}}`}
+                        variant="outlined"
+                        size="small"
+                        fullWidth
+                        value={variableValues[key] || ""}
+                        onChange={(e) =>
+                          setVariableValues((v) => ({ ...v, [key]: e.target.value }))
+                        }
+                        placeholder={`Valor de exemplo para {{${key}}}`}
+                      />
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <Button
+                    className={classes.primaryBtn}
+                    startIcon={<Play size={14} />}
+                    onClick={handleSimulate}
+                    disabled={simulating}
+                  >
+                    {simulating ? "Simulando…" : "Simular envio"}
+                  </Button>
                 </div>
               </div>
             )}
@@ -504,6 +619,12 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
               </Button>
               <div style={{ display: "flex", gap: 8 }}>
                 <Button className={classes.navBtn}
+                  startIcon={<Play size={14} />}
+                  onClick={handleSimulate}
+                  disabled={simulating || (!body && !headerText)}>
+                  {simulating ? "Simulando…" : "Simular envio"}
+                </Button>
+                <Button className={classes.navBtn}
                   startIcon={showPreview ? <EyeOff size={14} /> : <Eye size={14} />}
                   onClick={() => setShowPreview((v) => !v)}>
                   {showPreview ? "Ocultar Prévia" : "Mostrar Prévia"}
@@ -534,18 +655,41 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
                   <span style={{
                     background: "#fff", borderRadius: 8, padding: "4px 10px",
                     fontSize: 10, color: "#64748b", fontWeight: 600,
-                  }}>HOJE</span>
+                  }}>{simulatedAt ? "AGORA" : "HOJE"}</span>
                 </div>
                 <div className={classes.bubble}>
                   {headerFmt === "text" && headerText && (
-                    <div className={classes.bubbleHeader}>{headerText}</div>
+                    <div className={classes.bubbleHeader}>
+                      {interpolate(headerText, { highlight: !simulatedAt })}
+                    </div>
                   )}
-                  <div>{body || "Sua mensagem aparecerá aqui..."}</div>
+                  <div style={{ whiteSpace: "pre-wrap" }}>
+                    {body
+                      ? interpolate(body, { highlight: !simulatedAt })
+                      : "Sua mensagem aparecerá aqui..."}
+                  </div>
                   {footer && (
-                    <div style={{ fontSize: 10, color: "#64748b", marginTop: 4 }}>{footer}</div>
+                    <div style={{ fontSize: 10, color: "#64748b", marginTop: 4 }}>
+                      {interpolate(footer, { highlight: !simulatedAt })}
+                    </div>
                   )}
-                  <div className={classes.bubbleFooter}>12:23 ✓✓</div>
+                  <div className={classes.bubbleFooter}>
+                    {simulatedAt
+                      ? new Date(simulatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                      : "12:23"} ✓✓
+                  </div>
                 </div>
+                {simulating && (
+                  <div style={{
+                    marginTop: 8, display: "inline-flex", gap: 4, alignItems: "center",
+                    background: "#fff", borderRadius: 12, padding: "6px 10px",
+                    boxShadow: "0 1px 1px rgba(0,0,0,0.06)",
+                  }}>
+                    <span style={dotStyle(0)} />
+                    <span style={dotStyle(150)} />
+                    <span style={dotStyle(300)} />
+                  </div>
+                )}
               </div>
               <div className={classes.phoneInput}>
                 <div className={classes.phoneInputBox}>Digite uma mensagem</div>
