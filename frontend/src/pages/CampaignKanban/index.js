@@ -1901,7 +1901,7 @@ const CampaignKanban = () => {
                                     {r.userName || "Usuário desconhecido"}
                                   </p>
                                   <p className="text-[10px] text-slate-400">
-                                    {new Date(r.createdAt).toLocaleString("pt-BR")}
+                                    #{r.id} · {new Date(r.createdAt).toLocaleString("pt-BR")}
                                   </p>
                                 </div>
                               </div>
