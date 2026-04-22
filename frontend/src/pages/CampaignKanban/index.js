@@ -433,11 +433,33 @@ const COLUMNS = [
   { id: "failed", label: "Falhou", icon: XCircle, color: "rose", border: "border-rose-300" },
 ];
 
+// Tokens de cor por status (sem dependência de Tailwind).
+// `chip` é um objeto de estilos inline aplicado nos botões/etiquetas.
 const colorMap = {
-  amber: { bg: "bg-amber-50", text: "text-amber-700", chip: "bg-amber-100 text-amber-700", dot: "bg-amber-400" },
-  sky: { bg: "bg-sky-50", text: "text-sky-700", chip: "bg-sky-100 text-sky-700", dot: "bg-sky-400" },
-  emerald: { bg: "bg-emerald-50", text: "text-emerald-700", chip: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-400" },
-  rose: { bg: "bg-rose-50", text: "text-rose-700", chip: "bg-rose-100 text-rose-700", dot: "bg-rose-400" },
+  amber: {
+    bg: "#fffbeb",
+    text: "#b45309",
+    chip: { backgroundColor: "#fef3c7", color: "#b45309" },
+    dot: "#fbbf24",
+  },
+  sky: {
+    bg: "#f0f9ff",
+    text: "#0369a1",
+    chip: { backgroundColor: "#e0f2fe", color: "#0369a1" },
+    dot: "#38bdf8",
+  },
+  emerald: {
+    bg: "#ecfdf5",
+    text: "#047857",
+    chip: { backgroundColor: "#d1fae5", color: "#047857" },
+    dot: "#34d399",
+  },
+  rose: {
+    bg: "#fff1f2",
+    text: "#be123c",
+    chip: { backgroundColor: "#ffe4e6", color: "#be123c" },
+    dot: "#fb7185",
+  },
 };
 
 const inferStatus = (s) => {
@@ -572,7 +594,7 @@ const InfiniteSentinel = ({ onReach, disabled, rootRef }) => {
     io.observe(node);
     return () => io.disconnect();
   }, [onReach, disabled, rootRef]);
-  return <div ref={ref} aria-hidden className="h-1 w-full" />;
+  return <div ref={ref} aria-hidden style={{ height: 4, width: "100%" }} />;
 };
 
 const CampaignKanban = () => {
@@ -849,16 +871,16 @@ const CampaignKanban = () => {
         const reasonEntries = Object.entries(byReason);
 
         const ToastBody = (
-          <div className="text-[12px] leading-snug">
-            <div className="font-bold mb-1">
+          <div style={{ fontSize: 12, lineHeight: 1.35 }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>
               ⚠️ Desfazer parcial: {restored} restaurado(s), {failed} falharam
             </div>
             {reasonEntries.length > 0 ? (
-              <ul className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, maxHeight: 192, overflowY: "auto", paddingRight: 4 }}>
                 {reasonEntries.map(([reason, ids]) => (
-                  <li key={reason}>
-                    <div className="font-semibold text-rose-700">{reason}</div>
-                    <div className="text-slate-600 text-[11px] break-words">
+                  <li key={reason} style={{ marginBottom: 6 }}>
+                    <div style={{ fontWeight: 600, color: "#be123c" }}>{reason}</div>
+                    <div style={{ color: "#475569", fontSize: 11, wordBreak: "break-word" }}>
                       {ids.length} envio(s): {ids.slice(0, 12).map((i) => `#${i}`).join(", ")}
                       {ids.length > 12 ? `, +${ids.length - 12}` : ""}
                     </div>
@@ -866,7 +888,7 @@ const CampaignKanban = () => {
                 ))}
               </ul>
             ) : (
-              <div className="text-slate-600">
+              <div style={{ color: "#475569" }}>
                 O servidor não retornou detalhes dos envios que falharam.
               </div>
             )}
@@ -901,18 +923,18 @@ const CampaignKanban = () => {
         : [];
       if (failures.length > 0) {
         toast.error(
-          <div className="text-[12px] leading-snug">
-            <div className="font-bold mb-1">❌ {baseMsg}{status ? ` (HTTP ${status})` : ""}</div>
-            <ul className="space-y-0.5 max-h-40 overflow-y-auto pr-1 text-[11px] text-slate-700">
+          <div style={{ fontSize: 12, lineHeight: 1.35 }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>❌ {baseMsg}{status ? ` (HTTP ${status})` : ""}</div>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, maxHeight: 160, overflowY: "auto", paddingRight: 4, fontSize: 11, color: "#334155" }}>
               {failures.slice(0, 20).map((f, i) => (
-                <li key={i}>
-                  <span className="font-mono">#{f.id ?? f.shippingId ?? "?"}</span>
+                <li key={i} style={{ marginBottom: 2 }}>
+                  <span style={{ fontFamily: "monospace" }}>#{f.id ?? f.shippingId ?? "?"}</span>
                   {" — "}
-                  <span className="text-rose-700">{f.reason || f.error || f.message || "erro"}</span>
+                  <span style={{ color: "#be123c" }}>{f.reason || f.error || f.message || "erro"}</span>
                 </li>
               ))}
               {failures.length > 20 && (
-                <li className="italic text-slate-500">+{failures.length - 20} outro(s)…</li>
+                <li style={{ fontStyle: "italic", color: "#64748b" }}>+{failures.length - 20} outro(s)…</li>
               )}
             </ul>
           </div>,
@@ -1613,9 +1635,9 @@ const CampaignKanban = () => {
             const who = data.undoneByUserName || "Outro usuário";
             const count = Array.isArray(data.shippingIds) ? data.shippingIds.length : (data.restored ?? 0);
             toast.info(
-              <div className="text-[12px] leading-snug">
-                <div className="font-bold">↩️ Undo aplicado por {who}</div>
-                <div className="text-slate-600">
+              <div style={{ fontSize: 12, lineHeight: 1.35 }}>
+                <div style={{ fontWeight: 700 }}>↩️ Undo aplicado por {who}</div>
+                <div style={{ color: "#475569" }}>
                   {count} envio(s) restaurado(s){data.bulkUpdateId ? ` — atualização #${data.bulkUpdateId}` : ""}
                 </div>
               </div>,
@@ -2148,7 +2170,7 @@ const CampaignKanban = () => {
         </MainHeaderButtonsWrapper>
       </MainHeader>
 
-      <div className="space-y-4">
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {/* (Header migrado para MainHeader acima) */}
 
 
@@ -2581,18 +2603,30 @@ const CampaignKanban = () => {
         }[bulkProgress.status] || bulkProgress.status;
         const phase = bulkProgress.phase;
         const tone = phase === "error"
-          ? { ring: "border-rose-200", bar: "bg-rose-500", text: "text-rose-700", bg: "bg-rose-50" }
+          ? { ring: "#fecdd3", bar: "#f43f5e", text: "#be123c", bg: "#fff1f2" }
           : phase === "done"
-          ? { ring: "border-emerald-200", bar: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50" }
-          : { ring: "border-emerald-200", bar: "bg-emerald-500", text: "text-emerald-700", bg: "bg-white" };
+          ? { ring: "#a7f3d0", bar: "#10b981", text: "#047857", bg: "#ecfdf5" }
+          : { ring: "#a7f3d0", bar: "#10b981", text: "#047857", bg: "#ffffff" };
         return (
           <div
-            className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[min(440px,calc(100vw-2rem))] rounded-2xl border ${tone.ring} ${tone.bg} shadow-xl shadow-emerald-500/10 px-4 py-3 animate-in fade-in slide-in-from-top-2`}
+            style={{
+              position: "fixed",
+              top: 16,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 1500,
+              width: "min(440px, calc(100vw - 32px))",
+              borderRadius: 16,
+              border: `1px solid ${tone.ring}`,
+              backgroundColor: tone.bg,
+              boxShadow: "0 10px 25px rgba(16,185,129,0.10)",
+              padding: "12px 16px",
+            }}
             role="status"
             aria-live="polite"
           >
-            <div className="flex items-center justify-between mb-2">
-              <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${tone.text}`}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: tone.text }}>
                 {phase === "processing" && <RefreshCcw size={12} className="animate-spin" />}
                 {phase === "done" && <CheckCheck size={12} />}
                 {phase === "error" && <AlertCircle size={12} />}
@@ -2602,22 +2636,21 @@ const CampaignKanban = () => {
                   : "Concluído")}
                 {phase === "error" && "Falha na atualização"}
               </div>
-              <span className={`text-xs font-mono font-semibold ${tone.text}`}>
+              <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 600, color: tone.text }}>
                 {bulkProgress.processed}/{bulkProgress.total}
-                <span className="ml-1 opacity-60">({pct}%)</span>
+                <span style={{ marginLeft: 4, opacity: 0.6 }}>({pct}%)</span>
               </span>
             </div>
-            <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+            <div style={{ height: 8, width: "100%", borderRadius: 999, backgroundColor: "#f1f5f9", overflow: "hidden" }}>
               <div
-                className={`h-full ${tone.bar} transition-all duration-200 ease-out ${phase === "processing" ? "" : ""}`}
-                style={{ width: `${pct}%` }}
+                style={{ height: "100%", backgroundColor: tone.bar, width: `${pct}%`, transition: "width 200ms ease-out" }}
               />
             </div>
             {phase === "done" && (
-              <div className="mt-2 flex gap-3 text-[11px] text-slate-600">
-                <span className="flex items-center gap-1"><CheckCircle2 size={11} className="text-emerald-500" /> {bulkProgress.success} sucesso</span>
+              <div style={{ marginTop: 8, display: "flex", gap: 12, fontSize: 11, color: "#475569" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 4 }}><CheckCircle2 size={11} style={{ color: "#10b981" }} /> {bulkProgress.success} sucesso</span>
                 {bulkProgress.failed > 0 && (
-                  <span className="flex items-center gap-1"><XCircle size={11} className="text-rose-500" /> {bulkProgress.failed} falha</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}><XCircle size={11} style={{ color: "#f43f5e" }} /> {bulkProgress.failed} falha</span>
                 )}
               </div>
             )}
@@ -2631,29 +2664,52 @@ const CampaignKanban = () => {
         const col = COLUMNS.find((c) => c.id === lastBulkUpdate.status);
         return (
           <div
-            className={`fixed left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-white shadow-2xl
-              ${hasSelection ? "bottom-24" : "bottom-6"}`}
+            style={{
+              position: "fixed",
+              left: "50%",
+              transform: "translateX(-50%)",
+              bottom: hasSelection ? 96 : 24,
+              zIndex: 1400,
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              borderRadius: 16,
+              border: "1px solid #1e293b",
+              backgroundColor: "#0f172a",
+              padding: "12px 16px",
+              color: "#ffffff",
+              boxShadow: "0 25px 50px -12px rgba(0,0,0,0.4)",
+            }}
           >
-            <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-xs">
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ display: "inline-flex", height: 28, width: 28, alignItems: "center", justifyContent: "center", borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.1)", fontSize: 12 }}>
                 <Undo2 size={14} />
               </span>
-              <div className="text-sm">
-                <span className="font-semibold">{lastBulkUpdate.count}</span> envio(s) movido(s) para{" "}
-                <span className="font-semibold">"{col?.label || lastBulkUpdate.status}"</span>
+              <div style={{ fontSize: 14 }}>
+                <span style={{ fontWeight: 600 }}>{lastBulkUpdate.count}</span> envio(s) movido(s) para{" "}
+                <span style={{ fontWeight: 600 }}>"{col?.label || lastBulkUpdate.status}"</span>
               </div>
             </div>
             <button
               onClick={() => undoBulkUpdate(lastBulkUpdate.id)}
               disabled={undoing}
-              className="flex items-center gap-1.5 rounded-xl bg-white px-3 py-1.5 text-xs font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                borderRadius: 12, backgroundColor: "#ffffff", color: "#0f172a",
+                padding: "6px 12px", fontSize: 12, fontWeight: 700,
+                border: "none", cursor: undoing ? "not-allowed" : "pointer",
+                opacity: undoing ? 0.5 : 1,
+              }}
             >
               <Undo2 size={12} />
               {undoing ? "Desfazendo..." : `Desfazer (${remaining}s)`}
             </button>
             <button
               onClick={() => setLastBulkUpdate(null)}
-              className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white"
+              style={{
+                borderRadius: 8, padding: 4, color: "#94a3b8",
+                background: "transparent", border: "none", cursor: "pointer",
+              }}
               title="Fechar"
             >
               <X size={14} />
@@ -2664,14 +2720,32 @@ const CampaignKanban = () => {
 
       {/* Barra flutuante de ações em massa */}
       {hasSelection && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-2xl border border-emerald-200 bg-white px-4 py-3 shadow-2xl shadow-emerald-500/20">
-          <div className="flex items-center gap-2 pr-2 border-r border-slate-200">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white">
+        <div
+          style={{
+            position: "fixed",
+            bottom: 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1400,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            borderRadius: 16,
+            border: "1px solid #a7f3d0",
+            backgroundColor: "#ffffff",
+            padding: "12px 16px",
+            boxShadow: "0 25px 50px -12px rgba(16,185,129,0.2)",
+            flexWrap: "wrap",
+            maxWidth: "calc(100vw - 32px)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, paddingRight: 8, borderRight: "1px solid #e2e8f0" }}>
+            <span style={{ display: "inline-flex", height: 28, width: 28, alignItems: "center", justifyContent: "center", borderRadius: "50%", backgroundColor: "#10b981", color: "#fff", fontSize: 12, fontWeight: 700 }}>
               {selectedIds.size}
             </span>
-            <span className="text-sm font-semibold text-slate-700">selecionado(s)</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: "#334155" }}>selecionado(s)</span>
           </div>
-          <span className="text-xs text-slate-500 mr-1">Mover para:</span>
+          <span style={{ fontSize: 12, color: "#64748b", marginRight: 4 }}>Mover para:</span>
           {COLUMNS.map((col) => {
             const cc = colorMap[col.color];
             const Icon = col.icon;
@@ -2680,7 +2754,16 @@ const CampaignKanban = () => {
                 key={col.id}
                 onClick={() => bulkUpdateStatus(col.id)}
                 disabled={bulkUpdating}
-                className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${cc.chip}`}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  borderRadius: 12, padding: "6px 12px",
+                  fontSize: 12, fontWeight: 700,
+                  border: "none",
+                  cursor: bulkUpdating ? "not-allowed" : "pointer",
+                  opacity: bulkUpdating ? 0.5 : 1,
+                  transition: "transform 150ms",
+                  ...cc.chip,
+                }}
               >
                 <Icon size={12} />
                 {col.label}
@@ -2690,7 +2773,14 @@ const CampaignKanban = () => {
           <button
             onClick={clearSelection}
             disabled={bulkUpdating}
-            className="ml-1 flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+            style={{
+              marginLeft: 4, display: "inline-flex", alignItems: "center", gap: 4,
+              borderRadius: 12, border: "1px solid #e2e8f0",
+              padding: "6px 12px", fontSize: 12, fontWeight: 600,
+              color: "#475569", backgroundColor: "transparent",
+              cursor: bulkUpdating ? "not-allowed" : "pointer",
+              opacity: bulkUpdating ? 0.5 : 1,
+            }}
           >
             <X size={12} />
             Cancelar
@@ -3143,11 +3233,11 @@ const CampaignKanban = () => {
 };
 
 const InfoRow = ({ icon: Icon, label, value }) => (
-  <div className="flex items-start gap-2">
-    <Icon size={14} className="mt-0.5 text-slate-400 shrink-0" />
-    <div className="min-w-0">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</p>
-      <p className="text-sm text-slate-700 truncate">{value || "—"}</p>
+  <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+    <Icon size={14} style={{ marginTop: 2, color: "#94a3b8", flexShrink: 0 }} />
+    <div style={{ minWidth: 0 }}>
+      <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#94a3b8", margin: 0 }}>{label}</p>
+      <p style={{ fontSize: 14, color: "#334155", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value || "—"}</p>
     </div>
   </div>
 );
@@ -3165,17 +3255,11 @@ const LiveBadge = ({ tick, state = "disconnected", attempt = 0, onRetry }) => {
   const isConnected = state === "connected";
   const isReconnecting = state === "reconnecting";
 
-  const styles = isConnected
-    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+  const tone = isConnected
+    ? { border: "#a7f3d0", bg: "#ecfdf5", text: "#047857", dot: "#10b981" }
     : isReconnecting
-    ? "border-amber-200 bg-amber-50 text-amber-700"
-    : "border-rose-200 bg-rose-50 text-rose-600";
-
-  const dot = isConnected
-    ? "bg-emerald-500"
-    : isReconnecting
-    ? "bg-amber-500"
-    : "bg-rose-500";
+    ? { border: "#fde68a", bg: "#fffbeb", text: "#b45309", dot: "#f59e0b" }
+    : { border: "#fecdd3", bg: "#fff1f2", text: "#be123c", dot: "#f43f5e" };
 
   const label = isConnected
     ? "AO VIVO"
@@ -3190,19 +3274,31 @@ const LiveBadge = ({ tick, state = "disconnected", attempt = 0, onRetry }) => {
     : "Conexão em tempo real perdida — clique para tentar novamente";
 
   return (
-    <div className="flex items-center gap-1">
+    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
       <div
         title={title}
-        className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-bold transition-colors ${styles}`}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          borderRadius: 12, border: `1px solid ${tone.border}`,
+          padding: "6px 10px", fontSize: 11, fontWeight: 700,
+          backgroundColor: tone.bg, color: tone.text,
+          transition: "background-color 200ms, color 200ms",
+        }}
       >
-        <span className="relative flex h-2 w-2">
-          {isConnected && pulsing && (
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        <span style={{ position: "relative", display: "inline-flex", height: 8, width: 8 }}>
+          {((isConnected && pulsing) || isReconnecting) && (
+            <span
+              style={{
+                position: "absolute", display: "inline-flex",
+                height: "100%", width: "100%",
+                borderRadius: "50%",
+                backgroundColor: isReconnecting ? "#fbbf24" : "#34d399",
+                opacity: 0.75,
+                animation: "lv-spin 1.2s cubic-bezier(0,0,0.2,1) infinite",
+              }}
+            />
           )}
-          {isReconnecting && (
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-          )}
-          <span className={`relative inline-flex h-2 w-2 rounded-full ${dot}`} />
+          <span style={{ position: "relative", display: "inline-flex", height: 8, width: 8, borderRadius: "50%", backgroundColor: tone.dot }} />
         </span>
         {label}
       </div>
@@ -3210,7 +3306,11 @@ const LiveBadge = ({ tick, state = "disconnected", attempt = 0, onRetry }) => {
         <button
           onClick={onRetry}
           title="Reconectar agora"
-          className="flex items-center justify-center rounded-xl border border-slate-200 bg-white p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+          style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            borderRadius: 12, border: "1px solid #e2e8f0", backgroundColor: "#fff",
+            padding: 6, color: "#64748b", cursor: "pointer",
+          }}
         >
           <RefreshCcw size={12} className={isReconnecting ? "animate-spin" : ""} />
         </button>

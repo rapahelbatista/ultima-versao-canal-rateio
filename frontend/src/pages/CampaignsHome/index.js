@@ -358,10 +358,10 @@ const CampaignsHome = () => {
             <QuickAction icon={Flame} label="Aquecer Chip" onClick={() => history.push("/whatsapp-warmer")} accent="amber" />
           </Grid>
           <Grid item xs={6} lg={3}>
-            <QuickAction icon={Code2} label="Gerar API Key" onClick={() => history.push("/api-keys")} accent="sky" />
+            <QuickAction icon={Code2} label="Documentação API" onClick={() => history.push("/messages-api")} accent="sky" />
           </Grid>
           <Grid item xs={6} lg={3}>
-            <QuickAction icon={Webhook} label="Configurar Webhook" onClick={() => history.push("/webhooks")} accent="violet" />
+            <QuickAction icon={Webhook} label="Conexões WhatsApp" onClick={() => history.push("/connections")} accent="violet" />
           </Grid>
         </Grid>
       </div>
