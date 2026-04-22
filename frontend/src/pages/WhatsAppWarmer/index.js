@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "react-toastify";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
+import useCanManageMeta from "../../hooks/useCanManageMeta";
+import LockedPage from "../../components/LockedPage";
 import { makeStyles } from "@material-ui/core/styles";
 import {
   Button,
@@ -416,10 +418,6 @@ const WhatsAppWarmer = () => {
 };
 
 const WhatsAppWarmerGuarded = (props) => {
-  // eslint-disable-next-line global-require
-  const useCanManageMeta = require("../../hooks/useCanManageMeta").default;
-  // eslint-disable-next-line global-require
-  const LockedPage = require("../../components/LockedPage").default;
   const { allowed } = useCanManageMeta();
   if (!allowed) {
     return (

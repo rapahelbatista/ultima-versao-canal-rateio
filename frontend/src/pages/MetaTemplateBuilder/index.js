@@ -14,6 +14,8 @@ import SectionCard from "../../components/SectionCard";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import MetaTemplateEditor from "./MetaTemplateEditor";
+import useCanManageMeta from "../../hooks/useCanManageMeta";
+import LockedPage from "../../components/LockedPage";
 
 const STATUS_TONES = {
   draft: { bg: "#e2e8f0", color: "#475569", label: "Rascunho" },
@@ -197,10 +199,6 @@ const MetaTemplateBuilder = () => {
 };
 
 const MetaTemplateBuilderGuarded = (props) => {
-  // eslint-disable-next-line global-require
-  const useCanManageMeta = require("../../hooks/useCanManageMeta").default;
-  // eslint-disable-next-line global-require
-  const LockedPage = require("../../components/LockedPage").default;
   const { allowed } = useCanManageMeta();
   if (!allowed) {
     return (
