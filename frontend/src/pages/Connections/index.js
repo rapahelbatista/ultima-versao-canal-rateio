@@ -892,9 +892,10 @@ const Connections = () => {
       )}
       <WhatsAppModal
         open={whatsAppModalOpen}
-        onClose={handleCloseWhatsAppModal}
+        onClose={() => { handleCloseWhatsAppModal(); setNewInstanceName(""); }}
         whatsAppId={!qrModalOpen && selectedWhatsApp?.id}
         channel={channel}
+        initialName={newInstanceName}
       />
       <Dialog
         open={transferModalOpen}
