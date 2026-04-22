@@ -42,6 +42,18 @@ import {
   Tooltip,
   InputAdornment,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
+  CircularProgress,
+  Avatar,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemAvatar,
+  Grid,
 } from "@material-ui/core";
 import HistoryIcon from "@material-ui/icons/History";
 import SearchIcon from "@material-ui/icons/Search";
@@ -340,6 +352,62 @@ const useKanbanHeaderStyles = makeStyles((theme) => ({
     boxShadow: "0 4px 12px rgba(0,0,0,0.18)",
     border: "2px solid #fff",
     zIndex: 2,
+  },
+  // ---- Dialogs (Phase 3 modals) ----
+  dialogPaper: { borderRadius: 12 },
+  dialogHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1.5),
+    padding: theme.spacing(2, 3),
+    borderBottom: `1px solid ${theme.palette.divider}`,
+  },
+  dialogHeaderAvatar: {
+    width: 40,
+    height: 40,
+    background: theme.palette.primary.light,
+    color: theme.palette.primary.contrastText,
+  },
+  dialogActions: {
+    padding: theme.spacing(1.5, 3),
+    borderTop: `1px solid ${theme.palette.divider}`,
+    background: theme.palette.background.default,
+  },
+  dialogButton: { borderRadius: 10, textTransform: "none", fontWeight: 600 },
+  historySplit: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: 0,
+    [theme.breakpoints.up("md")]: { gridTemplateColumns: "1fr 1fr" },
+    minHeight: 380,
+  },
+  historyListWrapper: {
+    overflowY: "auto",
+    maxHeight: 480,
+    borderRight: `1px solid ${theme.palette.divider}`,
+    ...theme.scrollbarStyles,
+  },
+  historyDetailWrapper: {
+    overflowY: "auto",
+    maxHeight: 480,
+    background: theme.palette.background.default,
+    padding: theme.spacing(2),
+    ...theme.scrollbarStyles,
+  },
+  historyEmpty: {
+    padding: theme.spacing(4),
+    textAlign: "center",
+    fontSize: "0.85rem",
+    color: theme.palette.text.secondary,
+  },
+  historyItemActive: {
+    background: theme.palette.action.selected,
+  },
+  detailsField: { marginTop: theme.spacing(1.5) },
+  detailsHeaderChip: {
+    fontWeight: 700,
+    fontSize: "0.7rem",
+    height: 22,
   },
 }));
 
@@ -2328,53 +2396,45 @@ const CampaignKanban = () => {
         };
         const cancel = () => setPendingBulkMove(null);
         return (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in"
-            role="dialog"
-            aria-modal="true"
+          <Dialog
+            open
+            onClose={cancel}
+            maxWidth="sm"
+            fullWidth
+            classes={{ paper: headerClasses.dialogPaper }}
             aria-labelledby="bulk-move-confirm-title"
-            onKeyDown={(e) => {
-              if (e.key === "Escape") cancel();
-              if (e.key === "Enter") confirm();
-            }}
           >
-            <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95">
-              <div className="flex items-start gap-3 px-5 pt-5 pb-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
-                  <AlertCircle size={20} className="text-amber-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 id="bulk-move-confirm-title" className="text-base font-bold text-slate-900">
+            <DialogTitle id="bulk-move-confirm-title" disableTypography>
+              <div className={headerClasses.dialogHeader} style={{ padding: 0, borderBottom: "none" }}>
+                <Avatar className={headerClasses.dialogHeaderAvatar} style={{ background: "#fde68a", color: "#92400e" }}>
+                  <AlertCircle size={20} />
+                </Avatar>
+                <div>
+                  <div style={{ fontSize: "1rem", fontWeight: 700 }}>
                     Mover {pendingBulkMove.count} envios selecionados?
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Você arrastou um card que faz parte da seleção. Todos os{" "}
-                    <strong>{pendingBulkMove.count}</strong> envios selecionados serão movidos
-                    de <span className="font-semibold text-slate-700">"{sourceLabel}"</span> para{" "}
-                    <span className="font-semibold text-emerald-700">"{targetLabel}"</span>.
-                  </p>
-                  <p className="mt-2 text-xs text-slate-500">
-                    Você poderá desfazer essa ação por 30 segundos depois de confirmar.
-                  </p>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center justify-end gap-2 bg-slate-50 px-5 py-3 border-t border-slate-100">
-                <button
-                  autoFocus
-                  onClick={cancel}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirm}
-                  className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-500/30 hover:bg-emerald-600"
-                >
-                  Mover {pendingBulkMove.count} envios
-                </button>
-              </div>
-            </div>
-          </div>
+            </DialogTitle>
+            <DialogContent dividers>
+              <DialogContentText>
+                Você arrastou um card que faz parte da seleção. Todos os{" "}
+                <strong>{pendingBulkMove.count}</strong> envios selecionados serão movidos
+                de <strong>"{sourceLabel}"</strong> para <strong>"{targetLabel}"</strong>.
+              </DialogContentText>
+              <DialogContentText style={{ fontSize: "0.75rem", marginBottom: 0 }}>
+                Você poderá desfazer essa ação por 30 segundos depois de confirmar.
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions className={headerClasses.dialogActions}>
+              <Button onClick={cancel} variant="outlined" className={headerClasses.dialogButton} autoFocus>
+                Cancelar
+              </Button>
+              <Button onClick={confirm} variant="contained" color="primary" className={headerClasses.dialogButton}>
+                Mover {pendingBulkMove.count} envios
+              </Button>
+            </DialogActions>
+          </Dialog>
         );
       })()}
 
@@ -2505,415 +2565,445 @@ const CampaignKanban = () => {
         </div>
       )}
 
-      {/* Modal de detalhes do envio */}
       {/* Modal de histórico de atualizações em massa */}
-      {historyOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
-          onClick={() => { setHistoryOpen(false); setHistoryDetail(null); }}
-        >
-          <div
-            className="w-full max-w-4xl max-h-[85vh] flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-6 py-4 bg-indigo-50 border-b border-indigo-100">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-700">
-                  <History size={18} />
-                </span>
-                <div>
-                  <h3 className="font-bold text-slate-800">Histórico de atualizações em massa</h3>
-                  <p className="text-[11px] text-slate-500">Quem atualizou, quando e quais envios foram afetados</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex rounded-xl border border-slate-200 bg-white p-0.5 text-[11px] font-semibold">
-                  <button
-                    onClick={() => { setHistoryScope("campaign"); fetchHistory("campaign"); setHistoryDetail(null); }}
-                    disabled={!campaignId}
-                    className={`px-3 py-1 rounded-lg ${historyScope === "campaign" ? "bg-indigo-500 text-white" : "text-slate-600 hover:bg-slate-100"} disabled:opacity-40`}
-                  >
-                    Esta campanha
-                  </button>
-                  <button
-                    onClick={() => { setHistoryScope("all"); fetchHistory("all"); setHistoryDetail(null); }}
-                    className={`px-3 py-1 rounded-lg ${historyScope === "all" ? "bg-indigo-500 text-white" : "text-slate-600 hover:bg-slate-100"}`}
-                  >
-                    Todas
-                  </button>
-                </div>
-                <button
-                  onClick={exportHistoryCSV}
-                  disabled={filteredHistoryRecords.length === 0}
-                  title="Exportar histórico como CSV"
-                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <FileSpreadsheet size={13} /> CSV
-                </button>
-                <button
-                  onClick={exportHistoryPDF}
-                  disabled={filteredHistoryRecords.length === 0}
-                  title="Exportar histórico como PDF"
-                  className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <FileText size={13} /> PDF
-                </button>
-                <button
-                  onClick={() => { setHistoryOpen(false); setHistoryDetail(null); }}
-                  className="rounded-lg p-2 text-slate-400 hover:bg-white hover:text-slate-700"
-                >
-                  <X size={16} />
-                </button>
+      <Dialog
+        open={historyOpen}
+        onClose={() => { setHistoryOpen(false); setHistoryDetail(null); }}
+        maxWidth="md"
+        fullWidth
+        classes={{ paper: headerClasses.dialogPaper }}
+      >
+        <DialogTitle disableTypography>
+          <div className={headerClasses.dialogHeader} style={{ padding: 0, borderBottom: "none", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <Avatar className={headerClasses.dialogHeaderAvatar} style={{ background: "#e0e7ff", color: "#4338ca" }}>
+                <HistoryIcon fontSize="small" />
+              </Avatar>
+              <div>
+                <div style={{ fontSize: "1rem", fontWeight: 700 }}>Histórico de atualizações em massa</div>
+                <div style={{ fontSize: "0.7rem", color: "#64748b" }}>Quem atualizou, quando e quais envios foram afetados</div>
               </div>
             </div>
-
-            {/* Busca */}
-            <div className="px-4 pt-3 pb-2 border-b border-slate-100 bg-white">
-              <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={historySearch}
-                  onChange={(e) => setHistorySearch(e.target.value)}
-                  placeholder="Buscar por usuário ou ID da atualização..."
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-9 py-2 text-xs text-slate-700 placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100"
-                />
-                {historySearch && (
-                  <button
-                    onClick={() => setHistorySearch("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                    title="Limpar busca"
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Button
+                size="small"
+                variant={historyScope === "campaign" ? "contained" : "outlined"}
+                color="primary"
+                disabled={!campaignId}
+                onClick={() => { setHistoryScope("campaign"); fetchHistory("campaign"); setHistoryDetail(null); }}
+                className={headerClasses.dialogButton}
+              >
+                Esta campanha
+              </Button>
+              <Button
+                size="small"
+                variant={historyScope === "all" ? "contained" : "outlined"}
+                color="primary"
+                onClick={() => { setHistoryScope("all"); fetchHistory("all"); setHistoryDetail(null); }}
+                className={headerClasses.dialogButton}
+              >
+                Todas
+              </Button>
+              <Tooltip title="Exportar histórico como CSV">
+                <span>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={exportHistoryCSV}
+                    disabled={filteredHistoryRecords.length === 0}
+                    startIcon={<TableChartIcon fontSize="small" />}
+                    className={headerClasses.dialogButton}
+                    style={{ color: "#047857", borderColor: "#a7f3d0" }}
                   >
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-              {historySearch && (
-                <p className="mt-1 text-[10px] text-slate-400">
-                  {filteredHistoryRecords.length} de {historyRecords.length} registro(s)
-                </p>
-              )}
-
-              {/* Filtro por Status destino */}
-              <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mr-1">
-                  Status destino:
+                    CSV
+                  </Button>
                 </span>
-                <button
-                  onClick={() => setHistoryStatusFilter("all")}
-                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border transition-colors ${
-                    historyStatusFilter === "all"
-                      ? "bg-indigo-500 text-white border-indigo-500"
-                      : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
-                  }`}
-                >
-                  Todos ({historyRecords.length})
-                </button>
-                {COLUMNS.map((col) => {
-                  const count = historyStatusCounts[col.id] || 0;
-                  const cc = colorMap[col.color || "amber"];
-                  const active = historyStatusFilter === col.id;
-                  return (
-                    <button
-                      key={col.id}
-                      onClick={() => setHistoryStatusFilter(col.id)}
-                      disabled={count === 0}
-                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                        active
-                          ? `${cc.chip} border-transparent ring-2 ring-offset-1 ring-indigo-300`
-                          : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
-                      }`}
-                    >
-                      {col.label} ({count})
-                    </button>
-                  );
-                })}
-              </div>
+              </Tooltip>
+              <Tooltip title="Exportar histórico como PDF">
+                <span>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={exportHistoryPDF}
+                    disabled={filteredHistoryRecords.length === 0}
+                    startIcon={<DescriptionIcon fontSize="small" />}
+                    className={headerClasses.dialogButton}
+                    style={{ color: "#be123c", borderColor: "#fecdd3" }}
+                  >
+                    PDF
+                  </Button>
+                </span>
+              </Tooltip>
+              <IconButton size="small" onClick={() => { setHistoryOpen(false); setHistoryDetail(null); }}>
+                <ClearIcon fontSize="small" />
+              </IconButton>
             </div>
+          </div>
+        </DialogTitle>
 
-            <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2">
-              {/* Lista */}
-              <div className="overflow-y-auto border-r border-slate-100">
-                {historyLoading ? (
-                  <div className="p-6 text-center text-sm text-slate-400">Carregando...</div>
-                ) : historyRecords.length === 0 ? (
-                  <div className="p-6 text-center text-sm text-slate-400">Nenhuma atualização em massa registrada.</div>
-                ) : filteredHistoryRecords.length === 0 ? (
-                  <div className="p-6 text-center text-sm text-slate-400">
-                    Nenhum registro corresponde aos filtros aplicados
-                    {historySearch && <> para "<span className="font-semibold text-slate-600">{historySearch}</span>"</>}.
-                  </div>
-                ) : (
-                  <ul className="divide-y divide-slate-100">
-                    {filteredHistoryRecords.map((r) => {
-                      const col = COLUMNS.find((c) => c.id === r.newStatus);
-                      const cc = colorMap[col?.color || "amber"];
-                      const total = (Array.isArray(r.shippingIds) ? r.shippingIds.length : 0) || (r.successCount + r.failedCount);
-                      const isActive = historyDetail?.log?.id === r.id;
-                      return (
-                        <li key={r.id}>
-                          <button
-                            onClick={() => openHistoryDetail(r.id)}
-                            className={`w-full text-left px-4 py-3 hover:bg-indigo-50/40 transition-colors ${isActive ? "bg-indigo-50" : ""}`}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                                  <UserIcon size={12} />
-                                </span>
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold text-slate-800 truncate">
-                                    {r.userName || "Usuário desconhecido"}
-                                  </p>
-                                  <p className="text-[10px] text-slate-400">
-                                    #{r.id} · {new Date(r.createdAt).toLocaleString("pt-BR")}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="shrink-0 flex items-center gap-1">
+        <DialogContent dividers style={{ padding: 0 }}>
+          {/* Busca + filtros */}
+          <div style={{ padding: 12, borderBottom: "1px solid #e2e8f0" }}>
+            <TextField
+              fullWidth
+              size="small"
+              variant="outlined"
+              value={historySearch}
+              onChange={(e) => setHistorySearch(e.target.value)}
+              placeholder="Buscar por usuário ou ID da atualização..."
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+                endAdornment: historySearch ? (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={() => setHistorySearch("")}>
+                      <ClearIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
+              }}
+            />
+            {historySearch && (
+              <div style={{ marginTop: 4, fontSize: "0.7rem", color: "#94a3b8" }}>
+                {filteredHistoryRecords.length} de {historyRecords.length} registro(s)
+              </div>
+            )}
+
+            <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase", color: "#94a3b8", marginRight: 4 }}>
+                Status destino:
+              </span>
+              <Chip
+                size="small"
+                label={`Todos (${historyRecords.length})`}
+                color={historyStatusFilter === "all" ? "primary" : "default"}
+                onClick={() => setHistoryStatusFilter("all")}
+                clickable
+              />
+              {COLUMNS.map((col) => {
+                const count = historyStatusCounts[col.id] || 0;
+                const tokens = columnColorTokens[col.color || "amber"];
+                const active = historyStatusFilter === col.id;
+                return (
+                  <Chip
+                    key={col.id}
+                    size="small"
+                    label={`${col.label} (${count})`}
+                    onClick={() => count > 0 && setHistoryStatusFilter(col.id)}
+                    disabled={count === 0}
+                    clickable={count > 0}
+                    style={{
+                      background: active ? tokens.chipBg : undefined,
+                      color: active ? tokens.chipText : undefined,
+                      fontWeight: active ? 700 : 500,
+                      border: active ? "1px solid #c7d2fe" : undefined,
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Lista + Detalhe */}
+          <div className={headerClasses.historySplit}>
+            <div className={headerClasses.historyListWrapper}>
+              {historyLoading ? (
+                <div className={headerClasses.historyEmpty}>
+                  <CircularProgress size={20} />
+                  <div style={{ marginTop: 8 }}>Carregando...</div>
+                </div>
+              ) : historyRecords.length === 0 ? (
+                <div className={headerClasses.historyEmpty}>Nenhuma atualização em massa registrada.</div>
+              ) : filteredHistoryRecords.length === 0 ? (
+                <div className={headerClasses.historyEmpty}>
+                  Nenhum registro corresponde aos filtros aplicados
+                  {historySearch && <> para "<strong>{historySearch}</strong>"</>}.
+                </div>
+              ) : (
+                <List dense disablePadding>
+                  {filteredHistoryRecords.map((r) => {
+                    const col = COLUMNS.find((c) => c.id === r.newStatus);
+                    const tokens = columnColorTokens[col?.color || "amber"];
+                    const total = (Array.isArray(r.shippingIds) ? r.shippingIds.length : 0) || (r.successCount + r.failedCount);
+                    const isActive = historyDetail?.log?.id === r.id;
+                    return (
+                      <ListItem
+                        key={r.id}
+                        button
+                        divider
+                        onClick={() => openHistoryDetail(r.id)}
+                        className={isActive ? headerClasses.historyItemActive : ""}
+                      >
+                        <ListItemAvatar>
+                          <Avatar style={{ width: 28, height: 28, background: "#f1f5f9", color: "#64748b" }}>
+                            <UserIcon size={12} />
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                              <span style={{ fontSize: "0.75rem", fontWeight: 700 }}>
+                                {r.userName || "Usuário desconhecido"}
+                              </span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                                 {r.undoneAt && (
-                                  <span
-                                    title={`Desfeito em ${new Date(r.undoneAt).toLocaleString("pt-BR")}`}
-                                    className="inline-flex items-center gap-0.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-500"
-                                  >
-                                    <Undo2 size={9} /> desfeito
-                                  </span>
+                                  <Tooltip title={`Desfeito em ${new Date(r.undoneAt).toLocaleString("pt-BR")}`}>
+                                    <Chip size="small" label="desfeito" style={{ height: 18, fontSize: "0.6rem" }} />
+                                  </Tooltip>
                                 )}
-                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${cc.chip}`}>
-                                  {col?.label || r.newStatus}
-                                </span>
+                                <Chip
+                                  size="small"
+                                  label={col?.label || r.newStatus}
+                                  style={{ height: 18, fontSize: "0.6rem", fontWeight: 700, background: tokens.chipBg, color: tokens.chipText }}
+                                />
                               </div>
                             </div>
-                            <div className="mt-2 flex items-center gap-3 text-[11px] text-slate-500">
-                              <span>📦 {total} envio(s)</span>
-                              <span className="text-emerald-600">✓ {r.successCount}</span>
-                              {r.failedCount > 0 && <span className="text-rose-600">✗ {r.failedCount}</span>}
-                              {r.campaign?.name && (
-                                <span className="ml-auto truncate text-slate-400">📣 {r.campaign.name}</span>
-                              )}
-                            </div>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
+                          }
+                          secondary={
+                            <>
+                              <div style={{ fontSize: "0.65rem", color: "#94a3b8" }}>
+                                #{r.id} · {new Date(r.createdAt).toLocaleString("pt-BR")}
+                              </div>
+                              <div style={{ marginTop: 4, fontSize: "0.7rem", color: "#64748b", display: "flex", gap: 12 }}>
+                                <span>📦 {total} envio(s)</span>
+                                <span style={{ color: "#059669" }}>✓ {r.successCount}</span>
+                                {r.failedCount > 0 && <span style={{ color: "#e11d48" }}>✗ {r.failedCount}</span>}
+                                {r.campaign?.name && (
+                                  <span style={{ marginLeft: "auto", color: "#94a3b8" }}>📣 {r.campaign.name}</span>
+                                )}
+                              </div>
+                            </>
+                          }
+                        />
+                      </ListItem>
+                    );
+                  })}
+                </List>
+              )}
+            </div>
 
-              {/* Detalhe */}
-              <div className="overflow-y-auto bg-slate-50">
-                {!historyDetail ? (
-                  <div className="p-6 text-center text-sm text-slate-400">
-                    Selecione um registro para ver os envios afetados.
-                  </div>
-                ) : historyDetailLoading ? (
-                  <div className="p-6 text-center text-sm text-slate-400">Carregando detalhes...</div>
-                ) : (
-                  <div className="p-4">
-                    <div className="mb-3 rounded-xl border border-slate-200 bg-white p-3 text-xs">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="font-bold text-slate-700">
-                            {historyDetail.log?.userName || "Usuário"} alterou {historyDetail.shippings?.length || 0} envio(s) para{" "}
-                            <span className="text-indigo-700">"{historyDetail.log?.newStatus}"</span>
-                          </p>
-                          <p className="mt-1 text-[11px] text-slate-500">
-                            {historyDetail.log && new Date(historyDetail.log.createdAt).toLocaleString("pt-BR")}
-                            {" · "}
-                            Origem: {historyDetail.log?.source || "—"}
-                          </p>
+            <div className={headerClasses.historyDetailWrapper}>
+              {!historyDetail ? (
+                <div className={headerClasses.historyEmpty}>
+                  Selecione um registro para ver os envios afetados.
+                </div>
+              ) : historyDetailLoading ? (
+                <div className={headerClasses.historyEmpty}>
+                  <CircularProgress size={20} />
+                  <div style={{ marginTop: 8 }}>Carregando detalhes...</div>
+                </div>
+              ) : (
+                <div>
+                  <Paper variant="outlined" style={{ padding: 12, marginBottom: 12, borderRadius: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: "0.8rem", fontWeight: 700 }}>
+                          {historyDetail.log?.userName || "Usuário"} alterou {historyDetail.shippings?.length || 0} envio(s) para{" "}
+                          <span style={{ color: "#4338ca" }}>"{historyDetail.log?.newStatus}"</span>
                         </div>
-                        {historyDetail.log?.undoneAt ? (
-                          <span
-                            className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600"
-                            title={`Desfeito por ${historyDetail.log.undoneByUserName || "—"} em ${new Date(historyDetail.log.undoneAt).toLocaleString("pt-BR")}`}
-                          >
-                            <Undo2 size={11} /> Desfeito
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => undoBulkUpdate(historyDetail.log.id)}
-                            disabled={undoing || !(historyDetail.log?.previousState?.length)}
-                            title={
-                              historyDetail.log?.previousState?.length
-                                ? "Reverter esta atualização"
-                                : "Snapshot anterior indisponível"
-                            }
-                            className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-slate-900 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            <Undo2 size={11} />
-                            {undoing ? "Desfazendo..." : "Desfazer"}
-                          </button>
-                        )}
+                        <div style={{ marginTop: 4, fontSize: "0.7rem", color: "#64748b" }}>
+                          {historyDetail.log && new Date(historyDetail.log.createdAt).toLocaleString("pt-BR")}
+                          {" · "}Origem: {historyDetail.log?.source || "—"}
+                        </div>
                       </div>
-                      {historyDetail.log?.undoneAt && (
-                        <p className="mt-2 text-[10px] text-slate-400">
-                          Desfeito por {historyDetail.log.undoneByUserName || "—"} em{" "}
-                          {new Date(historyDetail.log.undoneAt).toLocaleString("pt-BR")}
-                        </p>
+                      {historyDetail.log?.undoneAt ? (
+                        <Tooltip title={`Desfeito por ${historyDetail.log.undoneByUserName || "—"} em ${new Date(historyDetail.log.undoneAt).toLocaleString("pt-BR")}`}>
+                          <Chip size="small" icon={<Undo2 size={11} />} label="Desfeito" />
+                        </Tooltip>
+                      ) : (
+                        <Tooltip title={historyDetail.log?.previousState?.length ? "Reverter esta atualização" : "Snapshot anterior indisponível"}>
+                          <span>
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="default"
+                              onClick={() => undoBulkUpdate(historyDetail.log.id)}
+                              disabled={undoing || !(historyDetail.log?.previousState?.length)}
+                              startIcon={<Undo2 size={11} />}
+                              className={headerClasses.dialogButton}
+                              style={{ background: "#0f172a", color: "#fff" }}
+                            >
+                              {undoing ? "Desfazendo..." : "Desfazer"}
+                            </Button>
+                          </span>
+                        </Tooltip>
                       )}
                     </div>
-                    <ul className="space-y-1">
-                      {(historyDetail.shippings || []).map((s) => (
-                        <li key={s.id}>
-                          <button
-                            onClick={() => {
-                              setHistoryOpen(false);
-                              setHistoryDetail(null);
-                              openDetails(s);
-                            }}
-                            className="w-full flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors"
-                          >
-                            <div className="min-w-0 text-left">
-                              <p className="font-semibold text-slate-700 truncate">
-                                {s.contact?.name || s.number || `#${s.id}`}
-                              </p>
-                              <p className="text-[10px] text-slate-400 truncate">{s.number}</p>
-                            </div>
-                            <ExternalLink size={12} className="text-indigo-500 shrink-0" />
-                          </button>
-                        </li>
+                    {historyDetail.log?.undoneAt && (
+                      <div style={{ marginTop: 8, fontSize: "0.65rem", color: "#94a3b8" }}>
+                        Desfeito por {historyDetail.log.undoneByUserName || "—"} em{" "}
+                        {new Date(historyDetail.log.undoneAt).toLocaleString("pt-BR")}
+                      </div>
+                    )}
+                  </Paper>
+
+                  {(!historyDetail.shippings || historyDetail.shippings.length === 0) ? (
+                    <div className={headerClasses.historyEmpty}>
+                      Nenhum envio encontrado (podem ter sido removidos).
+                    </div>
+                  ) : (
+                    <List dense disablePadding>
+                      {historyDetail.shippings.map((s) => (
+                        <ListItem
+                          key={s.id}
+                          button
+                          divider
+                          onClick={() => {
+                            setHistoryOpen(false);
+                            setHistoryDetail(null);
+                            openDetails(s);
+                          }}
+                        >
+                          <ListItemText
+                            primary={<span style={{ fontSize: "0.8rem", fontWeight: 600 }}>{s.contact?.name || s.number || `#${s.id}`}</span>}
+                            secondary={<span style={{ fontSize: "0.65rem", color: "#94a3b8" }}>{s.number}</span>}
+                          />
+                          <ExternalLink size={12} style={{ color: "#6366f1" }} />
+                        </ListItem>
                       ))}
-                      {(!historyDetail.shippings || historyDetail.shippings.length === 0) && (
-                        <li className="text-center text-xs text-slate-400 py-4">
-                          Nenhum envio encontrado (podem ter sido removidos).
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                )}
-              </div>
+                    </List>
+                  )}
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
-      {selected && (() => {
-        const status = inferStatus(selected);
-        const col = COLUMNS.find((c) => c.id === status);
-        const c = colorMap[col?.color || "amber"];
-        const isFailed = status === "failed";
-        return (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
-            onClick={closeDetails}
-          >
-            <div
-              className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div className={`flex items-center justify-between px-6 py-4 ${c.bg} border-b ${col?.border || "border-slate-200"}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-sm font-bold text-slate-700`}>
-                    {(selected.contact?.name || selected.number || "?").slice(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-800">
-                      {selected.contact?.name || "Sem nome"}
-                    </h3>
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${c.chip}`}>
-                      {col?.label}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={closeDetails}
-                  className="rounded-lg p-2 text-slate-400 hover:bg-white hover:text-slate-700"
+      {/* Modal de detalhes do envio */}
+      <Dialog
+        open={!!selected}
+        onClose={closeDetails}
+        maxWidth="sm"
+        fullWidth
+        classes={{ paper: headerClasses.dialogPaper }}
+      >
+        {selected && (() => {
+          const status = inferStatus(selected);
+          const col = COLUMNS.find((c) => c.id === status);
+          const tokens = columnColorTokens[col?.color || "amber"];
+          const isFailed = status === "failed";
+          const messageError = isFailed && !editMessage.trim();
+          return (
+            <>
+              <DialogTitle disableTypography style={{ padding: 0 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "16px 24px",
+                    background: tokens.headerBg,
+                  }}
                 >
-                  <X size={16} />
-                </button>
-              </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <Avatar style={{ background: "#e2e8f0", color: "#334155", fontWeight: 700, fontSize: "0.85rem" }}>
+                      {(selected.contact?.name || selected.number || "?").slice(0, 2).toUpperCase()}
+                    </Avatar>
+                    <div>
+                      <div style={{ fontSize: "1rem", fontWeight: 700 }}>
+                        {selected.contact?.name || "Sem nome"}
+                      </div>
+                      <Chip
+                        size="small"
+                        label={col?.label}
+                        className={headerClasses.detailsHeaderChip}
+                        style={{ background: tokens.chipBg, color: tokens.chipText, marginTop: 4 }}
+                      />
+                    </div>
+                  </div>
+                  <IconButton size="small" onClick={closeDetails}>
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </div>
+              </DialogTitle>
 
-              {/* Detalhes */}
-              <div className="px-6 py-4 space-y-3 text-sm">
-                <div className="grid grid-cols-2 gap-3">
-                  <InfoRow icon={Phone} label="Número" value={selected.number} />
-                  <InfoRow icon={Hash} label="ID" value={selected.id} />
+              <DialogContent dividers>
+                <Grid container spacing={2}>
+                  <Grid item xs={6}><InfoRow icon={Phone} label="Número" value={selected.number} /></Grid>
+                  <Grid item xs={6}><InfoRow icon={Hash} label="ID" value={selected.id} /></Grid>
                   {selected.contact?.email && (
-                    <InfoRow icon={Mail} label="Email" value={selected.contact.email} />
+                    <Grid item xs={6}><InfoRow icon={Mail} label="Email" value={selected.contact.email} /></Grid>
                   )}
-                  <InfoRow
-                    icon={Calendar}
-                    label="Criado em"
-                    value={selected.createdAt ? new Date(selected.createdAt).toLocaleString("pt-BR") : "—"}
-                  />
-                  <InfoRow
-                    icon={CheckCircle2}
-                    label="Entregue em"
-                    value={selected.deliveredAt ? new Date(selected.deliveredAt).toLocaleString("pt-BR") : "—"}
-                  />
-                  <InfoRow
-                    icon={CheckCheck}
-                    label="Confirmado em"
-                    value={selected.confirmedAt ? new Date(selected.confirmedAt).toLocaleString("pt-BR") : "—"}
-                  />
-                </div>
+                  <Grid item xs={6}>
+                    <InfoRow
+                      icon={Calendar}
+                      label="Criado em"
+                      value={selected.createdAt ? new Date(selected.createdAt).toLocaleString("pt-BR") : "—"}
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <InfoRow
+                      icon={CheckCircle2}
+                      label="Entregue em"
+                      value={selected.deliveredAt ? new Date(selected.deliveredAt).toLocaleString("pt-BR") : "—"}
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <InfoRow
+                      icon={CheckCheck}
+                      label="Confirmado em"
+                      value={selected.confirmedAt ? new Date(selected.confirmedAt).toLocaleString("pt-BR") : "—"}
+                    />
+                  </Grid>
+                </Grid>
 
-                {/* Mensagem */}
-                <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    Mensagem
-                  </label>
-                  <textarea
-                    value={editMessage}
-                    onChange={(e) => setEditMessage(e.target.value)}
-                    disabled={!isFailed}
-                    rows={4}
-                    className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm focus:outline-none transition-colors
-                      ${isFailed
-                        ? "border-rose-200 bg-rose-50/40 focus:border-rose-400"
-                        : "border-slate-200 bg-slate-50 text-slate-500"}
-                    `}
-                  />
-                  {!isFailed && (
-                    <p className="mt-1 text-[10px] text-slate-400">
-                      Mensagem só pode ser editada quando o status é "Falhou".
-                    </p>
-                  )}
-                </div>
+                <TextField
+                  className={headerClasses.detailsField}
+                  label="Mensagem"
+                  variant="outlined"
+                  fullWidth
+                  multiline
+                  minRows={4}
+                  value={editMessage}
+                  onChange={(e) => setEditMessage(e.target.value)}
+                  disabled={!isFailed}
+                  error={messageError}
+                  helperText={
+                    messageError
+                      ? "A mensagem não pode ficar vazia."
+                      : !isFailed
+                        ? 'Mensagem só pode ser editada quando o status é "Falhou".'
+                        : " "
+                  }
+                />
 
-                {/* Observações */}
-                <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    Observações {isFailed && <span className="text-rose-500">(editável)</span>}
-                  </label>
-                  <textarea
-                    value={editNotes}
-                    onChange={(e) => setEditNotes(e.target.value)}
-                    disabled={!isFailed}
-                    rows={3}
-                    placeholder={isFailed ? "Ex.: número inválido, sem WhatsApp, bloqueado..." : "Sem observações"}
-                    className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm focus:outline-none transition-colors
-                      ${isFailed
-                        ? "border-amber-200 bg-amber-50/40 focus:border-amber-400"
-                        : "border-slate-200 bg-slate-50 text-slate-500"}
-                    `}
-                  />
-                </div>
-              </div>
+                <TextField
+                  className={headerClasses.detailsField}
+                  label={isFailed ? "Observações (editável)" : "Observações"}
+                  variant="outlined"
+                  fullWidth
+                  multiline
+                  minRows={3}
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  disabled={!isFailed}
+                  placeholder={isFailed ? "Ex.: número inválido, sem WhatsApp, bloqueado..." : "Sem observações"}
+                />
+              </DialogContent>
 
-              {/* Footer */}
-              <div className="flex items-center justify-end gap-2 border-t border-slate-100 bg-slate-50 px-6 py-3">
-                <button
-                  onClick={closeDetails}
-                  className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200"
-                >
+              <DialogActions className={headerClasses.dialogActions}>
+                <Button onClick={closeDetails} variant="outlined" className={headerClasses.dialogButton}>
                   Fechar
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={saveContent}
-                  disabled={!isFailed || saving}
-                  className="flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-500/30 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={!isFailed || saving || messageError}
+                  variant="contained"
+                  color="primary"
+                  startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon fontSize="small" />}
+                  className={headerClasses.dialogButton}
                 >
-                  <Save size={14} />
                   {saving ? "Salvando..." : "Salvar"}
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+                </Button>
+              </DialogActions>
+            </>
+          );
+        })()}
+      </Dialog>
       </div>
     </MainContainer>
   );
