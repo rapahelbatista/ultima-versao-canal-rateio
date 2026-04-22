@@ -875,6 +875,7 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
                   avatarUrl={profileUrl}
                   isPro={Boolean(user?.company?.plan?.name) || Boolean(user?.super)}
                   onProfile={() => setUserModalOpen(true)}
+                  onSubscription={() => history.push("/financeiro")}
                   onLogout={handleClickLogout}
                 />
 
