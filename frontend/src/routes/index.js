@@ -6,7 +6,9 @@ import moment from "moment";
 import { FEATURE_FLAGS } from "../config/featureFlags";
 
 import LoggedInLayout from "../layout";
+import CampaignLayout from "../layout/CampaignLayout";
 import Dashboard from "../pages/Dashboard/";
+import CampaignsHome from "../pages/CampaignsHome/";
 import TicketResponsiveContainer from "../pages/TicketResponsiveContainer";
 import Signup from "../pages/Signup";
 import Login from "../pages/Login/";
@@ -91,7 +93,10 @@ const RoutesContent = () => {
         <Route exact path="/login" component={Login} />
         <Route exact path="/signup" component={Signup} />
         <WhatsAppsProvider>
-          <LoggedInLayout hideMenu={isCompanyExpired()}>
+          {(() => {
+            const Layout = campaignOnly ? CampaignLayout : LoggedInLayout;
+            return (
+          <Layout hideMenu={isCompanyExpired()}>
                 <Route
                   exact
                   path="/financeiro"
@@ -118,7 +123,7 @@ const RoutesContent = () => {
                   component={BirthdaySettingsPage}
                   isPrivate
                 />
-                <Route exact path="/" component={campaignOnly ? Campaigns : Dashboard} isPrivate />
+                <Route exact path="/" component={campaignOnly ? CampaignsHome : Dashboard} isPrivate />
 
                 {!campaignOnly && (
                   <Route
@@ -293,7 +298,9 @@ const RoutesContent = () => {
                     />
                   </>
                 )}
-              </LoggedInLayout>
+              </Layout>
+            );
+          })()}
             </WhatsAppsProvider>
           </Switch>
           <ToastContainer position="top-center" autoClose={3000} />

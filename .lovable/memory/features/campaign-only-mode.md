@@ -40,6 +40,12 @@ Helpers:
 - Escopos: campaigns:read, campaigns:write, messages:send, contacts:write, webhooks:manage, *
 - Chave gerada: `ec_live_<48hex>`, retornada **uma única vez** na criação (apenas hash sha256 fica no banco)
 
+## Layout estilo whatsCRM (Fase 1.5)
+Quando `CAMPAIGN_ONLY_MODE=true`, `frontend/src/routes/index.js` troca `LoggedInLayout` por:
+- `frontend/src/layout/CampaignLayout.js` — sidebar branca, acentos verde-esmeralda, ícones lucide-react, agrupamento por seções (Campanhas / Anti-ban / APIs / Relatórios / Admin), topbar minimalista com avatar + tema toggle
+- `frontend/src/pages/CampaignsHome/index.js` — home com 4 stat cards (Campanhas Ativas, Mensagens Enviadas, Taxa de Entrega, Contatos), atalhos rápidos (Nova Campanha, Aquecer Chip, API Key, Webhook) e placeholder de atividade
+Marca exibida: "EquipeChat Campaigns".
+
 ## Próximas fases
 - **Fase 2**: implementar workers de warmup, integrar spintax/delay/multi-chip no `CampaignQueue` existente, tela de gerenciamento de API Keys e Webhooks no frontend, Kanban opcional de campanhas (toggle: respostas / status de envio)
 - **Fase 3**: apagar definitivamente código de tickets/flowbuilder/chat após validação em produção
