@@ -1839,6 +1839,34 @@ const CampaignKanban = () => {
               </div>
             </div>
 
+            {/* Busca */}
+            <div className="px-4 pt-3 pb-2 border-b border-slate-100 bg-white">
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  placeholder="Buscar por usuário ou ID da atualização..."
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-9 py-2 text-xs text-slate-700 placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                />
+                {historySearch && (
+                  <button
+                    onClick={() => setHistorySearch("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                    title="Limpar busca"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+              {historySearch && (
+                <p className="mt-1 text-[10px] text-slate-400">
+                  {filteredHistoryRecords.length} de {historyRecords.length} registro(s)
+                </p>
+              )}
+            </div>
+
             <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2">
               {/* Lista */}
               <div className="overflow-y-auto border-r border-slate-100">
