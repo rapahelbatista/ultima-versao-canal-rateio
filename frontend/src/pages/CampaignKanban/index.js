@@ -459,6 +459,101 @@ const parseMessage = (raw) => {
 
 // Sentinela para infinite scroll: dispara `onReach` quando o elemento entra
 // no viewport do container scrollável (rootMargin grande = pré-carrega antes do fim).
+// Card memoizado a nível de módulo: evita remount/rerender em listas grandes.
+// O comparador customizado só re-renderiza quando algo realmente visível mudou.
+const KanbanCard = React.memo(
+  function KanbanCard({ item, index, checked, classes, onOpen, onToggleSelect, selectedCount }) {
+    const draggableId = `ship-${item.id ?? `virtual-${item.number}`}`;
+    const isVirtual = !item.id;
+    const parsed = parseMessage(item.message);
+    const status = inferStatus(item);
+
+    const handleCardClick = (e) => {
+      if (e.ctrlKey || e.metaKey || e.shiftKey) {
+        e.preventDefault();
+        onToggleSelect(item.id);
+        return;
+      }
+      onOpen(item);
+    };
+
+    const cardClassName = [
+      classes.card,
+      checked ? classes.cardSelected : "",
+      isVirtual ? classes.cardVirtual : "",
+    ].filter(Boolean).join(" ");
+
+    return (
+      <Draggable draggableId={draggableId} index={index} isDragDisabled={isVirtual}>
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            onClick={(e) => !snapshot.isDragging && handleCardClick(e)}
+            className={`${cardClassName} ${snapshot.isDragging ? classes.cardDragging : ""}`}
+          >
+            {snapshot.isDragging && checked && selectedCount > 1 && (
+              <span className={classes.cardBadgeMulti}>+{selectedCount - 1}</span>
+            )}
+            <div className={classes.cardRow}>
+              {!isVirtual && (
+                <span
+                  onClick={(e) => { e.stopPropagation(); onToggleSelect(item.id); }}
+                  className={`${classes.cardCheck} ${checked ? classes.cardCheckActive : ""}`}
+                >
+                  {checked && <CheckCircle2 size={12} />}
+                </span>
+              )}
+              <span className={classes.cardAvatar}>
+                {(item.contact?.name || item.number || "?").slice(0, 2).toUpperCase()}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className={classes.cardName}>{item.contact?.name || "Sem nome"}</div>
+                <div className={classes.cardNumber}>{item.number}</div>
+              </div>
+              {status === "failed" && (
+                <AlertCircle size={14} style={{ color: "#f43f5e", flexShrink: 0 }} />
+              )}
+            </div>
+            {parsed.message && (
+              <div className={classes.cardMessage}>{parsed.message}</div>
+            )}
+            {parsed.notes && (
+              <div className={classes.cardNotes}>📝 {parsed.notes}</div>
+            )}
+            <div className={classes.cardFooter}>
+              <span>
+                {item.deliveredAt
+                  ? new Date(item.deliveredAt).toLocaleString("pt-BR")
+                  : item.createdAt
+                  ? new Date(item.createdAt).toLocaleString("pt-BR")
+                  : "Aguardando"}
+              </span>
+              {isVirtual && (
+                <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 4 }}>
+                  Virtual
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </Draggable>
+    );
+  },
+  (prev, next) => {
+    // Re-renderiza apenas quando muda algo visível para este card.
+    if (prev.item !== next.item) return false;
+    if (prev.index !== next.index) return false;
+    if (prev.checked !== next.checked) return false;
+    if (prev.classes !== next.classes) return false;
+    // selectedCount só importa enquanto o card está selecionado (badge no drag)
+    if (prev.checked && prev.selectedCount !== next.selectedCount) return false;
+    // onOpen / onToggleSelect são estáveis (useCallback no pai)
+    return true;
+  }
+);
+
 const InfiniteSentinel = ({ onReach, disabled, rootRef }) => {
   const ref = useRef(null);
   useEffect(() => {
@@ -831,21 +926,21 @@ const CampaignKanban = () => {
     }
   };
 
-  const isSelected = (id) => selectedIds.has(id);
+  const isSelected = useCallback((id) => selectedIds.has(id), [selectedIds]);
   const hasSelection = selectedIds.size > 0;
 
-  const toggleSelect = (id) => {
+  const toggleSelect = useCallback((id) => {
     if (!id) return;
     setSelectedIds((prev) => {
       const n = new Set(prev);
       n.has(id) ? n.delete(id) : n.add(id);
       return n;
     });
-  };
+  }, []);
 
-  const clearSelection = () => setSelectedIds(new Set());
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
-  const selectAllInColumn = (items) => {
+  const selectAllInColumn = useCallback((items) => {
     setSelectedIds((prev) => {
       const n = new Set(prev);
       const ids = items.map((i) => i.id).filter(Boolean);
@@ -854,7 +949,7 @@ const CampaignKanban = () => {
       else ids.forEach((id) => n.add(id));
       return n;
     });
-  };
+  }, []);
 
   const bulkUpdateStatus = async (newStatus) => {
     if (!hasSelection || !campaignId) return;
@@ -932,10 +1027,20 @@ const CampaignKanban = () => {
     }
   };
 
-  const openDetails = (item) => {
+  // Ref síncrona com selectedIds — permite handlers estáveis (sem deps).
+  const selectedIdsRef = useRef(selectedIds);
+  useEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
+
+  const openDetails = useCallback((item) => {
     // Em modo seleção, clique no card alterna seleção em vez de abrir modal
-    if (hasSelection) {
-      toggleSelect(item.id);
+    if (selectedIdsRef.current.size > 0) {
+      if (item.id) {
+        setSelectedIds((prev) => {
+          const n = new Set(prev);
+          n.has(item.id) ? n.delete(item.id) : n.add(item.id);
+          return n;
+        });
+      }
       return;
     }
     if (!item.id) {
@@ -946,7 +1051,8 @@ const CampaignKanban = () => {
     setSelected(item);
     setEditMessage(parsed.message);
     setEditNotes(parsed.notes);
-  };
+  }, []);
+
 
   const closeDetails = () => {
     setSelected(null);
@@ -1588,6 +1694,51 @@ const CampaignKanban = () => {
     failed: columnsState.failed.items,
   }), [columnsState]);
 
+  // Lista filtrada por coluna + flag allSelected, calculada uma única vez por
+  // mudança de columnsState/quickFilter/selectedIds. Evita .filter() em cada render
+  // para listas grandes (centenas/milhares de envios).
+  const quickFilterNorm = useMemo(
+    () => quickFilter.trim().toLowerCase(),
+    [quickFilter]
+  );
+  const columnViews = useMemo(() => {
+    const out = {};
+    for (const col of COLUMNS) {
+      const colState = columnsState[col.id] || { items: [], total: 0, hasMore: false, loading: false };
+      const allItems = colState.items;
+      let items = allItems;
+      if (quickFilterNorm) {
+        items = [];
+        for (let i = 0; i < allItems.length; i++) {
+          const it = allItems[i];
+          const name = (it.contact?.name || "").toLowerCase();
+          const number = (it.number || "").toLowerCase();
+          if (name.includes(quickFilterNorm) || number.includes(quickFilterNorm)) {
+            items.push(it);
+          }
+        }
+      }
+      // allSelected: todos os itens com id estão selecionados (e existe ao menos um)
+      let withId = 0;
+      let selectedWithId = 0;
+      for (let i = 0; i < items.length; i++) {
+        const id = items[i].id;
+        if (!id) continue;
+        withId++;
+        if (selectedIds.has(id)) selectedWithId++;
+      }
+      out[col.id] = {
+        colState,
+        allItems,
+        items,
+        allSelected: withId > 0 && withId === selectedWithId,
+        hasAnyId: withId > 0,
+      };
+    }
+    return out;
+  }, [columnsState, quickFilterNorm, selectedIds]);
+
+
   // ===== Exportação (CSV/PDF) dos envios filtrados/carregados =====
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
 
@@ -1602,8 +1753,7 @@ const CampaignKanban = () => {
     const rows = [];
     ["pending", "delivered", "confirmed", "failed"].forEach((st) => {
       if (!visibleStatuses.has(st)) return;
-      const all = columnsState[st]?.items || [];
-      const filtered = quickFilter ? all.filter(matchesQuickFilter) : all;
+      const filtered = columnViews[st]?.items || [];
       filtered.forEach((it) => {
         if (!it) return;
         const { message, notes } = parseMessage(it.message);
@@ -1621,7 +1771,8 @@ const CampaignKanban = () => {
       });
     });
     return rows;
-  }, [columnsState, visibleStatuses, quickFilter, matchesQuickFilter]);
+  }, [columnViews, visibleStatuses]);
+
 
   const formatDateBR = (v) => {
     if (!v) return "";
@@ -1861,86 +2012,8 @@ const CampaignKanban = () => {
     }
   };
 
-  const Card = ({ item, index, classes }) => {
-    const draggableId = `ship-${item.id ?? `virtual-${item.number}`}`;
-    const isVirtual = !item.id;
-    const parsed = parseMessage(item.message);
-    const status = inferStatus(item);
-    const checked = !isVirtual && isSelected(item.id);
-
-    const handleCardClick = (e) => {
-      if (e.ctrlKey || e.metaKey || e.shiftKey) {
-        e.preventDefault();
-        toggleSelect(item.id);
-        return;
-      }
-      openDetails(item);
-    };
-
-    const cardClassName = [
-      classes.card,
-      checked ? classes.cardSelected : "",
-      isVirtual ? classes.cardVirtual : "",
-    ].filter(Boolean).join(" ");
-
-    return (
-      <Draggable draggableId={draggableId} index={index} isDragDisabled={isVirtual}>
-        {(provided, snapshot) => (
-          <div
-            ref={provided.innerRef}
-            {...provided.draggableProps}
-            {...provided.dragHandleProps}
-            onClick={(e) => !snapshot.isDragging && handleCardClick(e)}
-            className={`${cardClassName} ${snapshot.isDragging ? classes.cardDragging : ""}`}
-          >
-            {snapshot.isDragging && checked && selectedIds.size > 1 && (
-              <span className={classes.cardBadgeMulti}>+{selectedIds.size - 1}</span>
-            )}
-            <div className={classes.cardRow}>
-              {!isVirtual && (
-                <span
-                  onClick={(e) => { e.stopPropagation(); toggleSelect(item.id); }}
-                  className={`${classes.cardCheck} ${checked ? classes.cardCheckActive : ""}`}
-                >
-                  {checked && <CheckCircle2 size={12} />}
-                </span>
-              )}
-              <span className={classes.cardAvatar}>
-                {(item.contact?.name || item.number || "?").slice(0, 2).toUpperCase()}
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className={classes.cardName}>{item.contact?.name || "Sem nome"}</div>
-                <div className={classes.cardNumber}>{item.number}</div>
-              </div>
-              {status === "failed" && (
-                <AlertCircle size={14} style={{ color: "#f43f5e", flexShrink: 0 }} />
-              )}
-            </div>
-            {parsed.message && (
-              <div className={classes.cardMessage}>{parsed.message}</div>
-            )}
-            {parsed.notes && (
-              <div className={classes.cardNotes}>📝 {parsed.notes}</div>
-            )}
-            <div className={classes.cardFooter}>
-              <span>
-                {item.deliveredAt
-                  ? new Date(item.deliveredAt).toLocaleString("pt-BR")
-                  : item.createdAt
-                  ? new Date(item.createdAt).toLocaleString("pt-BR")
-                  : "Aguardando"}
-              </span>
-              {isVirtual && (
-                <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 4 }}>
-                  Virtual
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </Draggable>
-    );
-  };
+  // (Card foi extraído para o componente memoizado `KanbanCard` no topo do módulo
+  // — evita rerenders em cascata em listas grandes.)
 
   const headerClasses = useKanbanHeaderStyles();
   const exportBtnRef = useRef(null);
@@ -2301,9 +2374,12 @@ const CampaignKanban = () => {
                 const ids = [];
                 COLUMNS.forEach((c) => {
                   if (!visibleStatuses.has(c.id)) return;
-                  (columnsState[c.id]?.items || []).forEach((it) => {
-                    if (it.id && matchesQuickFilter(it)) ids.push(it.id);
-                  });
+                  const view = columnViews[c.id];
+                  if (!view) return;
+                  for (let i = 0; i < view.items.length; i++) {
+                    const it = view.items[i];
+                    if (it.id) ids.push(it.id);
+                  }
                 });
                 if (ids.length === 0) {
                   toast.info("Nenhum envio corresponde ao filtro");
@@ -2339,10 +2415,8 @@ const CampaignKanban = () => {
           {COLUMNS.filter((col) => visibleStatuses.has(col.id)).map((col) => {
             const tokens = columnColorTokens[col.color] || columnColorTokens.amber;
             const Icon = col.icon;
-            const colState = columnsState[col.id] || { items: [], total: 0, hasMore: false, loading: false };
-            const allItems = colState.items;
-            const items = quickFilter ? allItems.filter(matchesQuickFilter) : allItems;
-            const allSelected = items.filter((i) => i.id).every((i) => isSelected(i.id));
+            const view = columnViews[col.id] || { colState: { items: [], total: 0, hasMore: false, loading: false }, allItems: [], items: [], allSelected: false, hasAnyId: false };
+            const { colState, allItems, items, allSelected, hasAnyId } = view;
             return (
               <div key={col.id} className={headerClasses.column}>
                 <div
@@ -2361,7 +2435,7 @@ const CampaignKanban = () => {
                     </span>
                   </div>
                   <div className={headerClasses.columnHeaderLeft}>
-                    {items.some((i) => i.id) && (
+                    {hasAnyId && (
                       <Button
                         size="small"
                         onClick={() => selectAllInColumn(items)}
@@ -2377,8 +2451,8 @@ const CampaignKanban = () => {
                       style={{ background: tokens.chipBg, color: tokens.chipText }}
                     >
                       {items.length}
-                      {(quickFilter ? allItems.length : colState.total) > items.length
-                        ? `/${quickFilter ? allItems.length : colState.total}`
+                      {(quickFilterNorm ? allItems.length : colState.total) > items.length
+                        ? `/${quickFilterNorm ? allItems.length : colState.total}`
                         : ""}
                     </span>
                   </div>
@@ -2394,21 +2468,26 @@ const CampaignKanban = () => {
                         <div className={headerClasses.emptyState}>Sem envios</div>
                       )}
                       {items.map((item, idx) => (
-                        <Card
+                        <KanbanCard
                           key={item.id ?? `virtual-${item.number}-${idx}`}
                           item={item}
                           index={idx}
+                          checked={!!item.id && selectedIds.has(item.id)}
                           classes={headerClasses}
+                          onOpen={openDetails}
+                          onToggleSelect={toggleSelect}
+                          selectedCount={selectedIds.size}
                         />
                       ))}
                       {provided.placeholder}
-                      {colState.hasMore && !quickFilter && (
+                      {colState.hasMore && !quickFilterNorm && (
                         <InfiniteSentinel
                           rootRef={getColumnScrollRef(col.id)}
                           disabled={colState.loading}
                           onReach={() => loadColumn(col.id)}
                         />
                       )}
+
                       {colState.hasMore && (
                         <Button
                           variant="outlined"
