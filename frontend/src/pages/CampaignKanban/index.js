@@ -706,6 +706,50 @@ const CampaignKanban = () => {
             Mostrar todos
           </button>
         )}
+
+        {/* Busca rápida por contato (filtra cards já carregados) */}
+        <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs">
+            <Search size={12} className="text-slate-400" />
+            <input
+              value={quickFilter}
+              onChange={(e) => setQuickFilter(e.target.value)}
+              placeholder="Filtrar por nome ou número..."
+              className="w-44 bg-transparent outline-none text-slate-700 placeholder:text-slate-400"
+            />
+            {quickFilter && (
+              <button
+                onClick={() => setQuickFilter("")}
+                title="Limpar filtro"
+                className="text-slate-400 hover:text-slate-700"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+          {quickFilter && (
+            <button
+              onClick={() => {
+                const ids = [];
+                COLUMNS.forEach((c) => {
+                  if (!visibleStatuses.has(c.id)) return;
+                  (columnsState[c.id]?.items || []).forEach((it) => {
+                    if (it.id && matchesQuickFilter(it)) ids.push(it.id);
+                  });
+                });
+                if (ids.length === 0) {
+                  toast.info("Nenhum envio corresponde ao filtro");
+                  return;
+                }
+                setSelectedIds(new Set(ids));
+                toast.success(`${ids.length} envio(s) selecionado(s)`);
+              }}
+              className="rounded-xl bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-600 shadow-sm shadow-emerald-500/30"
+            >
+              Selecionar filtrados
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Board */}
