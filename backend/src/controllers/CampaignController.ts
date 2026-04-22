@@ -900,9 +900,18 @@ export const bulkUpdateShippingStatus = async (
   let successCount = 0;
   let failedCount = 0;
   const now = new Date();
+  const previousState: Array<any> = [];
 
   for (const shipping of shippings) {
     try {
+      // Snapshot do estado atual ANTES da alteração
+      previousState.push({
+        id: shipping.id,
+        deliveredAt: shipping.deliveredAt ? new Date(shipping.deliveredAt).toISOString() : null,
+        confirmedAt: shipping.confirmedAt ? new Date(shipping.confirmedAt).toISOString() : null,
+        message: shipping.message ?? null
+      });
+
       const patch: any = {};
       switch (status) {
         case "pending":
@@ -948,7 +957,8 @@ export const bulkUpdateShippingStatus = async (
     shippingIds,
     successCount,
     failedCount,
-    source: source || "kanban"
+    source: source || "kanban",
+    previousState
   } as any);
 
   const io = getIO();
