@@ -415,7 +415,7 @@ const CampaignKanban = () => {
       setBulkUpdating(false);
       setShipping(prevShipping);
       fetchShipping();
-      toast.error("Falha ao atualizar envios");
+      toast.error(`❌ Erro de rede: 0/${total} movidos, ${total} falharam`, { autoClose: 6000 });
     }
   };
 
