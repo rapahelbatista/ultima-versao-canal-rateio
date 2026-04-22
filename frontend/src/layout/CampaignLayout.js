@@ -344,20 +344,38 @@ const CampaignLayout = ({ children }) => {
   const renderItem = (item) => {
     const Icon = item.icon;
     const active = isActive(item);
+    const locked = item.restricted && !canManageMeta;
     const node = (
       <Link
         to={item.to}
         className={`${classes.navItem} ${active ? classes.navItemActive : ""}`}
-        style={collapsed ? { justifyContent: "center" } : undefined}
+        style={{
+          ...(collapsed ? { justifyContent: "center" } : {}),
+          ...(locked ? { opacity: 0.65 } : {}),
+        }}
       >
         <span className={`${classes.navIcon} ${active ? classes.navIconActive : ""}`}>
           <Icon size={16} />
         </span>
-        {!collapsed && <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{item.label}</span>}
+        {!collapsed && (
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>
+            {item.label}
+          </span>
+        )}
+        {!collapsed && locked && (
+          <Lock size={12} style={{ color: "#94a3b8", marginLeft: "auto" }} />
+        )}
       </Link>
     );
+    const tooltipLabel = locked
+      ? `${item.label} — acesso restrito`
+      : item.label;
     return collapsed ? (
-      <Tooltip title={item.label} placement="right" key={item.to}>
+      <Tooltip title={tooltipLabel} placement="right" key={item.to}>
+        <div>{node}</div>
+      </Tooltip>
+    ) : locked ? (
+      <Tooltip title="Apenas super usuários ou administradores" placement="right" key={item.to}>
         <div>{node}</div>
       </Tooltip>
     ) : (
