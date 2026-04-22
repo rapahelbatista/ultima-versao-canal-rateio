@@ -105,6 +105,124 @@ const useStyles = makeStyles((theme) => ({
   buttonProgress: {
     color: "#25d366",
   },
+  newInstanceCard: {
+    background: theme.palette.type === "dark"
+      ? "linear-gradient(145deg, rgba(16,185,129,0.06), rgba(16,185,129,0.02))"
+      : "#f0fdf4",
+    border: `1px dashed ${theme.palette.type === "dark" ? "rgba(16,185,129,0.35)" : "#a7f3d0"}`,
+    borderRadius: 14,
+    padding: "14px 18px",
+    marginBottom: 16,
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+  },
+  newInstanceHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+  },
+  newInstanceIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: theme.palette.type === "dark" ? "rgba(16,185,129,0.15)" : "#d1fae5",
+    flexShrink: 0,
+  },
+  newInstanceTitle: {
+    fontWeight: 700,
+    fontSize: 14,
+    color: theme.palette.type === "dark" ? "#ecfdf5" : "#065f46",
+    letterSpacing: "-0.01em",
+  },
+  newInstanceSubtitle: {
+    fontSize: 12,
+    color: theme.palette.type === "dark" ? "rgba(167,243,208,0.7)" : "#10b981",
+  },
+  newInstanceForm: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  newInstanceInputWrap: {
+    flex: 1,
+    minWidth: 220,
+    display: "flex",
+    alignItems: "center",
+    background: theme.palette.type === "dark" ? "rgba(255,255,255,0.04)" : "#ffffff",
+    border: `1px solid ${theme.palette.type === "dark" ? "rgba(255,255,255,0.08)" : "#e2e8f0"}`,
+    borderRadius: 10,
+    padding: "8px 12px",
+    transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+    "&:focus-within": {
+      borderColor: "#10b981",
+      boxShadow: "0 0 0 3px rgba(16,185,129,0.15)",
+    },
+  },
+  newInstanceInput: {
+    flex: 1,
+    border: "none",
+    outline: "none",
+    background: "transparent",
+    fontSize: 14,
+    color: theme.palette.text.primary,
+    fontFamily: "inherit",
+    "&::placeholder": {
+      color: theme.palette.type === "dark" ? "rgba(255,255,255,0.35)" : "#94a3b8",
+    },
+  },
+  newInstanceButton: {
+    background: "#ffffff",
+    border: "1px solid #e2e8f0",
+    color: "#475569",
+    borderRadius: 10,
+    padding: "8px 18px",
+    textTransform: "none",
+    fontWeight: 600,
+    fontSize: 13,
+    "&:hover": {
+      background: "#f0fdf4",
+      borderColor: "#10b981",
+      color: "#065f46",
+    },
+    "&.Mui-disabled": {
+      background: theme.palette.type === "dark" ? "rgba(255,255,255,0.04)" : "#f1f5f9",
+      color: "#cbd5e1",
+      borderColor: "transparent",
+    },
+  },
+  emptyState: {
+    border: `2px dashed ${theme.palette.type === "dark" ? "rgba(16,185,129,0.3)" : "#a7f3d0"}`,
+    borderRadius: 14,
+    background: theme.palette.type === "dark" ? "rgba(16,185,129,0.03)" : "#f0fdf4",
+    padding: "48px 24px",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  emptyStateIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    background: theme.palette.type === "dark" ? "rgba(16,185,129,0.15)" : "#d1fae5",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "0 auto 16px",
+  },
+  emptyStateTitle: {
+    fontWeight: 700,
+    fontSize: 16,
+    color: theme.palette.type === "dark" ? "#ecfdf5" : "#065f46",
+    marginBottom: 4,
+  },
+  emptyStateText: {
+    fontSize: 13,
+    color: theme.palette.type === "dark" ? "rgba(167,243,208,0.7)" : "#10b981",
+  },
   connectionCard: {
     borderRadius: 16,
     border: `1px solid ${theme.palette.type === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}`,
@@ -455,6 +573,7 @@ const Connections = () => {
   const [whatsAppToDelete, setWhatsAppToDelete] = useState(null);
   const [transferProgressModalOpen, setTransferProgressModalOpen] = useState(false);
   const [transferProgress, setTransferProgress] = useState({ current: 0, total: 0, percentage: 0 });
+  const [newInstanceName, setNewInstanceName] = useState("");
 
   //   const socketManager = useContext(SocketContext);
   const { user, socket } = useContext(AuthContext);
@@ -867,6 +986,66 @@ const Connections = () => {
         subtitle="Gerencie suas instâncias conectadas"
       />
       <div style={{ height: 16 }} />
+
+      {/* New Instance card (visual style from design reference) */}
+      <Can
+        role={user.profile}
+        perform="connections-page:addConnection"
+        yes={() => (
+          <Box className={classes.newInstanceCard}>
+            <Box className={classes.newInstanceHeader}>
+              <Box className={classes.newInstanceIcon}>
+                <CropFree style={{ fontSize: 20, color: "#10b981" }} />
+              </Box>
+              <Box>
+                <Typography className={classes.newInstanceTitle}>New Instance</Typography>
+                <Typography className={classes.newInstanceSubtitle}>
+                  Generate a QR code to link your WhatsApp
+                </Typography>
+              </Box>
+            </Box>
+            <Box className={classes.newInstanceForm}>
+              <Box className={classes.newInstanceInputWrap}>
+                <CropFree style={{ fontSize: 18, color: "#94a3b8", marginRight: 8 }} />
+                <input
+                  type="text"
+                  className={classes.newInstanceInput}
+                  placeholder="Nome da instância"
+                  value={newInstanceName}
+                  onChange={(e) => setNewInstanceName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newInstanceName.trim()) {
+                      handleOpenWhatsAppModal();
+                    }
+                  }}
+                />
+              </Box>
+              <Button
+                disabled={!newInstanceName.trim() || (planConfig?.plan?.useWhatsapp === false)}
+                onClick={() => handleOpenWhatsAppModal()}
+                className={classes.newInstanceButton}
+                startIcon={<CropFree style={{ fontSize: 16 }} />}
+              >
+                Gerar QR
+              </Button>
+            </Box>
+          </Box>
+        )}
+      />
+
+      {/* Empty state when no devices yet */}
+      {!loading && whatsApps?.length === 0 && (
+        <Box className={classes.emptyState}>
+          <Box className={classes.emptyStateIcon}>
+            <Smartphone size={28} color="#10b981" />
+          </Box>
+          <Typography className={classes.emptyStateTitle}>Nenhum dispositivo ainda</Typography>
+          <Typography className={classes.emptyStateText}>
+            Adicione sua primeira instância de WhatsApp para começar
+          </Typography>
+        </Box>
+      )}
+
       <ConfirmationModal
         title={confirmModalInfo.title}
         open={confirmModalOpen}
@@ -891,9 +1070,10 @@ const Connections = () => {
       )}
       <WhatsAppModal
         open={whatsAppModalOpen}
-        onClose={handleCloseWhatsAppModal}
+        onClose={() => { handleCloseWhatsAppModal(); setNewInstanceName(""); }}
         whatsAppId={!qrModalOpen && selectedWhatsApp?.id}
         channel={channel}
+        initialName={newInstanceName}
       />
       <Dialog
         open={transferModalOpen}
