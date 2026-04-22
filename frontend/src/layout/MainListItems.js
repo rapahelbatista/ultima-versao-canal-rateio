@@ -579,7 +579,7 @@ const MainListItems = ({ collapsed, drawerClose }) => {
         <ListSubheader inset>Campanhas</ListSubheader>
       )}
 
-      {(user.showDashboard === "enabled" || user.allowRealTime === "enabled") && (
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && (user.showDashboard === "enabled" || user.allowRealTime === "enabled") && (
           <>
             <Tooltip
               title={collapsed ? i18n.t("mainDrawer.listItems.management") : ""}
@@ -669,12 +669,14 @@ const MainListItems = ({ collapsed, drawerClose }) => {
             </Collapse>
           </>
       )}
+      {!FEATURE_FLAGS.CAMPAIGN_ONLY_MODE && (
       <ListItemLink
         to="/tickets"
         primary={i18n.t("mainDrawer.listItems.tickets")}
         icon={<WhatsAppIcon />}
         tooltip={collapsed}
       />
+      )}
 
       <ListItemLink
         to="/quick-messages"
