@@ -48,6 +48,8 @@ import {
   WhatsApp,
   Sync,
 } from "@material-ui/icons";
+import { Smartphone } from "lucide-react";
+import PageHeader from "../../components/PageHeader";
 import WebhookIcon from '@mui/icons-material/Webhook';
 import FacebookLogin from "react-facebook-login/dist/facebook-login-render-props";
 
