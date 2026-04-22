@@ -370,6 +370,8 @@ const CampaignKanban = () => {
     // Optimistic local: aplica imediatamente em columnsState (movendo os cards) e em shipping
     const prevShipping = shipping;
     applyStatusLocally(ids, newStatus);
+    // Destaca + rola até os movidos
+    markRecentlyMoved(ids, newStatus);
 
     try {
       const { data } = await api.post(
