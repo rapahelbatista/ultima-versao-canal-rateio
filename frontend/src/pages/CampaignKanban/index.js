@@ -104,6 +104,61 @@ const CampaignKanban = () => {
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
   const [pageSize, setPageSize] = useState(50);
+  // Presets de filtros avançados (persistidos por usuário em localStorage)
+  const presetsStorageKey = useMemo(
+    () => `campaignKanban:filterPresets:${user?.id || "anon"}`,
+    [user?.id]
+  );
+  const [filterPresets, setFilterPresets] = useState([]);
+  const [presetName, setPresetName] = useState("");
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(presetsStorageKey);
+      setFilterPresets(raw ? JSON.parse(raw) : []);
+    } catch { setFilterPresets([]); }
+  }, [presetsStorageKey]);
+  const persistPresets = useCallback((next) => {
+    setFilterPresets(next);
+    try { localStorage.setItem(presetsStorageKey, JSON.stringify(next)); } catch {}
+  }, [presetsStorageKey]);
+  const saveCurrentAsPreset = useCallback(() => {
+    const name = presetName.trim();
+    if (!name) { toast.warn("Dê um nome ao preset"); return; }
+    const preset = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name,
+      filters: {
+        search,
+        filterPhone,
+        filterStartDate,
+        filterEndDate,
+        pageSize,
+        visibleStatuses: Array.from(visibleStatuses),
+      },
+    };
+    // Substitui se já existir um com mesmo nome (case-insensitive)
+    const without = filterPresets.filter(
+      (p) => p.name.toLowerCase() !== name.toLowerCase()
+    );
+    persistPresets([preset, ...without].slice(0, 20));
+    setPresetName("");
+    toast.success(`Preset "${name}" salvo`);
+  }, [presetName, search, filterPhone, filterStartDate, filterEndDate, pageSize, visibleStatuses, filterPresets, persistPresets]);
+  const applyPreset = useCallback((p) => {
+    if (!p?.filters) return;
+    setSearch(p.filters.search || "");
+    setFilterPhone(p.filters.filterPhone || "");
+    setFilterStartDate(p.filters.filterStartDate || "");
+    setFilterEndDate(p.filters.filterEndDate || "");
+    setPageSize(p.filters.pageSize || 50);
+    if (Array.isArray(p.filters.visibleStatuses) && p.filters.visibleStatuses.length) {
+      setVisibleStatuses(new Set(p.filters.visibleStatuses));
+    }
+    toast.success(`Preset "${p.name}" aplicado`);
+  }, []);
+  const deletePreset = useCallback((id) => {
+    persistPresets(filterPresets.filter((p) => p.id !== id));
+  }, [filterPresets, persistPresets]);
   // Visibilidade por status (todos visíveis por padrão)
   const [visibleStatuses, setVisibleStatuses] = useState(() => new Set(["pending", "delivered", "confirmed", "failed"]));
   const toggleStatusVisible = (id) =>
