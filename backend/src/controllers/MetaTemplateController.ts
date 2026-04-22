@@ -25,7 +25,7 @@ export const show = async (req: Request, res: Response): Promise<Response> => {
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const { companyId, id: userId } = req.user;
   const {
-    name = "Novo modelo",
+    name = "novo_modelo",
     templateType = "standard",
     language = "pt_BR",
     category = "Utility",
@@ -33,19 +33,26 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     currentStep = 0
   } = req.body || {};
 
-  const template = await MetaTemplate.create({
-    name,
-    templateType,
-    language,
-    category,
-    payload,
-    currentStep,
-    status: "draft",
-    companyId,
-    userId
-  } as any);
+  try {
+    const template = await MetaTemplate.create({
+      name,
+      templateType,
+      language,
+      category,
+      payload,
+      currentStep,
+      status: "draft",
+      companyId,
+      userId
+    } as any);
 
-  return res.status(201).json(template);
+    return res.status(201).json(template);
+  } catch (err: any) {
+    if (err?.name === "SequelizeUniqueConstraintError") {
+      throw new AppError("Já existe um modelo com esse nome nesta empresa.", 409);
+    }
+    throw err;
+  }
 };
 
 export const update = async (req: Request, res: Response): Promise<Response> => {
@@ -65,21 +72,28 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
     statusReason
   } = req.body || {};
 
-  await template.update({
-    name: name ?? template.name,
-    templateType: templateType ?? template.templateType,
-    language: language ?? template.language,
-    category: category ?? template.category,
-    payload:
-      payload && typeof payload === "object"
-        ? { ...template.payload, ...payload }
-        : template.payload,
-    currentStep:
-      typeof currentStep === "number" ? currentStep : template.currentStep,
-    status:
-      status && ALLOWED_STATUS.includes(status) ? status : template.status,
-    statusReason: statusReason ?? template.statusReason
-  });
+  try {
+    await template.update({
+      name: name ?? template.name,
+      templateType: templateType ?? template.templateType,
+      language: language ?? template.language,
+      category: category ?? template.category,
+      payload:
+        payload && typeof payload === "object"
+          ? { ...template.payload, ...payload }
+          : template.payload,
+      currentStep:
+        typeof currentStep === "number" ? currentStep : template.currentStep,
+      status:
+        status && ALLOWED_STATUS.includes(status) ? status : template.status,
+      statusReason: statusReason ?? template.statusReason
+    });
+  } catch (err: any) {
+    if (err?.name === "SequelizeUniqueConstraintError") {
+      throw new AppError("Já existe um modelo com esse nome nesta empresa.", 409);
+    }
+    throw err;
+  }
 
   // Snapshot automático (1/60s por template, mantém últimas 50)
   try {

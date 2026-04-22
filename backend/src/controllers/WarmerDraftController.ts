@@ -15,10 +15,17 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const { companyId, id: userId } = req.user;
   const { name = "Rascunho sem nome", messages = [], config = {} } = req.body || {};
-  const draft = await WarmerDraft.create({
-    name, messages, config, companyId, userId
-  } as any);
-  return res.status(201).json(draft);
+  try {
+    const draft = await WarmerDraft.create({
+      name, messages, config, companyId, userId
+    } as any);
+    return res.status(201).json(draft);
+  } catch (err: any) {
+    if (err?.name === "SequelizeUniqueConstraintError") {
+      throw new AppError("Já existe um rascunho com esse nome nesta empresa.", 409);
+    }
+    throw err;
+  }
 };
 
 export const update = async (req: Request, res: Response): Promise<Response> => {
@@ -27,12 +34,19 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
   const draft = await WarmerDraft.findOne({ where: { id, companyId } });
   if (!draft) throw new AppError("Rascunho não encontrado", 404);
   const { name, messages, config } = req.body || {};
-  await draft.update({
-    name: name ?? draft.name,
-    messages: Array.isArray(messages) ? messages : draft.messages,
-    config: config && typeof config === "object" ? { ...draft.config, ...config } : draft.config
-  });
-  return res.json(draft);
+  try {
+    await draft.update({
+      name: name ?? draft.name,
+      messages: Array.isArray(messages) ? messages : draft.messages,
+      config: config && typeof config === "object" ? { ...draft.config, ...config } : draft.config
+    });
+    return res.json(draft);
+  } catch (err: any) {
+    if (err?.name === "SequelizeUniqueConstraintError") {
+      throw new AppError("Já existe um rascunho com esse nome nesta empresa.", 409);
+    }
+    throw err;
+  }
 };
 
 export const remove = async (req: Request, res: Response): Promise<Response> => {
