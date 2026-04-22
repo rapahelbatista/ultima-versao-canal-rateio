@@ -204,6 +204,8 @@ const CampaignKanban = () => {
   const Card = ({ item, index }) => {
     const draggableId = `ship-${item.id ?? `virtual-${item.number}`}`;
     const isVirtual = !item.id;
+    const parsed = parseMessage(item.message);
+    const status = inferStatus(item);
     return (
       <Draggable draggableId={draggableId} index={index} isDragDisabled={isVirtual}>
         {(provided, snapshot) => (
@@ -211,9 +213,10 @@ const CampaignKanban = () => {
             ref={provided.innerRef}
             {...provided.draggableProps}
             {...provided.dragHandleProps}
-            className={`mb-2 rounded-xl border bg-white p-3 shadow-sm transition-all
-              ${snapshot.isDragging ? "shadow-lg ring-2 ring-emerald-300" : "hover:shadow-md"}
-              ${isVirtual ? "opacity-60" : ""}
+            onClick={() => !snapshot.isDragging && openDetails(item)}
+            className={`mb-2 rounded-xl border bg-white p-3 shadow-sm transition-all cursor-pointer
+              ${snapshot.isDragging ? "shadow-lg ring-2 ring-emerald-300" : "hover:shadow-md hover:border-emerald-300"}
+              ${isVirtual ? "opacity-60 cursor-not-allowed" : ""}
             `}
           >
             <div className="flex items-center gap-2">
@@ -226,10 +229,16 @@ const CampaignKanban = () => {
                 </p>
                 <p className="text-[11px] text-slate-500 truncate">{item.number}</p>
               </div>
+              {status === "failed" && (
+                <AlertCircle size={14} className="text-rose-500 shrink-0" />
+              )}
             </div>
-            {item.message && (
-              <p className="mt-2 text-xs text-slate-600 line-clamp-2">
-                {item.message.replace(/^\[FAILED\]\s*/, "")}
+            {parsed.message && (
+              <p className="mt-2 text-xs text-slate-600 line-clamp-2">{parsed.message}</p>
+            )}
+            {parsed.notes && (
+              <p className="mt-1 text-[10px] text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 line-clamp-1">
+                📝 {parsed.notes}
               </p>
             )}
             <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
