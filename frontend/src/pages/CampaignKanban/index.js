@@ -62,10 +62,37 @@ const parseMessage = (raw) => {
   return { message: m.slice(0, idx), notes: m.slice(idx + "\n[NOTE]".length) };
 };
 
+// Sentinela para infinite scroll: dispara `onReach` quando o elemento entra
+// no viewport do container scrollável (rootMargin grande = pré-carrega antes do fim).
+const InfiniteSentinel = ({ onReach, disabled, rootRef }) => {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (disabled) return;
+    const node = ref.current;
+    if (!node) return;
+    const root = rootRef?.current || null;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) { onReach(); break; }
+        }
+      },
+      { root, rootMargin: "400px 0px", threshold: 0 }
+    );
+    io.observe(node);
+    return () => io.disconnect();
+  }, [onReach, disabled, rootRef]);
+  return <div ref={ref} aria-hidden className="h-1 w-full" />;
+};
+
 const CampaignKanban = () => {
   const { user, socket } = useContext(AuthContext);
   const [liveTick, setLiveTick] = useState(0); // pulso visual ao receber evento
   const refetchTimer = useRef(null);
+  // Refs por coluna p/ infinite scroll (usadas como root do IntersectionObserver)
+  const columnScrollRefs = useRef({ pending: null, delivered: null, confirmed: null, failed: null });
+  const setColumnScrollRef = (status) => (node) => { columnScrollRefs.current[status] = node; };
+  const getColumnScrollRef = (status) => ({ current: columnScrollRefs.current[status] });
   const [campaigns, setCampaigns] = useState([]);
   const [campaignId, setCampaignId] = useState("");
   const [shipping, setShipping] = useState([]); // mantido p/ compatibilidade c/ bulk/optimistic
@@ -1182,7 +1209,7 @@ const CampaignKanban = () => {
                 <Droppable droppableId={col.id}>
                   {(provided, snapshot) => (
                     <div
-                      ref={provided.innerRef}
+                      ref={(node) => { provided.innerRef(node); setColumnScrollRef(col.id)(node); }}
                       {...provided.droppableProps}
                       className={`flex-1 min-h-[300px] max-h-[70vh] overflow-y-auto p-3 transition-colors
                         ${snapshot.isDraggingOver ? `${c.bg}` : ""}`}
@@ -1200,6 +1227,14 @@ const CampaignKanban = () => {
                         />
                       ))}
                       {provided.placeholder}
+                      {/* Sentinela: dispara loadColumn ~400px antes do fim p/ pré-carregar */}
+                      {colState.hasMore && !quickFilter && (
+                        <InfiniteSentinel
+                          rootRef={getColumnScrollRef(col.id)}
+                          disabled={colState.loading}
+                          onReach={() => loadColumn(col.id)}
+                        />
+                      )}
                       {colState.hasMore && (
                         <button
                           onClick={() => loadColumn(col.id)}
