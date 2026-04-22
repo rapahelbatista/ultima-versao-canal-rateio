@@ -199,6 +199,8 @@ const CampaignKanban = () => {
   // phase: "processing" | "done" | "error"
   const [bulkProgress, setBulkProgress] = useState(null);
   const bulkProgressTimer = useRef(null);
+  // Confirmação pendente após drag de um card selecionado (move massa)
+  const [pendingBulkMove, setPendingBulkMove] = useState(null); // { newStatus, count, sourceStatus }
 
   // Última atualização em massa (botão "Desfazer" temporário)
   const [lastBulkUpdate, setLastBulkUpdate] = useState(null); // { id, status, count, expiresAt }
