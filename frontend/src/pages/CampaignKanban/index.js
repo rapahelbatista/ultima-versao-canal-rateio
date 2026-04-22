@@ -813,6 +813,14 @@ const CampaignKanban = () => {
               Selecionar filtrados
             </button>
           )}
+          <button
+            onClick={openHistory}
+            title="Histórico de atualizações em massa"
+            className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
+          >
+            <History size={12} />
+            Histórico
+          </button>
         </div>
       </div>
 
