@@ -648,6 +648,23 @@ const CampaignKanban = () => {
     setFilterPresets(next);
     try { localStorage.setItem(presetsStorageKey, JSON.stringify(next)); } catch {}
   }, [presetsStorageKey]);
+  // Visibilidade por status (todos visíveis por padrão) — DEVE ficar antes de
+  // saveCurrentAsPreset/applyPreset porque eles referenciam `visibleStatuses`.
+  const [visibleStatuses, setVisibleStatuses] = useState(() => {
+    const saved = persistedFilters.visibleStatuses;
+    if (Array.isArray(saved) && saved.length) return new Set(saved);
+    return new Set(["pending", "delivered", "confirmed", "failed"]);
+  });
+  const toggleStatusVisible = (id) =>
+    setVisibleStatuses((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      // Sempre manter ao menos um visível
+      return n.size === 0 ? prev : n;
+    });
+  const showOnly = (id) => setVisibleStatuses(new Set([id]));
+  const showAll = () => setVisibleStatuses(new Set(["pending", "delivered", "confirmed", "failed"]));
+
   const saveCurrentAsPreset = useCallback(() => {
     const name = presetName.trim();
     if (!name) { toast.warn("Dê um nome ao preset"); return; }
@@ -686,21 +703,8 @@ const CampaignKanban = () => {
   const deletePreset = useCallback((id) => {
     persistPresets(filterPresets.filter((p) => p.id !== id));
   }, [filterPresets, persistPresets]);
-  // Visibilidade por status (todos visíveis por padrão)
-  const [visibleStatuses, setVisibleStatuses] = useState(() => {
-    const saved = persistedFilters.visibleStatuses;
-    if (Array.isArray(saved) && saved.length) return new Set(saved);
-    return new Set(["pending", "delivered", "confirmed", "failed"]);
-  });
-  const toggleStatusVisible = (id) =>
-    setVisibleStatuses((prev) => {
-      const n = new Set(prev);
-      n.has(id) ? n.delete(id) : n.add(id);
-      // Sempre manter ao menos um visível
-      return n.size === 0 ? prev : n;
-    });
-  const showOnly = (id) => setVisibleStatuses(new Set([id]));
-  const showAll = () => setVisibleStatuses(new Set(["pending", "delivered", "confirmed", "failed"]));
+  // (visibleStatuses + helpers movidos para cima — antes de saveCurrentAsPreset/applyPreset
+  // — para evitar TDZ ReferenceError que causava tela em branco no carregamento.)
   // Quick filter: busca local no nome/número (não dispara fetch)
   const [quickFilter, setQuickFilter] = useState(persistedFilters.quickFilter || "");
 
