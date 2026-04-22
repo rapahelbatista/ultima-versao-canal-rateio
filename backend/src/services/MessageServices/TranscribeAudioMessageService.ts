@@ -35,7 +35,7 @@ const TranscribeAudioMessageToText = async (wid: string, companyId: string): Pro
       const audioResponse = await axios.get(msg.mediaUrl, { responseType: 'stream' });
       data.append('audio', audioResponse.data, {
         filename: 'audio.ogg',
-        contentType: audioResponse.headers['content-type'] || 'audio/ogg',
+        contentType: String(audioResponse.headers['content-type'] || 'audio/ogg'),
       });
     } else {
       // Arquivo local
