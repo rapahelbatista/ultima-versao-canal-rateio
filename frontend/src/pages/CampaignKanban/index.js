@@ -772,6 +772,10 @@ const CampaignKanban = () => {
   useEffect(() => { historyDetailRef.current = historyDetail; }, [historyDetail]);
   useEffect(() => { fetchHistoryRef.current = fetchHistory; }, [fetchHistory]);
 
+  // Ref síncrona com o estado das colunas — usada em lookups dentro de handlers de socket
+  const columnsStateRef = useRef(null);
+  useEffect(() => { columnsStateRef.current = columnsState; }, [columnsState]);
+
 
   // Estado de conexão do socket: "connected" | "reconnecting" | "disconnected"
   const [connState, setConnState] = useState(() => (socket?.connected ? "connected" : "disconnected"));
@@ -975,15 +979,67 @@ const CampaignKanban = () => {
       return false;
     };
 
-    const onEvent = (data) => {
+    // Cache de mapeamento shippingId -> campaignId para o fallback de eventos sem campaignId.
+    // TTL curto: o vínculo é estável, mas evita uso de memória ilimitada.
+    const shippingCampaignCache = new Map(); // shippingId -> { campaignId, at }
+    const SHIPPING_CACHE_TTL_MS = 60_000;
+    const SHIPPING_CACHE_MAX = 1000;
+    const inflightLookups = new Map(); // shippingId -> Promise<campaignId|null>
+
+    const lookupCampaignIdForShipping = (sid) => {
+      const key = Number(sid);
+      if (!Number.isFinite(key)) return Promise.resolve(null);
+
+      // 1) Cache local — itens carregados nas colunas têm campaignId conhecido
+      for (const col of ["pending", "delivered", "confirmed", "failed"]) {
+        const item = columnsStateRef.current?.[col]?.items?.find((it) => Number(it.id) === key);
+        if (item?.campaignId != null) return Promise.resolve(Number(item.campaignId));
+      }
+
+      // 2) Cache TTL
+      const cached = shippingCampaignCache.get(key);
+      if (cached && Date.now() - cached.at < SHIPPING_CACHE_TTL_MS) {
+        return Promise.resolve(cached.campaignId);
+      }
+
+      // 3) Inflight dedupe
+      if (inflightLookups.has(key)) return inflightLookups.get(key);
+
+      const p = api.get(`/shippings/${key}`)
+        .then(({ data }) => {
+          const cid = data?.campaignId != null ? Number(data.campaignId) : null;
+          shippingCampaignCache.set(key, { campaignId: cid, at: Date.now() });
+          if (shippingCampaignCache.size > SHIPPING_CACHE_MAX) {
+            const firstKey = shippingCampaignCache.keys().next().value;
+            if (firstKey != null) shippingCampaignCache.delete(firstKey);
+          }
+          return cid;
+        })
+        .catch(() => null) // 404/erro: descarta com segurança
+        .finally(() => { inflightLookups.delete(key); });
+
+      inflightLookups.set(key, p);
+      return p;
+    };
+
+    const onEvent = async (data) => {
       if (!data) return;
 
       // 1. Handler obsoleto (campanha já foi trocada antes do cleanup)
       if (campaignIdRef.current !== boundCampaignId) return;
 
-      // 2. Só aceita eventos com campaignId explícito que bata com a campanha atual.
-      const evtCampaignId = data.campaignId != null ? Number(data.campaignId) : null;
-      if (evtCampaignId == null) return;
+      // 2. Resolve campaignId do evento. Se ausente, faz fallback consultando o backend pelo shippingId.
+      let evtCampaignId = data.campaignId != null ? Number(data.campaignId) : null;
+      if (evtCampaignId == null) {
+        const sid = data.shippingId ?? data.shipping?.id ?? data.record?.id ??
+          (Array.isArray(data.shippingIds) ? data.shippingIds[0] : null);
+        if (sid == null) return; // sem como confirmar pertencimento — descarta
+        const resolved = await lookupCampaignIdForShipping(sid);
+        // Após o await: a campanha pode ter mudado. Revalida tudo.
+        if (campaignIdRef.current !== boundCampaignId) return;
+        if (resolved == null) return; // não foi possível confirmar — descarta com segurança
+        evtCampaignId = resolved;
+      }
       if (evtCampaignId !== boundCampaignId) return;
 
       // 3. Deduplicação: ignora repetições dentro da janela TTL (sem refetch nem pulso).
