@@ -77,32 +77,32 @@ const CampaignsHome = () => {
     sentMessages: 0,
     deliveryRate: 0,
     contacts: 0,
+    totalCampaigns: 0,
+    totalMessages: 0,
+    series: [],
   });
   const [loading, setLoading] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
 
   const fetchStats = async () => {
     setLoading(true);
     try {
-      // Best-effort: tenta buscar dados reais; se falhar, mantém zeros.
-      const [campaigns, contactLists] = await Promise.allSettled([
-        api.get("/campaigns?pageNumber=1"),
-        api.get("/contact-lists?pageNumber=1"),
-      ]);
-
-      const cs = campaigns.status === "fulfilled" ? campaigns.value.data?.records || [] : [];
-      const cl = contactLists.status === "fulfilled" ? contactLists.value.data?.records || [] : [];
-
-      const active = cs.filter((c) => ["EM_ANDAMENTO", "PROGRAMADA", "RUNNING"].includes(c.status)).length;
-      const sent = cs.reduce((sum, c) => sum + (c.delivered || c.completedAt ? c.contactsCount || 0 : 0), 0);
-
-      setStats({
-        activeCampaigns: active,
-        sentMessages: sent,
-        deliveryRate: sent ? Math.min(99, Math.round((sent / (sent + 1)) * 100)) : 0,
-        contacts: cl.reduce((sum, l) => sum + (l.contactsCount || 0), 0),
+      const { data } = await api.get("/campaigns/dashboard-stats", {
+        params: { days: 7 },
       });
+      setStats({
+        activeCampaigns: data.activeCampaigns || 0,
+        sentMessages: data.sentMessages || 0,
+        deliveryRate: data.deliveryRate || 0,
+        contacts: data.uniqueContacts || 0,
+        totalCampaigns: data.totalCampaigns || 0,
+        totalMessages: data.totalMessages || 0,
+        series: Array.isArray(data.series) ? data.series : [],
+      });
+      setLastUpdate(new Date(data.generatedAt || Date.now()));
     } catch (e) {
-      // silencioso
+      // mantém zeros — a home não deve quebrar
+      setLastUpdate(new Date());
     } finally {
       setLoading(false);
     }
@@ -110,6 +110,8 @@ const CampaignsHome = () => {
 
   useEffect(() => {
     fetchStats();
+    const interval = setInterval(fetchStats, 60000); // auto-refresh 1 min
+    return () => clearInterval(interval);
   }, []);
 
   const now = new Date();
