@@ -930,6 +930,51 @@ const CampaignKanban = () => {
       return false;
     };
 
+    // Cache de deduplicação de eventos: chave estável -> timestamp da 1ª vez vista.
+    // Evita reprocessar eventos repetidos (broadcast duplicado, reconexão com replay, etc.).
+    const seenEvents = new Map(); // key -> firstSeenAt
+    const SEEN_TTL_MS = 15_000; // janela onde repetições são consideradas duplicatas
+    const SEEN_MAX = 500;       // limite p/ não crescer indefinidamente
+
+    const buildEventKey = (data) => {
+      // Preferimos o id explícito do evento se houver; é a chave mais forte.
+      if (data.eventId) return `evt:${data.eventId}`;
+      if (data.id && data.action && data.timestamp) {
+        return `id:${data.id}:${data.action}:${data.timestamp}`;
+      }
+      const action = data.action || "?";
+      const ts = data.timestamp || data.updatedAt || data.shipping?.updatedAt || "";
+      const status = data.status || "";
+      const sid = data.shippingId ?? data.shipping?.id ?? data.record?.id ?? "";
+      const ids = Array.isArray(data.shippingIds) && data.shippingIds.length
+        ? [...data.shippingIds].sort((a, b) => Number(a) - Number(b)).join(",")
+        : "";
+      const bulkId = data.bulkUpdateId ?? "";
+      // Sem ts confiável: usamos só estrutura — duplicatas exatas em <SEEN_TTL_MS são bloqueadas.
+      return `k:${action}|c:${data.campaignId ?? ""}|s:${status}|sid:${sid}|ids:${ids}|b:${bulkId}|t:${ts}`;
+    };
+
+    const isDuplicateEvent = (data) => {
+      const key = buildEventKey(data);
+      const now = Date.now();
+      // GC: remove entradas expiradas (rápido — Map preserva ordem de inserção)
+      if (seenEvents.size > SEEN_MAX || (seenEvents.size > 0 && now % 17 === 0)) {
+        for (const [k, t] of seenEvents) {
+          if (now - t > SEEN_TTL_MS) seenEvents.delete(k);
+          else break; // entradas seguintes são mais recentes
+        }
+      }
+      const prev = seenEvents.get(key);
+      if (prev != null && now - prev <= SEEN_TTL_MS) return true;
+      seenEvents.set(key, now);
+      // Limite duro: descarta a entrada mais antiga
+      if (seenEvents.size > SEEN_MAX) {
+        const firstKey = seenEvents.keys().next().value;
+        if (firstKey != null) seenEvents.delete(firstKey);
+      }
+      return false;
+    };
+
     const onEvent = (data) => {
       if (!data) return;
 
@@ -940,6 +985,9 @@ const CampaignKanban = () => {
       const evtCampaignId = data.campaignId != null ? Number(data.campaignId) : null;
       if (evtCampaignId == null) return;
       if (evtCampaignId !== boundCampaignId) return;
+
+      // 3. Deduplicação: ignora repetições dentro da janela TTL (sem refetch nem pulso).
+      if (isDuplicateEvent(data)) return;
 
       pulse();
 
