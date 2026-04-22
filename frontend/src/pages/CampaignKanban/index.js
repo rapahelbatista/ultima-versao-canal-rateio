@@ -973,6 +973,43 @@ const CampaignKanban = () => {
         </div>
       </DragDropContext>
 
+      {/* Banner flutuante "Desfazer" — aparece após bulk update bem-sucedido (30s) */}
+      {lastBulkUpdate && (() => {
+        const remaining = Math.max(0, Math.ceil((lastBulkUpdate.expiresAt - Date.now()) / 1000));
+        const col = COLUMNS.find((c) => c.id === lastBulkUpdate.status);
+        return (
+          <div
+            className={`fixed left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-white shadow-2xl
+              ${hasSelection ? "bottom-24" : "bottom-6"}`}
+          >
+            <div className="flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-xs">
+                <Undo2 size={14} />
+              </span>
+              <div className="text-sm">
+                <span className="font-semibold">{lastBulkUpdate.count}</span> envio(s) movido(s) para{" "}
+                <span className="font-semibold">"{col?.label || lastBulkUpdate.status}"</span>
+              </div>
+            </div>
+            <button
+              onClick={() => undoBulkUpdate(lastBulkUpdate.id)}
+              disabled={undoing}
+              className="flex items-center gap-1.5 rounded-xl bg-white px-3 py-1.5 text-xs font-bold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+            >
+              <Undo2 size={12} />
+              {undoing ? "Desfazendo..." : `Desfazer (${remaining}s)`}
+            </button>
+            <button
+              onClick={() => setLastBulkUpdate(null)}
+              className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white"
+              title="Fechar"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        );
+      })()}
+
       {/* Barra flutuante de ações em massa */}
       {hasSelection && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-2xl border border-emerald-200 bg-white px-4 py-3 shadow-2xl shadow-emerald-500/20">
