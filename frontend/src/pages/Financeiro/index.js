@@ -179,7 +179,23 @@ const useStyles = makeStyles((theme) => ({
     alignItems: "center",
     gap: 8,
   },
-  selectBtn: { marginTop: "auto" },
+  selectBtn: {
+    marginTop: "auto",
+    fontWeight: 800,
+    letterSpacing: 0.3,
+    padding: "10px 14px",
+    borderRadius: 12,
+    textTransform: "none",
+    fontSize: 14,
+  },
+  selectHint: {
+    fontSize: 11,
+    color: "#64748b",
+    textAlign: "center",
+    marginTop: -4,
+    fontWeight: 500,
+  },
+  selectHintHighlight: { color: "#10b981", fontWeight: 700 },
   seatBox: {
     background: "#f8fafc",
     border: "1px dashed #cbd5e1",
@@ -388,8 +404,8 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const TONE = {
-  current: { bg: "#6366f1", color: "#fff", label: "Plano atual" },
-  popular: { bg: "#10b981", color: "#fff", label: "Mais popular" },
+  current: { bg: "#6366f1", color: "#fff", label: "✓ Seu plano ativo" },
+  popular: { bg: "#10b981", color: "#fff", label: "★ Escolha da maioria" },
 };
 
 const Financeiro = () => {
@@ -799,17 +815,35 @@ const Financeiro = () => {
                         color="primary"
                         disabled={current}
                         onClick={() => handleSelectPlan(p, extra)}
-                        startIcon={<CreditCard size={16} />}
+                        startIcon={!current && <CreditCard size={16} />}
                         fullWidth
                       >
                         {current
-                          ? "Plano atual"
+                          ? "Você já está neste plano"
                           : price === 0
-                          ? "Começar agora"
+                          ? "Ativar plano grátis →"
+                          : popular
+                          ? extra > 0
+                            ? `Assinar com +${extra} usuário${extra > 1 ? "s" : ""} →`
+                            : "Assinar agora — recomendado →"
                           : extra > 0
-                          ? `Assinar com +${extra} usuário${extra > 1 ? "s" : ""}`
-                          : "Assinar este plano"}
+                          ? `Assinar com +${extra} usuário${extra > 1 ? "s" : ""} →`
+                          : "Quero este plano →"}
                       </Button>
+                      {!current && (
+                        <span className={classes.selectHint}>
+                          {price === 0 ? (
+                            <>Sem cartão de crédito • Cancele quando quiser</>
+                          ) : (
+                            <>
+                              <span className={classes.selectHintHighlight}>
+                                Ativação imediata
+                              </span>{" "}
+                              • Sem fidelidade • Cancele quando quiser
+                            </>
+                          )}
+                        </span>
+                      )}
                     </div>
                   );
                 });
