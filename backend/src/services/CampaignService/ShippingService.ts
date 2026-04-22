@@ -11,7 +11,9 @@ interface ShippingParams {
   page?: number;
   pageSize?: number;
   searchParam?: string;
-  status?: 'delivered' | 'pending' | 'failed';
+  status?: 'delivered' | 'pending' | 'failed' | 'confirmed';
+  startDate?: string;
+  endDate?: string;
 }
 
 interface ShippingResponse {
@@ -24,37 +26,49 @@ interface ShippingResponse {
 }
 
 const ShippingService = async (params: ShippingParams): Promise<ShippingResponse> => {
-  const { campaignId, page = 1, pageSize = 50, searchParam, status } = params;
-  
-  // Validar parâmetros
+  const { campaignId, page = 1, pageSize = 50, searchParam, status, startDate, endDate } = params;
+
   if (pageSize > 1000) {
     throw new AppError("Page size cannot exceed 1000", 400);
   }
 
   const offset = (page - 1) * pageSize;
-  
-  // Construir condições de busca
-  const whereClause: any = {
-    campaignId: campaignId
-  };
 
-  // Filtro por status
+  const whereClause: any = { campaignId };
+
+  // Filtro por status (no SQL quando possível)
   if (status) {
     switch (status) {
       case 'delivered':
         whereClause.deliveredAt = { [Op.ne]: null };
+        whereClause.confirmedAt = null;
+        whereClause.message = { [Op.notILike]: '[FAILED]%' };
         break;
-      case 'pending':
-        whereClause.deliveredAt = null;
+      case 'confirmed':
+        whereClause.confirmedAt = { [Op.ne]: null };
+        whereClause.message = { [Op.notILike]: '[FAILED]%' };
         break;
       case 'failed':
-        // Implementar lógica de falha se necessário
+        whereClause.message = { [Op.iLike]: '[FAILED]%' };
+        break;
+      case 'pending':
         whereClause.deliveredAt = null;
         break;
     }
   }
 
-  // Filtro por busca
+  // Filtros de data
+  if (startDate || endDate) {
+    const range: any = {};
+    if (startDate) range[Op.gte] = new Date(startDate);
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      range[Op.lte] = end;
+    }
+    whereClause.createdAt = range;
+  }
+
   if (searchParam) {
     whereClause[Op.or] = [
       { number: { [Op.iLike]: `%${searchParam}%` } },
