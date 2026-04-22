@@ -232,6 +232,48 @@ const initials = (name = "") =>
     .map((n) => n[0]?.toUpperCase() || "")
     .join("") || "?";
 
+// ===== Validação do formulário "Adicionar Agente" =====
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const NAME_RE = /^[\p{L}][\p{L}\s'.-]{1,79}$/u; // letras (qualquer idioma), espaço, apóstrofo, ponto, hífen
+const PHONE_DIGITS_MIN = 10;
+const PHONE_DIGITS_MAX = 15;
+
+const validateAgentForm = (form) => {
+  const errors = {};
+  const email = (form.email || "").trim();
+  const password = form.password || "";
+  const name = (form.name || "").trim();
+  const phone = (form.phone || "").trim();
+  const comments = (form.comments || "").trim();
+
+  if (!email) errors.email = "E-mail é obrigatório";
+  else if (email.length > 255) errors.email = "E-mail muito longo (máx. 255)";
+  else if (!EMAIL_RE.test(email)) errors.email = "E-mail inválido";
+
+  if (!password) errors.password = "Senha é obrigatória";
+  else if (password.length < 6) errors.password = "Mínimo de 6 caracteres";
+  else if (password.length > 72) errors.password = "Máximo de 72 caracteres";
+
+  if (!name) errors.name = "Nome é obrigatório";
+  else if (name.length < 2) errors.name = "Nome muito curto";
+  else if (name.length > 80) errors.name = "Nome muito longo (máx. 80)";
+  else if (!NAME_RE.test(name))
+    errors.name = "Use apenas letras, espaços, apóstrofo, ponto ou hífen";
+
+  if (phone) {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < PHONE_DIGITS_MIN || digits.length > PHONE_DIGITS_MAX)
+      errors.phone = `Celular deve ter entre ${PHONE_DIGITS_MIN} e ${PHONE_DIGITS_MAX} dígitos`;
+    else if (!/^[+\d\s().-]+$/.test(phone))
+      errors.phone = "Use apenas números e os símbolos + ( ) - .";
+  }
+
+  if (comments && comments.length > 500)
+    errors.comments = "Comentário muito longo (máx. 500)";
+
+  return errors;
+};
+
 const Users = () => {
   const classes = useStyles();
   const history = useHistory();
@@ -258,6 +300,13 @@ const Users = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [lastCreated, setLastCreated] = useState(null); // { name, email } | null
+  const [touched, setTouched] = useState({});
+
+  const formErrors = useMemo(() => validateAgentForm(form), [form]);
+  const isFormValid = Object.keys(formErrors).length === 0;
+  const showError = (field) => (touched[field] ? formErrors[field] : undefined);
+  const markTouched = (field) =>
+    setTouched((t) => (t[field] ? t : { ...t, [field]: true }));
 
   // Edit modal
   const [editingUser, setEditingUser] = useState(null);
@@ -369,8 +418,17 @@ const Users = () => {
   };
 
   const handleAddAgent = async () => {
-    if (!form.email || !form.password || !form.name) {
-      toast.warn("Preencha e-mail, senha e nome");
+    // marca todos como touched para revelar erros pendentes
+    setTouched({
+      email: true,
+      password: true,
+      name: true,
+      phone: true,
+      comments: true,
+    });
+    if (!isFormValid) {
+      const firstError = Object.values(formErrors)[0];
+      toast.warn(firstError || "Verifique os campos do formulário");
       return;
     }
     try {
@@ -398,6 +456,7 @@ const Users = () => {
         );
       }, 5000);
       setForm({ email: "", password: "", name: "", phone: "", comments: "" });
+      setTouched({});
       // Recarrega
       setPageNumber(1);
       dispatch({ type: "RESET" });
@@ -536,14 +595,20 @@ const Users = () => {
             <div className={classes.formGrid}>
               <TextField
                 label="E-mail"
+                type="email"
                 variant="outlined"
                 size="small"
                 fullWidth
+                required
                 disabled={submitting}
                 value={form.email}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, email: e.target.value }))
                 }
+                onBlur={() => markTouched("email")}
+                error={!!showError("email")}
+                helperText={showError("email") || " "}
+                inputProps={{ maxLength: 255, autoComplete: "email" }}
               />
               <TextField
                 label="Senha"
@@ -551,22 +616,32 @@ const Users = () => {
                 variant="outlined"
                 size="small"
                 fullWidth
+                required
                 disabled={submitting}
                 value={form.password}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, password: e.target.value }))
                 }
+                onBlur={() => markTouched("password")}
+                error={!!showError("password")}
+                helperText={showError("password") || "Mínimo de 6 caracteres"}
+                inputProps={{ maxLength: 72, autoComplete: "new-password" }}
               />
               <TextField
-                label="Full Name"
+                label="Nome completo"
                 variant="outlined"
                 size="small"
                 fullWidth
+                required
                 disabled={submitting}
                 value={form.name}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, name: e.target.value }))
                 }
+                onBlur={() => markTouched("name")}
+                error={!!showError("name")}
+                helperText={showError("name") || " "}
+                inputProps={{ maxLength: 80 }}
               />
               <TextField
                 label="Número de Celular"
@@ -576,8 +651,18 @@ const Users = () => {
                 disabled={submitting}
                 value={form.phone}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, phone: e.target.value }))
+                  setForm((f) => ({
+                    ...f,
+                    // permite apenas dígitos e símbolos comuns de telefone
+                    phone: e.target.value.replace(/[^+\d\s().-]/g, ""),
+                  }))
                 }
+                onBlur={() => markTouched("phone")}
+                error={!!showError("phone")}
+                helperText={
+                  showError("phone") || "Ex.: +55 (11) 91234-5678 (opcional)"
+                }
+                inputProps={{ maxLength: 25, inputMode: "tel" }}
               />
               <TextField
                 label="Short Comment"
@@ -592,6 +677,13 @@ const Users = () => {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, comments: e.target.value }))
                 }
+                onBlur={() => markTouched("comments")}
+                error={!!showError("comments")}
+                helperText={
+                  showError("comments") ||
+                  `${(form.comments || "").length}/500`
+                }
+                inputProps={{ maxLength: 500 }}
               />
             </div>
             <div
@@ -604,7 +696,7 @@ const Users = () => {
             >
               <Button
                 className={classes.primaryBtn}
-                disabled={submitting}
+                disabled={submitting || !isFormValid}
                 onClick={handleAddAgent}
                 startIcon={
                   submitting ? (
