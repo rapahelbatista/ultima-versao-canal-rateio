@@ -331,6 +331,7 @@ const CampaignLayout = ({ children }) => {
   const history = useHistory();
   const [collapsed, setCollapsed] = useState(false);
   const { allowed: canManageMeta } = useCanManageMeta();
+  const { isPro, subscriptionLabel } = usePlanStatus();
 
   const initials = useMemo(() => {
     const name = user?.name || "U";
