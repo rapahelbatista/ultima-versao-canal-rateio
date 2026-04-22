@@ -243,6 +243,7 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
         setBody(p.body || "");
         setFooter(p.footer || "");
         setButtonType(p.buttonType || "none");
+        setVariableValues(p.variableValues && typeof p.variableValues === "object" ? p.variableValues : {});
       } catch (err) {
         toastError(err);
       } finally {
@@ -259,8 +260,8 @@ const MetaTemplateEditor = ({ templateId, onBack }) => {
     language,
     category,
     currentStep: step,
-    payload: { headerFmt, headerText, body, footer, buttonType },
-  }), [name, templateType, language, category, step, headerFmt, headerText, body, footer, buttonType]);
+    payload: { headerFmt, headerText, body, footer, buttonType, variableValues },
+  }), [name, templateType, language, category, step, headerFmt, headerText, body, footer, buttonType, variableValues]);
 
   useEffect(() => {
     if (loading) return;
