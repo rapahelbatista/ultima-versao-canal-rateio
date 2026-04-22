@@ -21,6 +21,8 @@ import {
   Smartphone,
   Layers,
   Sparkles,
+  Minus,
+  Plus,
 } from "lucide-react";
 import moment from "moment";
 
@@ -175,6 +177,60 @@ const useStyles = makeStyles((theme) => ({
     gap: 8,
   },
   selectBtn: { marginTop: "auto" },
+  seatBox: {
+    background: "#f8fafc",
+    border: "1px dashed #cbd5e1",
+    borderRadius: 12,
+    padding: "10px 12px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+  },
+  seatRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  seatLabel: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: "#334155",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+  },
+  seatStepper: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    background: "#fff",
+    border: "1px solid #e2e8f0",
+    borderRadius: 999,
+    padding: 2,
+  },
+  seatBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: "50%",
+    border: "none",
+    background: "transparent",
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#475569",
+    "&:hover:not(:disabled)": { background: "#eef2ff", color: "#4338ca" },
+    "&:disabled": { opacity: 0.35, cursor: "not-allowed" },
+  },
+  seatCount: {
+    minWidth: 28,
+    textAlign: "center",
+    fontWeight: 800,
+    color: "#0f172a",
+    fontSize: 13,
+  },
+  seatHint: { fontSize: 11, color: "#64748b" },
   invoicesPaper: {
     padding: 12,
     borderRadius: 16,
@@ -280,6 +336,17 @@ const Financeiro = () => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [contactModalOpen, setContactModalOpen] = useState(false);
+  // Assentos extras escolhidos por plano: { [planId]: extraSeats }
+  const [extraSeats, setExtraSeats] = useState({});
+  const SEAT_PRICE = 11; // R$ por usuário extra/mês (alinhado ao PaymentForm)
+  const MAX_EXTRA_SEATS = 50;
+
+  const getExtra = (id) => extraSeats[id] || 0;
+  const changeSeats = (id, delta) =>
+    setExtraSeats((s) => {
+      const next = Math.min(MAX_EXTRA_SEATS, Math.max(0, (s[id] || 0) + delta));
+      return { ...s, [id]: next };
+    });
 
   const isCompanyExpired =
     user?.company?.dueDate && moment().isAfter(moment(user.company.dueDate));
@@ -340,13 +407,16 @@ const Financeiro = () => {
     return diasRestantes < 0 ? "Vencido" : "Em Aberto";
   };
 
-  const handleSelectPlan = (plan) => {
-    // Envia o plano selecionado ao checkout (sem invoiceId, pois é nova assinatura)
+  const handleSelectPlan = (plan, extra = 0) => {
+    const basePrice = Number(plan.value || plan.price || 0);
+    const totalUsers = Number(plan.users || 0) + Number(extra || 0);
+    const totalPrice = basePrice + Number(extra || 0) * SEAT_PRICE;
+
     setSelectedInvoice({
       id: plan.id,
       detail: plan.name,
-      value: plan.value || plan.price || 0,
-      users: plan.users,
+      value: totalPrice,
+      users: totalUsers,
       connections: plan.connections,
       queues: plan.queues,
       planId: plan.id,
@@ -354,10 +424,10 @@ const Financeiro = () => {
     setSelectedPlan({
       id: plan.id,
       name: plan.name,
-      value: plan.value || plan.price || 0,
-      price: plan.value || plan.price || 0,
-      amount: plan.value || plan.price || 0,
-      users: plan.users,
+      value: totalPrice,
+      price: totalPrice,
+      amount: totalPrice,
+      users: totalUsers,
       connections: plan.connections,
       queues: plan.queues,
     });
@@ -567,6 +637,10 @@ const Financeiro = () => {
                   const popular = !current && idx === popularIdx && visible.length > 1;
                   const tone = current ? TONE.current : popular ? TONE.popular : null;
                   const price = Number(p.value || p.price || 0);
+                  const extra = getExtra(p.id);
+                  const baseUsers = Number(p.users || 0);
+                  const totalUsers = baseUsers + extra;
+                  const totalPrice = price + extra * SEAT_PRICE;
                   return (
                     <div
                       key={p.id}
@@ -588,18 +662,18 @@ const Financeiro = () => {
                       </div>
 
                       <div className={classes.planPrice}>
-                        {price === 0 ? (
+                        {totalPrice === 0 ? (
                           <span className={classes.priceValue}>Grátis</span>
                         ) : (
                           <>
-                            <span className={classes.priceValue}>{fmtMoney(price)}</span>
+                            <span className={classes.priceValue}>{fmtMoney(totalPrice)}</span>
                             <span className={classes.priceUnit}>/ mês</span>
                           </>
                         )}
                       </div>
 
                       <ul className={classes.planFeatures}>
-                        {planFeatures(p).map((f, i) => {
+                        {planFeatures({ ...p, users: totalUsers }).map((f, i) => {
                           const Ic = f.icon;
                           return (
                             <li key={i} className={classes.planFeature}>
@@ -611,12 +685,48 @@ const Financeiro = () => {
                         })}
                       </ul>
 
+                      {price > 0 && (
+                        <div className={classes.seatBox}>
+                          <div className={classes.seatRow}>
+                            <span className={classes.seatLabel}>
+                              <UsersIcon size={13} /> Usuários adicionais
+                            </span>
+                            <div className={classes.seatStepper}>
+                              <button
+                                type="button"
+                                className={classes.seatBtn}
+                                onClick={() => changeSeats(p.id, -1)}
+                                disabled={extra <= 0 || current}
+                                aria-label="Remover usuário"
+                              >
+                                <Minus size={14} />
+                              </button>
+                              <span className={classes.seatCount}>{extra}</span>
+                              <button
+                                type="button"
+                                className={classes.seatBtn}
+                                onClick={() => changeSeats(p.id, +1)}
+                                disabled={extra >= MAX_EXTRA_SEATS || current}
+                                aria-label="Adicionar usuário"
+                              >
+                                <Plus size={14} />
+                              </button>
+                            </div>
+                          </div>
+                          <span className={classes.seatHint}>
+                            {extra > 0
+                              ? `+${fmtMoney(extra * SEAT_PRICE)} / mês • Total: ${totalUsers} usuários`
+                              : `${fmtMoney(SEAT_PRICE)} por usuário extra • Inclui ${baseUsers} no plano`}
+                          </span>
+                        </div>
+                      )}
+
                       <Button
                         className={classes.selectBtn}
                         variant={current ? "outlined" : "contained"}
                         color="primary"
                         disabled={current}
-                        onClick={() => handleSelectPlan(p)}
+                        onClick={() => handleSelectPlan(p, extra)}
                         startIcon={<CreditCard size={16} />}
                         fullWidth
                       >
@@ -624,6 +734,8 @@ const Financeiro = () => {
                           ? "Plano atual"
                           : price === 0
                           ? "Começar agora"
+                          : extra > 0
+                          ? `Assinar com +${extra} usuário${extra > 1 ? "s" : ""}`
                           : "Assinar este plano"}
                       </Button>
                     </div>
