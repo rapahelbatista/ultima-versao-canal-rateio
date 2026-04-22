@@ -67,6 +67,7 @@ import CompanyKanbanConfig from "../models/CompanyKanbanConfig";
 import Floup from "../models/Floup";
 import FloupSchedule from "../models/FloupSchedule";
 import InstallationLog from "../models/InstallationLog";
+import CampaignBulkUpdate from "../models/CampaignBulkUpdate";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -142,6 +143,7 @@ const models = [
   , InstallationLog
   , PushSubscription
   , InteractiveMessageTemplate
+  , CampaignBulkUpdate
 ];
 
 sequelize.addModels(models);
