@@ -22,27 +22,27 @@
 	50%      { opacity: 0.55; }
 }
 
-/* Overlay de PROGRESSO (topo) — desce suave + leve respirar */
+/* Overlay de PROGRESSO (topo) — desce suave; "respirar" via opacity em pseudo-elemento */
 @keyframes kb-progress-in {
-	0%   { opacity: 0; transform: translate(-50%, -12px) scale(0.98); }
-	100% { opacity: 1; transform: translate(-50%, 0)     scale(1); }
+	0%   { opacity: 0; transform: translate3d(-50%, -12px, 0) scale(0.98); }
+	100% { opacity: 1; transform: translate3d(-50%, 0, 0)     scale(1); }
 }
 @keyframes kb-progress-glow {
-	0%, 100% { box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08); }
-	50%      { box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14); }
+	0%, 100% { opacity: 0.55; }
+	50%      { opacity: 1; }
 }
 
-/* Overlay de DESFAZER (rodapé) — sobe com bounce sutil */
+/* Overlay de DESFAZER (rodapé) — sobe com bounce sutil (apenas transform/opacity) */
 @keyframes kb-undo-in {
-	0%   { opacity: 0; transform: translate(-50%, 16px); }
-	60%  { opacity: 1; transform: translate(-50%, -3px); }
-	100% { opacity: 1; transform: translate(-50%, 0); }
+	0%   { opacity: 0; transform: translate3d(-50%, 16px, 0); }
+	60%  { opacity: 1; transform: translate3d(-50%, -3px, 0); }
+	100% { opacity: 1; transform: translate3d(-50%, 0, 0); }
 }
 
 /* Barra de AÇÕES EM MASSA (rodapé) — sobe e fixa */
 @keyframes kb-bulk-in {
-	0%   { opacity: 0; transform: translate(-50%, 24px); }
-	100% { opacity: 1; transform: translate(-50%, 0); }
+	0%   { opacity: 0; transform: translate3d(-50%, 24px, 0); }
+	100% { opacity: 1; transform: translate3d(-50%, 0, 0); }
 }
 
 /* Compat com qualquer remanescente de `animate-spin` do Tailwind */
@@ -51,29 +51,82 @@
 	animation: lv-spin 1s linear infinite;
 	transform-origin: center;
 	display: inline-block;
+	will-change: transform;
 }
 .kanban-ping {
 	animation: lv-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
 	transform-origin: center;
+	will-change: transform, opacity;
 }
 .kanban-pulse {
 	animation: lv-pulse 1.6s ease-in-out infinite;
+	will-change: opacity;
 }
 
-/* Classes dedicadas para cada overlay do CampaignKanban */
-.kanban-overlay-progress {
-	animation:
-		kb-progress-in 240ms cubic-bezier(0.16, 1, 0.3, 1) both,
-		kb-progress-glow 2.4s ease-in-out 240ms infinite;
-	will-change: transform, opacity, box-shadow;
+/* ==========================================
+   Overlays do CampaignKanban — performance:
+   - Apenas transform/opacity são animados (composite layer, sem reflow)
+   - translate3d força promoção a GPU layer
+   - contain: layout paint isola repaints do restante da árvore
+   - backface-visibility hidden evita flicker em alguns browsers
+   - will-change apenas onde necessário e descartado após a animação
+   ========================================== */
+.kanban-overlay-progress,
+.kanban-overlay-undo,
+.kanban-overlay-bulk {
+	contain: layout paint;
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+	transform: translate3d(-50%, 0, 0);
 }
+
+/* Limpa will-change ao terminar a animação para liberar memória de GPU */
+.kanban-overlay-progress.kb-anim-done,
+.kanban-overlay-undo.kb-anim-done,
+.kanban-overlay-bulk.kb-anim-done {
+	will-change: auto;
+}
+
+.kanban-overlay-progress {
+	position: relative;
+	animation: kb-progress-in 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+	will-change: transform, opacity;
+}
+/* Glow não-bloqueante via pseudo-elemento (anima apenas opacity) */
+.kanban-overlay-progress::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	pointer-events: none;
+	box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+	opacity: 0;
+	animation: kb-progress-glow 2.4s ease-in-out 240ms infinite;
+	will-change: opacity;
+}
+
 .kanban-overlay-undo {
 	animation: kb-undo-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 	will-change: transform, opacity;
 }
+
 .kanban-overlay-bulk {
 	animation: kb-bulk-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
 	will-change: transform, opacity;
+}
+
+/* Respeita preferência do usuário por menos movimento */
+@media (prefers-reduced-motion: reduce) {
+	.kanban-overlay-progress,
+	.kanban-overlay-undo,
+	.kanban-overlay-bulk,
+	.kanban-overlay-progress::after,
+	.kanban-spin,
+	.animate-spin,
+	.kanban-ping,
+	.kanban-pulse {
+		animation: none !important;
+	}
 }
 
 /* Aliases legados (compat retroativa) */
