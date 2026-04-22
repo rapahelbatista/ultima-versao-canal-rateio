@@ -37,6 +37,12 @@ import {
   ChevronRight,
   Layers,
   BarChart3,
+  Facebook,
+  FileText,
+  Workflow,
+  Bot,
+  Megaphone,
+  QrCode,
 } from "lucide-react";
 
 const drawerWidth = 260;
@@ -48,25 +54,34 @@ const NAV_GROUPS = [
     items: [{ to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true }],
   },
   {
-    label: "Campanhas",
+    label: "WhatsApp QR Plugin",
     items: [
+      { to: "/connections", label: "Adicionar WhatsApp por QR", icon: QrCode },
+      { to: "/whatsapp-warmer", label: "Aquecedor de WhatsApp", icon: Flame },
+      { to: "/messages-api", label: "Rest API", icon: Code2 },
+    ],
+  },
+  {
+    label: "Conexão WA Meta",
+    items: [
+      { to: "/meta-api-keys", label: "Vincular Meta WhatsApp", icon: Facebook },
+    ],
+  },
+  {
+    label: "Automação e Bots",
+    items: [
+      { to: "/flowbuilders", label: "Fluxos de Automação", icon: Workflow },
+      { to: "/chatbot-wa", label: "Chatbot de WA", icon: Bot },
+    ],
+  },
+  {
+    label: "Transmissão",
+    items: [
+      { to: "/create-meta-template", label: "Create Meta Template", icon: FileText },
       { to: "/campaigns", label: "Nova Campanha", icon: Send },
       { to: "/campaigns-config", label: "Listas & Config", icon: ListChecks },
       { to: "/contact-lists", label: "Phonebook", icon: Users },
       { to: "/campaigns-kanban", label: "Kanban de Campanha", icon: KanbanSquare },
-    ],
-  },
-  {
-    label: "Anti-ban & Warmup",
-    items: [
-      { to: "/whatsapp-warmer", label: "WhatsApp Warmer", icon: Flame },
-      { to: "/connections", label: "Conexões WA", icon: Smartphone },
-    ],
-  },
-  {
-    label: "APIs & Integrações",
-    items: [
-      { to: "/messages-api", label: "Documentação API", icon: Layers },
     ],
   },
   {
