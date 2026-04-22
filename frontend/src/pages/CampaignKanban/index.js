@@ -1078,6 +1078,7 @@ const CampaignKanban = () => {
     // Optimistic local: move o card imediatamente entre colunas (sem refetch)
     const prev = shipping;
     applyStatusLocally([draggedId], newStatus);
+    markRecentlyMoved([draggedId], newStatus);
 
     try {
       await api.patch(`/campaigns/${campaignId}/shipping/${shippingId}`, {
