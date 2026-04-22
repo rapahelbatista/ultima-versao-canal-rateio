@@ -370,7 +370,6 @@ const Login = () => {
         i18n.changeLanguage(opt.value);
         localStorage.setItem("language", opt.value);
         setLangOpen(false);
-        window.location.reload();
     };
 
     return (

@@ -471,7 +471,6 @@ const CampaignLayout = ({ children }) => {
                 onChange={(lng) => {
                   i18n.changeLanguage(lng);
                   localStorage.setItem("language", lng);
-                  window.location.reload();
                 }}
               />
               <Tooltip title="Notificações">
