@@ -20,6 +20,7 @@ routes.put("/campaigns/:id/shipping/:shippingId", isAuth, CampaignController.upd
 routes.post("/campaigns/:id/shipping/bulk-status", isAuth, CampaignController.bulkUpdateShippingStatus);
 routes.get("/campaigns/bulk-updates/history", isAuth, CampaignController.listBulkUpdates);
 routes.get("/campaigns/bulk-updates/:bulkId", isAuth, CampaignController.showBulkUpdate);
+routes.post("/campaigns/bulk-updates/:bulkId/undo", isAuth, CampaignController.undoBulkUpdate);
 routes.get("/campaigns/:id/stats", isAuth, CampaignController.getStats);
 routes.post("/campaigns", isAuth, CampaignController.store);
 routes.put("/campaigns/:id", isAuth, CampaignController.update);
