@@ -741,46 +741,20 @@ const CampaignKanban = () => {
       return;
     }
 
-    // Optimistic update individual
+    // Optimistic local: move o card imediatamente entre colunas (sem refetch)
     const prev = shipping;
-    const next = shipping.map((s) => {
-      if (String(s.id) !== shippingId) return s;
-      const patch = { ...s };
-      const now = new Date().toISOString();
-      switch (newStatus) {
-        case "pending":
-          patch.deliveredAt = null;
-          patch.confirmedAt = null;
-          break;
-        case "delivered":
-          patch.deliveredAt = patch.deliveredAt || now;
-          patch.confirmedAt = null;
-          break;
-        case "confirmed":
-          patch.deliveredAt = patch.deliveredAt || now;
-          patch.confirmedAt = now;
-          break;
-        case "failed":
-          patch.deliveredAt = null;
-          patch.confirmedAt = null;
-          patch.message = `[FAILED] ${(patch.message || "").replace(/^\[FAILED\]\s*/, "")}`;
-          break;
-        default:
-          break;
-      }
-      return patch;
-    });
-    setShipping(next);
+    applyStatusLocally([draggedId], newStatus);
 
     try {
       await api.patch(`/campaigns/${campaignId}/shipping/${shippingId}`, {
         status: newStatus,
       });
       toast.success("Status atualizado");
-      // Refetch para refletir movimentação entre colunas paginadas
-      fetchShipping();
+      // Reconciliação leve: confirma com o servidor; só recarrega se houver divergência
+      reconcileShipping([draggedId], newStatus);
     } catch (e) {
       setShipping(prev);
+      fetchShipping();
       toast.error("Falha ao atualizar status");
     }
   };
