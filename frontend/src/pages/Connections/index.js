@@ -455,6 +455,7 @@ const Connections = () => {
   const [whatsAppToDelete, setWhatsAppToDelete] = useState(null);
   const [transferProgressModalOpen, setTransferProgressModalOpen] = useState(false);
   const [transferProgress, setTransferProgress] = useState({ current: 0, total: 0, percentage: 0 });
+  const [newInstanceName, setNewInstanceName] = useState("");
 
   //   const socketManager = useContext(SocketContext);
   const { user, socket } = useContext(AuthContext);
