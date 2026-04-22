@@ -1739,7 +1739,7 @@ const CampaignKanban = () => {
     }
   };
 
-  const Card = ({ item, index }) => {
+  const Card = ({ item, index, classes }) => {
     const draggableId = `ship-${item.id ?? `virtual-${item.number}`}`;
     const isVirtual = !item.id;
     const parsed = parseMessage(item.message);
@@ -1755,6 +1755,12 @@ const CampaignKanban = () => {
       openDetails(item);
     };
 
+    const cardClassName = [
+      classes.card,
+      checked ? classes.cardSelected : "",
+      isVirtual ? classes.cardVirtual : "",
+    ].filter(Boolean).join(" ");
+
     return (
       <Draggable draggableId={draggableId} index={index} isDragDisabled={isVirtual}>
         {(provided, snapshot) => (
@@ -1763,54 +1769,38 @@ const CampaignKanban = () => {
             {...provided.draggableProps}
             {...provided.dragHandleProps}
             onClick={(e) => !snapshot.isDragging && handleCardClick(e)}
-            className={`group relative mb-2 rounded-xl border bg-white p-3 shadow-sm transition-all cursor-pointer
-              ${snapshot.isDragging ? "shadow-lg ring-2 ring-emerald-300" : "hover:shadow-md hover:border-emerald-300"}
-              ${checked ? "ring-2 ring-emerald-500 border-emerald-400 bg-emerald-50/40" : ""}
-              ${isVirtual ? "opacity-60 cursor-not-allowed" : ""}
-            `}
+            className={`${cardClassName} ${snapshot.isDragging ? classes.cardDragging : ""}`}
           >
-            {/* Badge "+N" quando arrastando um card que faz parte de uma seleção múltipla */}
             {snapshot.isDragging && checked && selectedIds.size > 1 && (
-              <span className="absolute -top-2 -right-2 z-10 flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[11px] font-bold text-white shadow-lg ring-2 ring-white">
-                +{selectedIds.size - 1}
-              </span>
+              <span className={classes.cardBadgeMulti}>+{selectedIds.size - 1}</span>
             )}
-            <div className="flex items-center gap-2">
+            <div className={classes.cardRow}>
               {!isVirtual && (
                 <span
                   onClick={(e) => { e.stopPropagation(); toggleSelect(item.id); }}
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-all cursor-pointer
-                    ${checked
-                      ? "bg-emerald-500 border-emerald-500 text-white"
-                      : "border-slate-300 bg-white text-transparent group-hover:border-emerald-400"}
-                    ${hasSelection || checked ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
-                  `}
+                  className={`${classes.cardCheck} ${checked ? classes.cardCheckActive : ""}`}
                 >
                   {checked && <CheckCircle2 size={12} />}
                 </span>
               )}
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
+              <span className={classes.cardAvatar}>
                 {(item.contact?.name || item.number || "?").slice(0, 2).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800 truncate">
-                  {item.contact?.name || "Sem nome"}
-                </p>
-                <p className="text-[11px] text-slate-500 truncate">{item.number}</p>
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className={classes.cardName}>{item.contact?.name || "Sem nome"}</div>
+                <div className={classes.cardNumber}>{item.number}</div>
               </div>
               {status === "failed" && (
-                <AlertCircle size={14} className="text-rose-500 shrink-0" />
+                <AlertCircle size={14} style={{ color: "#f43f5e", flexShrink: 0 }} />
               )}
             </div>
             {parsed.message && (
-              <p className="mt-2 text-xs text-slate-600 line-clamp-2">{parsed.message}</p>
+              <div className={classes.cardMessage}>{parsed.message}</div>
             )}
             {parsed.notes && (
-              <p className="mt-1 text-[10px] text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 line-clamp-1">
-                📝 {parsed.notes}
-              </p>
+              <div className={classes.cardNotes}>📝 {parsed.notes}</div>
             )}
-            <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
+            <div className={classes.cardFooter}>
               <span>
                 {item.deliveredAt
                   ? new Date(item.deliveredAt).toLocaleString("pt-BR")
@@ -1818,7 +1808,11 @@ const CampaignKanban = () => {
                   ? new Date(item.createdAt).toLocaleString("pt-BR")
                   : "Aguardando"}
               </span>
-              {isVirtual && <span className="rounded bg-slate-100 px-1.5 py-0.5">Virtual</span>}
+              {isVirtual && (
+                <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 4 }}>
+                  Virtual
+                </span>
+              )}
             </div>
           </div>
         )}
