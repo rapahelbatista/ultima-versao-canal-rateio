@@ -260,6 +260,7 @@ const CampaignKanban = () => {
       );
       const ok = data?.successCount ?? ids.length;
       const fail = data?.failedCount ?? 0;
+      const bulkId = data?.bulkUpdateId;
       setBulkUpdating(false);
       if (fail === 0) {
         toast.success(`${ok} envio(s) atualizados para "${newStatus}"`);
@@ -269,6 +270,15 @@ const CampaignKanban = () => {
       } else {
         toast.warn(`${ok} atualizados, ${fail} falharam`);
         fetchShipping();
+      }
+      // Habilita botão "Desfazer" por 30s se houve sucesso
+      if (bulkId && ok > 0) {
+        setLastBulkUpdate({
+          id: bulkId,
+          status: newStatus,
+          count: ok,
+          expiresAt: Date.now() + 30_000
+        });
       }
       clearSelection();
     } catch (err) {
