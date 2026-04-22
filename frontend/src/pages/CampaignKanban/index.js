@@ -707,4 +707,38 @@ const InfoRow = ({ icon: Icon, label, value }) => (
   </div>
 );
 
+// Indicador de "ao vivo" — pulsa quando recebe um evento do socket
+const LiveBadge = ({ tick, connected }) => {
+  const [pulsing, setPulsing] = useState(false);
+  useEffect(() => {
+    if (!tick) return;
+    setPulsing(true);
+    const t = setTimeout(() => setPulsing(false), 800);
+    return () => clearTimeout(t);
+  }, [tick]);
+
+  return (
+    <div
+      title={connected ? "Atualizações em tempo real ativas" : "Conexão em tempo real indisponível"}
+      className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-bold transition-colors
+        ${connected
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : "border-slate-200 bg-slate-50 text-slate-400"}
+      `}
+    >
+      <span className="relative flex h-2 w-2">
+        {connected && pulsing && (
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        )}
+        <span
+          className={`relative inline-flex h-2 w-2 rounded-full ${
+            connected ? "bg-emerald-500" : "bg-slate-300"
+          }`}
+        />
+      </span>
+      {connected ? "AO VIVO" : "OFFLINE"}
+    </div>
+  );
+};
+
 export default CampaignKanban;
