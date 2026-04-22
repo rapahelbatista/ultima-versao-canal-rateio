@@ -193,7 +193,23 @@ const useStyles = makeStyles((theme) => ({
     background: "#10b981", color: "#fff",
     display: "flex", alignItems: "center", justifyContent: "center",
   },
+  "@global": {
+    "@keyframes mtb-typing-blink": {
+      "0%, 80%, 100%": { opacity: 0.25, transform: "translateY(0)" },
+      "40%": { opacity: 1, transform: "translateY(-2px)" },
+    },
+  },
 }));
+
+const dotStyle = (delay) => ({
+  display: "inline-block",
+  width: 6,
+  height: 6,
+  borderRadius: "50%",
+  background: "#94a3b8",
+  animation: "mtb-typing-blink 1s infinite ease-in-out",
+  animationDelay: `${delay}ms`,
+});
 
 const MetaTemplateEditor = ({ templateId, onBack }) => {
   const classes = useStyles();
