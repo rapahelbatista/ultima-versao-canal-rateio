@@ -459,7 +459,7 @@ const CampaignKanban = () => {
     };
 
     return (
-      <Draggable draggableId={draggableId} index={index} isDragDisabled={isVirtual || hasSelection}>
+      <Draggable draggableId={draggableId} index={index} isDragDisabled={isVirtual}>
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
@@ -472,6 +472,12 @@ const CampaignKanban = () => {
               ${isVirtual ? "opacity-60 cursor-not-allowed" : ""}
             `}
           >
+            {/* Badge "+N" quando arrastando um card que faz parte de uma seleção múltipla */}
+            {snapshot.isDragging && checked && selectedIds.size > 1 && (
+              <span className="absolute -top-2 -right-2 z-10 flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[11px] font-bold text-white shadow-lg ring-2 ring-white">
+                +{selectedIds.size - 1}
+              </span>
+            )}
             <div className="flex items-center gap-2">
               {!isVirtual && (
                 <span
