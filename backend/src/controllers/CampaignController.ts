@@ -1033,3 +1033,75 @@ export const showBulkUpdate = async (
 
   return res.status(200).json({ log, shippings });
 };
+// Desfaz uma atualização em massa, restaurando o snapshot previousState
+export const undoBulkUpdate = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { companyId, id: userId } = req.user as any;
+  const { bulkId } = req.params;
+
+  const log = await CampaignBulkUpdate.findByPk(bulkId);
+  if (!log || log.companyId !== Number(companyId)) {
+    throw new AppError("Registro não encontrado", 404);
+  }
+  if (log.undoneAt) {
+    throw new AppError("Esta atualização já foi desfeita", 400);
+  }
+
+  const snapshots: Array<any> = Array.isArray(log.previousState) ? log.previousState : [];
+  if (snapshots.length === 0) {
+    throw new AppError("Snapshot anterior indisponível para esta atualização", 400);
+  }
+
+  let restored = 0;
+  let failed = 0;
+  const restoredIds: number[] = [];
+
+  for (const snap of snapshots) {
+    try {
+      const shipping = await CampaignShipping.findByPk(snap.id);
+      if (!shipping || shipping.campaignId !== Number(log.campaignId)) {
+        failed += 1;
+        continue;
+      }
+      await shipping.update({
+        deliveredAt: snap.deliveredAt ? new Date(snap.deliveredAt) : null,
+        confirmedAt: snap.confirmedAt ? new Date(snap.confirmedAt) : null,
+        message: snap.message ?? shipping.message
+      });
+      restored += 1;
+      restoredIds.push(shipping.id);
+    } catch {
+      failed += 1;
+    }
+  }
+
+  let undoneByUserName: string | null = null;
+  try {
+    if (userId) {
+      const u = await User.findByPk(userId);
+      undoneByUserName = u?.name || u?.email || null;
+    }
+  } catch { /* ignore */ }
+
+  await log.update({
+    undoneAt: new Date(),
+    undoneByUserId: userId ? Number(userId) : null,
+    undoneByUserName
+  });
+
+  const io = getIO();
+  io.of(String(companyId)).emit(`company-${companyId}-campaign`, {
+    action: "shipping-bulk-undo",
+    campaignId: Number(log.campaignId),
+    bulkUpdateId: Number(bulkId),
+    shippingIds: restoredIds
+  });
+
+  return res.status(200).json({
+    bulkUpdateId: Number(bulkId),
+    restored,
+    failed
+  });
+};
