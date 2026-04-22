@@ -215,16 +215,26 @@ const CampaignKanban = () => {
   const [historyDetail, setHistoryDetail] = useState(null); // { log, shippings }
   const [historyDetailLoading, setHistoryDetailLoading] = useState(false);
   const [historySearch, setHistorySearch] = useState("");
+  const [historyStatusFilter, setHistoryStatusFilter] = useState("all"); // "all" | status id
 
   const filteredHistoryRecords = useMemo(() => {
     const q = historySearch.trim().toLowerCase();
-    if (!q) return historyRecords;
     return historyRecords.filter((r) => {
+      if (historyStatusFilter !== "all" && r.newStatus !== historyStatusFilter) return false;
+      if (!q) return true;
       const name = (r.userName || "").toLowerCase();
       const id = String(r.id || "");
       return name.includes(q) || id.includes(q);
     });
-  }, [historyRecords, historySearch]);
+  }, [historyRecords, historySearch, historyStatusFilter]);
+
+  const historyStatusCounts = useMemo(() => {
+    const map = {};
+    for (const r of historyRecords) {
+      map[r.newStatus] = (map[r.newStatus] || 0) + 1;
+    }
+    return map;
+  }, [historyRecords]);
 
   const fetchHistory = useCallback(async (scope = historyScope) => {
     setHistoryLoading(true);
