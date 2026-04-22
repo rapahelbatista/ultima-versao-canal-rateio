@@ -670,21 +670,55 @@ const Users = () => {
                         />
                       </td>
                       <td className={classes.td} style={{ textAlign: "center" }}>
-                        <Switch
-                          checked={active}
-                          onChange={() => handleToggleActive(user)}
-                          size="small"
-                        />
+                        <Tooltip
+                          title={
+                            isOnline
+                              ? "Online agora"
+                              : `Offline — visto por último: ${lastSeenLabel}`
+                          }
+                        >
+                          <Chip
+                            size="small"
+                            label={isOnline ? "Online" : "Offline"}
+                            style={{
+                              background: isOnline ? "#d1fae5" : "#f1f5f9",
+                              color: isOnline ? "#047857" : "#64748b",
+                              fontWeight: 700,
+                              fontSize: 11,
+                            }}
+                          />
+                        </Tooltip>
                       </td>
                       <td className={classes.td} style={{ textAlign: "center" }}>
                         <Tooltip title="Ver conversas do agente">
-                          <IconButton
-                            size="small"
-                            className={classes.iconActionBlue}
-                            onClick={() => handleViewConversations(user)}
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
                           >
-                            <Eye size={16} />
-                          </IconButton>
+                            <Chip
+                              size="small"
+                              label={
+                                convCount === undefined ? "…" : convCount
+                              }
+                              style={{
+                                background: "#dbeafe",
+                                color: "#1d4ed8",
+                                fontWeight: 700,
+                                fontSize: 11,
+                                minWidth: 28,
+                              }}
+                            />
+                            <IconButton
+                              size="small"
+                              className={classes.iconActionBlue}
+                              onClick={() => handleViewConversations(user)}
+                            >
+                              <Eye size={16} />
+                            </IconButton>
+                          </span>
                         </Tooltip>
                       </td>
                       <td className={classes.td} style={{ textAlign: "center" }}>
