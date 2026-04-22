@@ -594,7 +594,7 @@ const InfiniteSentinel = ({ onReach, disabled, rootRef }) => {
     io.observe(node);
     return () => io.disconnect();
   }, [onReach, disabled, rootRef]);
-  return <div ref={ref} aria-hidden className="h-1 w-full" />;
+  return <div ref={ref} aria-hidden style={{ height: 4, width: "100%" }} />;
 };
 
 const CampaignKanban = () => {
