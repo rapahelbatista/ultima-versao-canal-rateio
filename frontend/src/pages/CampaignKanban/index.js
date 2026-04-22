@@ -199,6 +199,31 @@ const CampaignKanban = () => {
   // phase: "processing" | "done" | "error"
   const [bulkProgress, setBulkProgress] = useState(null);
   const bulkProgressTimer = useRef(null);
+  // Confirmação pendente após drag de um card selecionado (move massa)
+  const [pendingBulkMove, setPendingBulkMove] = useState(null); // { newStatus, count, sourceStatus }
+  // IDs movidos recentemente (destaque visual + alvo do scroll). Limpo após ~3s.
+  const [recentlyMovedIds, setRecentlyMovedIds] = useState(() => new Set());
+  const recentlyMovedTimer = useRef(null);
+  const markRecentlyMoved = useCallback((ids, targetStatus) => {
+    const idSet = new Set(ids.map((x) => Number(x)).filter(Boolean));
+    if (idSet.size === 0) return;
+    setRecentlyMovedIds(idSet);
+    if (recentlyMovedTimer.current) clearTimeout(recentlyMovedTimer.current);
+    recentlyMovedTimer.current = setTimeout(() => setRecentlyMovedIds(new Set()), 3000);
+    // Garante que o primeiro card movido fique visível na coluna alvo
+    requestAnimationFrame(() => {
+      const container = columnScrollRefs.current?.[targetStatus];
+      if (!container) return;
+      const firstId = ids.find((id) => id != null);
+      if (firstId == null) return;
+      const node = container.querySelector(`[data-shipping-id="${firstId}"]`);
+      if (node && typeof node.scrollIntoView === "function") {
+        node.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else {
+        container.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
+  }, []);
 
   // Última atualização em massa (botão "Desfazer" temporário)
   const [lastBulkUpdate, setLastBulkUpdate] = useState(null); // { id, status, count, expiresAt }
@@ -345,6 +370,8 @@ const CampaignKanban = () => {
     // Optimistic local: aplica imediatamente em columnsState (movendo os cards) e em shipping
     const prevShipping = shipping;
     applyStatusLocally(ids, newStatus);
+    // Destaca + rola até os movidos
+    markRecentlyMoved(ids, newStatus);
 
     try {
       const { data } = await api.post(
@@ -1051,6 +1078,7 @@ const CampaignKanban = () => {
     // Optimistic local: move o card imediatamente entre colunas (sem refetch)
     const prev = shipping;
     applyStatusLocally([draggedId], newStatus);
+    markRecentlyMoved([draggedId], newStatus);
 
     try {
       await api.patch(`/campaigns/${campaignId}/shipping/${shippingId}`, {
@@ -1084,15 +1112,19 @@ const CampaignKanban = () => {
 
     return (
       <Draggable draggableId={draggableId} index={index} isDragDisabled={isVirtual}>
-        {(provided, snapshot) => (
+        {(provided, snapshot) => {
+          const justMoved = !isVirtual && recentlyMovedIds.has(Number(item.id));
+          return (
           <div
             ref={provided.innerRef}
+            data-shipping-id={item.id ?? ""}
             {...provided.draggableProps}
             {...provided.dragHandleProps}
             onClick={(e) => !snapshot.isDragging && handleCardClick(e)}
             className={`group relative mb-2 rounded-xl border bg-white p-3 shadow-sm transition-all cursor-pointer
               ${snapshot.isDragging ? "shadow-lg ring-2 ring-emerald-300" : "hover:shadow-md hover:border-emerald-300"}
               ${checked ? "ring-2 ring-emerald-500 border-emerald-400 bg-emerald-50/40" : ""}
+              ${justMoved ? "ring-2 ring-amber-400 border-amber-300 shadow-amber-200/50 shadow-lg animate-in fade-in zoom-in-95" : ""}
               ${isVirtual ? "opacity-60 cursor-not-allowed" : ""}
             `}
           >
@@ -1148,7 +1180,8 @@ const CampaignKanban = () => {
               {isVirtual && <span className="rounded bg-slate-100 px-1.5 py-0.5">Virtual</span>}
             </div>
           </div>
-        )}
+          );
+        }}
       </Draggable>
     );
   };
