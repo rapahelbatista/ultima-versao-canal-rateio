@@ -66,8 +66,89 @@ const CampaignKanban = () => {
   const [editMessage, setEditMessage] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+
+  const isSelected = (id) => selectedIds.has(id);
+  const hasSelection = selectedIds.size > 0;
+
+  const toggleSelect = (id) => {
+    if (!id) return;
+    setSelectedIds((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const selectAllInColumn = (items) => {
+    setSelectedIds((prev) => {
+      const n = new Set(prev);
+      const ids = items.map((i) => i.id).filter(Boolean);
+      const allIn = ids.every((id) => n.has(id));
+      if (allIn) ids.forEach((id) => n.delete(id));
+      else ids.forEach((id) => n.add(id));
+      return n;
+    });
+  };
+
+  const bulkUpdateStatus = async (newStatus) => {
+    if (!hasSelection || !campaignId) return;
+    const ids = Array.from(selectedIds);
+    setBulkUpdating(true);
+
+    // Optimistic
+    const prev = shipping;
+    const now = new Date().toISOString();
+    const next = shipping.map((s) => {
+      if (!ids.includes(s.id)) return s;
+      const patch = { ...s };
+      switch (newStatus) {
+        case "pending":
+          patch.deliveredAt = null; patch.confirmedAt = null; break;
+        case "delivered":
+          patch.deliveredAt = patch.deliveredAt || now; patch.confirmedAt = null; break;
+        case "confirmed":
+          patch.deliveredAt = patch.deliveredAt || now; patch.confirmedAt = now; break;
+        case "failed":
+          patch.deliveredAt = null; patch.confirmedAt = null;
+          patch.message = `[FAILED] ${(patch.message || "").replace(/^\[FAILED\]\s*/, "")}`;
+          break;
+        default: break;
+      }
+      return patch;
+    });
+    setShipping(next);
+
+    const results = await Promise.allSettled(
+      ids.map((id) =>
+        api.patch(`/campaigns/${campaignId}/shipping/${id}`, { status: newStatus })
+      )
+    );
+    const failed = results.filter((r) => r.status === "rejected").length;
+    setBulkUpdating(false);
+
+    if (failed === 0) {
+      toast.success(`${ids.length} envio(s) atualizados para "${newStatus}"`);
+      clearSelection();
+    } else if (failed === ids.length) {
+      setShipping(prev);
+      toast.error("Falha ao atualizar envios");
+    } else {
+      toast.warn(`${ids.length - failed} atualizados, ${failed} falharam`);
+      fetchShipping();
+      clearSelection();
+    }
+  };
 
   const openDetails = (item) => {
+    // Em modo seleção, clique no card alterna seleção em vez de abrir modal
+    if (hasSelection) {
+      toggleSelect(item.id);
+      return;
+    }
     if (!item.id) {
       toast.warn("Envio ainda não processado — sem detalhes para exibir");
       return;
