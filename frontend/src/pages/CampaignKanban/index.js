@@ -20,6 +20,7 @@ import {
   History,
   User as UserIcon,
   ExternalLink,
+  Undo2,
 } from "lucide-react";
 import api from "../../services/api";
 import { toast } from "react-toastify";
