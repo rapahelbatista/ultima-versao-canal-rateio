@@ -389,8 +389,16 @@ const CampaignKanban = () => {
     }
 
     const newStatus = destination.droppableId;
+    const draggedId = Number(shippingId);
 
-    // Optimistic update
+    // Se houver seleção e o card arrastado faz parte dela,
+    // movemos TODOS os selecionados em massa.
+    if (hasSelection && selectedIds.has(draggedId)) {
+      await bulkUpdateStatus(newStatus);
+      return;
+    }
+
+    // Optimistic update individual
     const prev = shipping;
     const next = shipping.map((s) => {
       if (String(s.id) !== shippingId) return s;
@@ -426,6 +434,8 @@ const CampaignKanban = () => {
         status: newStatus,
       });
       toast.success("Status atualizado");
+      // Refetch para refletir movimentação entre colunas paginadas
+      fetchShipping();
     } catch (e) {
       setShipping(prev);
       toast.error("Falha ao atualizar status");
