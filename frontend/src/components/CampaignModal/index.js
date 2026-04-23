@@ -554,6 +554,7 @@ const CampaignModal = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, analyticsModal]);
 
+  const handleAttachmentFile = (e) => {
     const file = head(e.target.files);
     if (file) {
       setAttachment(file);
