@@ -812,15 +812,48 @@ body:has(.inbox-new) [class*="content"] {
 .inbox-new [class*="messagesList"],
 .inbox-new [class*="MessagesList"] {
   background: #f8fafc !important;
+  background-image: none !important;
   flex: 1 1 auto !important;
   min-height: 0 !important;
   overflow-y: auto !important;
+}
+
+/* Remove o papel de parede do WhatsApp em qualquer container interno */
+.inbox-new [class*="messagesListWrapper"],
+.inbox-new [class*="MessagesListWrapper"],
+.inbox-new [class*="ticketMessages"] {
+  background-image: none !important;
+  background: #f8fafc !important;
 }
 
 /* MessageInput sempre visível no rodapé */
 .inbox-new [class*="MessageInput"],
 .inbox-new [class*="messageInput"] {
   flex-shrink: 0 !important;
+}
+
+/* ============== INPUT INFERIOR — só mantém clip + emoji + mic ==============
+   Esconde os ícones extras (lápis de assinatura vermelho, trigger flow,
+   mensagem interativa, ícone de balão extra) para casar com o layout novo. */
+.inbox-new [class*="newMessageBox"] [aria-label="trigger-flow"],
+.inbox-new [class*="newMessageBox"] [aria-label="trigger-flow-mention-all"],
+.inbox-new [class*="newMessageBox"] [aria-label="send-upload"],
+.inbox-new [class*="newMessageBox"] [aria-label="mention-all"],
+.inbox-new [class*="newMessageBox"] [aria-label="interactive-message"] {
+  display: none !important;
+}
+
+/* O FAB "+" vira um IconButton discreto estilo clip */
+.inbox-new [class*="newMessageBox"] [class*="invertedFabMenu"] {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #64748b !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+}
+.inbox-new [class*="newMessageBox"] [class*="invertedFabMenu"]:hover {
+  background: #f1f5f9 !important;
 }
 
 /* Responsivo */
