@@ -74,11 +74,6 @@ const App = () => {
     [appLogoLight, appLogoDark, appLogoFavicon, appName, mode]
   );
 
-  // Reflete o tema atual em <body data-theme="..."> para CSS scopado (ex.: InboxNew)
-  useEffect(() => {
-    document.body.setAttribute("data-theme", mode);
-  }, [mode]);
-
   const theme = useMemo(
     () =>
       createTheme(

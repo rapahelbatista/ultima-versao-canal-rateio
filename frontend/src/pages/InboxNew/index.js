@@ -327,51 +327,64 @@ const InboxNew = () => {
     enabled: tabConfig.statuses.includes("pending"),
   });
 
-  // Lista combinada (dedup + ordenada por updatedAt desc)
-  const filteredTickets = useMemo(() => {
-    let list = [];
-    if (tabConfig.statuses.includes("open")) list = list.concat(openPag.tickets || []);
-    if (tabConfig.statuses.includes("pending")) list = list.concat(pendingPag.tickets || []);
+  // Aplica filtros de origem/agente de forma consistente
+  const applySidebarFilters = useCallback(
+    (arr) => {
+      let result = arr;
+      if (filterOrigin !== "all") {
+        result = result.filter(
+          (t) => getChannelTag(t).label.toLowerCase() === filterOrigin
+        );
+      }
+      if (filterAgent !== "all") {
+        result = result.filter(
+          (t) => String(t.userId || t.user?.id || "") === String(filterAgent)
+        );
+      }
+      return result;
+    },
+    [filterOrigin, filterAgent]
+  );
+
+  // Listas deduplicadas por status (base única para contadores e exibição)
+  const dedupedOpen = useMemo(() => {
     const map = new Map();
-    list.forEach((t) => map.set(t.id, t));
-    let arr = Array.from(map.values());
+    (openPag.tickets || []).forEach((t) => map.set(t.id, t));
+    return applySidebarFilters(Array.from(map.values()));
+  }, [openPag.tickets, applySidebarFilters]);
 
-    if (filterOrigin !== "all") {
-      arr = arr.filter((t) => getChannelTag(t).label.toLowerCase() === filterOrigin);
-    }
-    if (filterAgent !== "all") {
-      arr = arr.filter(
-        (t) => String(t.userId || t.user?.id || "") === String(filterAgent)
-      );
-    }
+  const dedupedPending = useMemo(() => {
+    const map = new Map();
+    (pendingPag.tickets || []).forEach((t) => map.set(t.id, t));
+    return applySidebarFilters(Array.from(map.values()));
+  }, [pendingPag.tickets, applySidebarFilters]);
 
-    return arr.sort(
+  // União deduplicada de todos (open + pending)
+  const dedupedAll = useMemo(() => {
+    const map = new Map();
+    dedupedOpen.forEach((t) => map.set(t.id, t));
+    dedupedPending.forEach((t) => map.set(t.id, t));
+    return Array.from(map.values());
+  }, [dedupedOpen, dedupedPending]);
+
+  // Lista exibida na aba ativa — usa exatamente as mesmas listas dos contadores
+  const filteredTickets = useMemo(() => {
+    let arr;
+    if (activeTab === "unread") arr = dedupedPending;
+    else if (activeTab === "read") arr = dedupedOpen;
+    else arr = dedupedAll;
+
+    return [...arr].sort(
       (a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
     );
-  }, [openPag.tickets, pendingPag.tickets, tabConfig, filterOrigin, filterAgent]);
+  }, [activeTab, dedupedAll, dedupedOpen, dedupedPending]);
 
-  // Totais por aba — contagem REAL baseada nas listas deduplicadas
-  // (igual ao TicketsListCustom legado: ticketsList.length).
-  // Assim os contadores acompanham eventos socket de criação/remoção/leitura.
-  const counts = useMemo(() => {
-    const openList = openPag.tickets || [];
-    const pendingList = pendingPag.tickets || [];
-    // "Todos" = união sem duplicatas
-    const seen = new Set();
-    let allCount = 0;
-    [...openList, ...pendingList].forEach((t) => {
-      if (!seen.has(t.id)) {
-        seen.add(t.id);
-        allCount += 1;
-      }
-    });
-    return {
-      all: allCount,
-      unread: pendingList.length,
-      read: openList.length,
-    };
-  }, [openPag.tickets, pendingPag.tickets]);
-
+  // Totais por aba derivados das mesmas listas exibidas
+  const counts = useMemo(() => ({
+    all: dedupedAll.length,
+    unread: dedupedPending.length,
+    read: dedupedOpen.length,
+  }), [dedupedAll, dedupedOpen, dedupedPending]);
 
   const unreadBadge = useMemo(
     () => (pendingPag.tickets || []).reduce((acc, t) => acc + (t.unreadMessages || 0), 0),
