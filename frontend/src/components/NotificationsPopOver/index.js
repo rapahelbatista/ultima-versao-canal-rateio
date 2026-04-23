@@ -130,7 +130,6 @@ const NotificationsPopOver = (volume) => {
 
 	useEffect(() => {
 		const processNotifications = () => {
-			// Obter conexões vinculadas ao usuário
 			const userWhatsappIds = (user?.whatsapps || []).map(w => w.id);
 			const allowedWhatsappIds = userWhatsappIds.length > 0
 				? userWhatsappIds
@@ -138,28 +137,36 @@ const NotificationsPopOver = (volume) => {
 
 			const filtered = tickets.filter(ticket => {
 				const isGroup = ticket.isGroup || ticket.status === "group";
+				const channel = (ticket.channel || ticket.whatsapp?.channel || "").toLowerCase();
+				const isWhatsappChannel = !channel || channel.includes("whatsapp") || channel === "baileys";
 
-				if (isGroup) {
-					if (!showGroupNotification) return false;
-				}
+				if (isGroup && !showGroupNotification) return false;
 
-				// Filtrar pela conexão vinculada ao usuário (se houver conexões vinculadas)
-				if (allowedWhatsappIds.length > 0 && ticket.whatsappId) {
+				// Filtra por conexão APENAS para canais WhatsApp.
+				// Telegram / Meta (oficial/instagram/facebook) não usam whatsappId vinculado.
+				if (isWhatsappChannel && allowedWhatsappIds.length > 0 && ticket.whatsappId) {
 					if (!allowedWhatsappIds.includes(ticket.whatsappId)) return false;
 				}
 
-				// Filtrar pela fila do usuário
-				if (ticket.queueId) {
+				// Filtrar pela fila do usuário (admin vê todas)
+				if (profile !== "admin" && ticket.queueId) {
 					if (!queueIds.includes(ticket.queueId)) return false;
 				}
 
 				return true;
 			});
-			setNotifications(filtered);
+			// dedupe rigoroso por id (evita duplicatas ao trocar de página /tickets <-> /inbox)
+			const seen = new Set();
+			const unique = filtered.filter(t => {
+				if (seen.has(t.id)) return false;
+				seen.add(t.id);
+				return true;
+			});
+			setNotifications(unique);
 		}
 
 		processNotifications();
-	}, [tickets, user, showGroupNotification, queueIds]);
+	}, [tickets, user, showGroupNotification, queueIds, profile]);
 
 	useEffect(() => {
 		ticketIdRef.current = ticketIdUrl;
@@ -203,32 +210,35 @@ const NotificationsPopOver = (volume) => {
 const onCompanyAppMessageNotificationsPopover = (data) => {
     if (data.action !== "create" || data.message.fromMe || data.message.read) return;
 
-    // Obter conexões vinculadas ao usuário
     const userWhatsappIds = (user?.whatsapps || []).map(w => w.id);
     const allowedWhatsappIds = userWhatsappIds.length > 0
         ? userWhatsappIds
         : (user?.whatsappId ? [user.whatsappId] : []);
 
-    // Filtrar pela conexão vinculada ao usuário
-    if (allowedWhatsappIds.length > 0 && data.ticket?.whatsappId) {
+    const channel = (data.ticket?.channel || data.ticket?.whatsapp?.channel || "").toLowerCase();
+    const isWhatsappChannel = !channel || channel.includes("whatsapp") || channel === "baileys";
+
+    // Filtra por conexão apenas para WhatsApp; Telegram/Meta passam direto.
+    if (isWhatsappChannel && allowedWhatsappIds.length > 0 && data.ticket?.whatsappId) {
         if (!allowedWhatsappIds.includes(data.ticket.whatsappId)) return;
     }
 
     const isGroupTicket = data.ticket?.isGroup || data.ticket?.status === "group";
 
-    // Se é grupo, verificar permissão de grupo
     if (isGroupTicket && !showGroupNotification) return;
-    if (isGroupTicket && data.ticket?.whatsapp?.groupAsTicket !== "enabled") return;
+    if (isGroupTicket && data.ticket?.whatsapp?.groupAsTicket !== "enabled" && isWhatsappChannel) return;
 
     // Verificar se o ticket é do usuário ou sem atribuição
     if (data.ticket?.userId && data.ticket.userId !== user?.id) return;
 
-    // Filtrar por fila
+    // Filtrar por fila (admin vê todas)
     const ticketQueueId = data.ticket?.queueId;
-    if (ticketQueueId) {
-        if (!queueIds.includes(ticketQueueId)) return;
-    } else if (!showTicketWithoutQueue) {
-        return;
+    if (profile !== "admin") {
+        if (ticketQueueId) {
+            if (!queueIds.includes(ticketQueueId)) return;
+        } else if (!showTicketWithoutQueue) {
+            return;
+        }
     }
 
     // Filtrar por status
@@ -238,22 +248,18 @@ const onCompanyAppMessageNotificationsPopover = (data) => {
     }
 
     {
-        // Aplicar lógica de permissão para mensagens pending
         const shouldBlurMessages = data.ticket.status === "pending" && user.allowSeeMessagesInPendingTickets === "disabled";
-        
-        // Se deve ocultar a mensagem, modifique o ticket antes de adicioná-lo às notificações
-        const ticketToAdd = shouldBlurMessages 
-            ? {
-                ...data.ticket,
-                lastMessage: i18n.t("notifications.messageHidden") // ou "Mensagem oculta"
-              }
+        const ticketToAdd = shouldBlurMessages
+            ? { ...data.ticket, lastMessage: i18n.t("notifications.messageHidden") }
             : data.ticket;
 
         setNotifications(prevState => {
+            // dedupe rigoroso: substitui se existir, senão adiciona no topo
             const ticketIndex = prevState.findIndex(t => t.id === ticketToAdd.id);
             if (ticketIndex !== -1) {
-                prevState[ticketIndex] = ticketToAdd;
-                return [...prevState];
+                const next = [...prevState];
+                next[ticketIndex] = ticketToAdd;
+                return next;
             }
             return [ticketToAdd, ...prevState];
         });
@@ -261,22 +267,17 @@ const onCompanyAppMessageNotificationsPopover = (data) => {
         const shouldNotNotificate =
             (data.message.ticketId === ticketIdRef.current &&
                 document.visibilityState === "visible") ||
-            (data.ticket.userId && data.ticket.userId !== user?.id) ||
-            (data.ticket.isGroup && data.ticket?.whatsapp?.groupAsTicket === "disabled" && showGroupNotification === false);
+            (data.ticket.userId && data.ticket.userId !== user?.id);
 
         if (shouldNotNotificate === true) return;
 
-        // Para notificações desktop, também aplicar a lógica de ocultação
-        const messageBody = shouldBlurMessages 
+        const messageBody = shouldBlurMessages
             ? i18n.t("notifications.messageHidden")
             : data.message.body;
 
         handleNotifications({
             ...data,
-            message: {
-                ...data.message,
-                body: messageBody
-            }
+            message: { ...data.message, body: messageBody }
         });
     }
 }

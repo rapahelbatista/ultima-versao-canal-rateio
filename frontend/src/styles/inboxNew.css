@@ -621,12 +621,115 @@
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
 }
 
-/* Header do Ticket interno: estilo verde clean */
+/* ============== HEADER DO TICKET (estilo WhatsApp Web) ============== */
 .inbox-new [class*="ticketHeader"],
 .inbox-new [class*="TicketHeader"] {
   background: #ffffff !important;
   border-bottom: 1px solid #e5e7eb !important;
   min-height: 64px !important;
+  padding: 8px 16px !important;
+  box-shadow: none !important;
+}
+/* Remove botões de ação grandes (Aceitar/Resolver) do header interno
+   pois usamos a actionbar superior para isso */
+.inbox-new [class*="ticketActionButtons"] button,
+.inbox-new [class*="TicketActionButtons"] button {
+  text-transform: none !important;
+  border-radius: 999px !important;
+  font-weight: 600 !important;
+}
+/* Avatar do header maior e estilizado */
+.inbox-new [class*="ticketHeader"] .MuiAvatar-root,
+.inbox-new [class*="TicketInfo"] .MuiAvatar-root {
+  width: 40px !important;
+  height: 40px !important;
+  background: #ef4444 !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+/* Nome + número do contato no header */
+.inbox-new [class*="TicketInfo"] [class*="contactNameWrapper"] strong,
+.inbox-new [class*="TicketInfo"] [class*="contactName"] {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+}
+.inbox-new [class*="TicketInfo"] [class*="contactNameWrapper"] span,
+.inbox-new [class*="TicketInfo"] [class*="contactNumber"] {
+  font-size: 12px !important;
+  color: #94a3b8 !important;
+}
+
+/* ============== ACTIONBAR FLUTUANTE (search/download/info) ============== */
+.inbox-chat-actionbar {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  padding: 4px 8px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+.inbox-chat-action {
+  width: 32px !important;
+  height: 32px !important;
+  color: #64748b !important;
+  background: transparent !important;
+}
+.inbox-chat-action:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+.inbox-chat-action-info-active {
+  background: #d1fae5 !important;
+  color: #047857 !important;
+}
+.inbox-chat-action-archive:hover {
+  background: #d1fae5 !important;
+  color: #047857 !important;
+}
+.inbox-chat-actionbar-sep {
+  width: 1px;
+  height: 18px;
+  background: #e5e7eb;
+}
+
+/* ============== INPUT DE MENSAGEM (estilo WhatsApp) ============== */
+.inbox-new [class*="MessageInput"] [class*="mainWrapper"],
+.inbox-new [class*="messageInput"] {
+  background: #ffffff !important;
+  border-top: 1px solid #e5e7eb !important;
+  padding: 10px 14px !important;
+}
+.inbox-new [class*="MessageInput"] textarea,
+.inbox-new [class*="MessageInput"] input[type="text"] {
+  background: #f8fafc !important;
+  border-radius: 999px !important;
+  padding: 10px 16px !important;
+  font-size: 14px !important;
+}
+
+/* Datas centralizadas no chat */
+.inbox-new [class*="dailyTimestamp"] {
+  background: #ffffff !important;
+  color: #64748b !important;
+  border-radius: 999px !important;
+  padding: 4px 12px !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06) !important;
+  border: 1px solid #f1f5f9 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+/* Background da área de mensagens */
+.inbox-new [class*="messagesList"],
+.inbox-new [class*="MessagesList"] {
+  background: #f8fafc !important;
 }
 
 /* Responsivo */
