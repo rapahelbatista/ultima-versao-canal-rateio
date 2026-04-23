@@ -318,6 +318,9 @@ const renderTextWithVars = (text, classes, samples, useExamples) => {
 
 const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
   const classes = useStyles();
+  const [useExamples, setUseExamples] = useState(true);
+
+  const samples = useMemo(() => SAMPLE_VALUES(), []);
 
   const activeMessages = useMemo(() => {
     if (!messages) return [];
@@ -327,6 +330,16 @@ const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
   }, [messages]);
 
   const currentMessage = activeMessages.length > 0 ? activeMessages[0].text : "";
+
+  // Detecta variáveis usadas na mensagem para a legenda
+  const usedVars = useMemo(() => {
+    if (!currentMessage) return [];
+    const found = new Set();
+    const re = /\{([\w]+)\}/gi;
+    let m;
+    while ((m = re.exec(currentMessage)) !== null) found.add(m[1].toLowerCase());
+    return Array.from(found);
+  }, [currentMessage]);
 
   const getAttachmentPreview = () => {
     if (attachment) {
@@ -366,10 +379,10 @@ const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
       {/* Header */}
       <Box className={classes.header}>
         <ChatBubbleOutlineIcon className={classes.headerIcon} />
-        <Box>
+        <Box style={{ flex: 1 }}>
           <Typography className={classes.headerTitle}>Preview da Mensagem</Typography>
           <Typography className={classes.headerSubtitle}>
-            Visualize como a mensagem aparecerá no WhatsApp
+            {useExamples ? "Renderizado com valores de exemplo" : "Mostrando o template bruto"}
           </Typography>
         </Box>
       </Box>
@@ -381,7 +394,7 @@ const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
             <PersonIcon style={{ color: "#fff", fontSize: 20 }} />
           </Box>
           <Box>
-            <Typography className={classes.contactName}>Contato</Typography>
+            <Typography className={classes.contactName}>{useExamples ? samples.nome : "Contato"}</Typography>
             <Typography className={classes.contactStatus}>online</Typography>
           </Box>
         </Box>
@@ -391,7 +404,7 @@ const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
             <Box className={classes.messageBubble}>
               {getAttachmentPreview()}
               <Typography className={classes.bodyText}>
-                {renderTextWithVars(currentMessage, classes)}
+                {renderTextWithVars(currentMessage, classes, samples, useExamples)}
               </Typography>
               <Typography className={classes.timeText}>
                 {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
@@ -413,7 +426,7 @@ const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
             className={classes.inputField}
             placeholder="Digite uma mensagem"
             readOnly
-            value={currentMessage ? replaceCustomVars(currentMessage).substring(0, 50) + (currentMessage.length > 50 ? "..." : "") : ""}
+            value={currentMessage ? (useExamples ? replaceCustomVars(currentMessage, samples) : currentMessage).substring(0, 50) + (currentMessage.length > 50 ? "..." : "") : ""}
           />
           <IconButton size="small" className={classes.sendButton}>
             <SendIcon style={{ fontSize: 18 }} />
@@ -421,9 +434,33 @@ const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
         </Box>
       </Box>
 
+      {/* Toggle entre exemplos e bruto */}
+      <Box className={classes.toggleRow}>
+        <span>{useExamples ? "✨ Exibindo exemplos fictícios" : "🔤 Exibindo placeholders crus"}</span>
+        <button
+          type="button"
+          className={`${classes.toggleBtn} ${useExamples ? "" : classes.toggleBtnRaw}`}
+          onClick={() => setUseExamples((v) => !v)}
+        >
+          {useExamples ? "Ver bruto" : "Ver com exemplos"}
+        </button>
+      </Box>
+
+      {/* Legenda dinâmica */}
+      {usedVars.length > 0 && (
+        <Box className={classes.legendList}>
+          {usedVars.map((v) => (
+            <span key={v} className={classes.legendItem}>
+              <code>{`{${v}}`}</code>
+              <span>→ {samples[v] !== undefined ? samples[v] : `[${v}]`}</span>
+            </span>
+          ))}
+        </Box>
+      )}
+
       {/* Variables hint */}
       <Box className={classes.variablesHint}>
-        Variáveis disponíveis: <strong>{"{nome}"}</strong>, <strong>{"{numero}"}</strong>, <strong>{"{email}"}</strong>, <strong>{"{greeting}"}</strong>, <strong>{"{protocol}"}</strong>
+        Variáveis padrão: <strong>{"{nome}"}</strong>, <strong>{"{numero}"}</strong>, <strong>{"{email}"}</strong>, <strong>{"{saudacao}"}</strong>, <strong>{"{data}"}</strong>, <strong>{"{empresa}"}</strong> + suas variáveis personalizadas.
       </Box>
     </Box>
   );
