@@ -830,11 +830,21 @@ const InboxNew = () => {
         )}
       </main>
 
+      {/* ============== INFO DO CHAT (painel direito custom) ============== */}
+      {infoOpen && currentTicket && (
+        <InboxInfoPanel
+          ticket={currentTicket}
+          contact={currentTicket.contact}
+          onClose={() => setInfoOpen(false)}
+        />
+      )}
+
       {/* ============== MODAL NOVA CONVERSA (legado, ainda disponível) ============== */}
       <NewTicketModal
         modalOpen={newTicketOpen}
         onClose={() => setNewTicketOpen(false)}
       />
+
 
       {/* ============== POPOVER: FILTROS (sidebar) ============== */}
       <Popover
