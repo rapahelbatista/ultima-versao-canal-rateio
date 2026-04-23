@@ -346,26 +346,56 @@ const InboxNew = () => {
     [filterOrigin, filterAgent]
   );
 
-  // Listas deduplicadas por status (base única para contadores e exibição)
-  const dedupedOpen = useMemo(() => {
-    const map = new Map();
-    (openPag.tickets || []).forEach((t) => map.set(t.id, t));
-    return applySidebarFilters(Array.from(map.values()));
-  }, [openPag.tickets, applySidebarFilters]);
+  // Resolve a chave única do ticket de forma resiliente a variações
+  // do payload do socket (ex.: { ticket: {...} }, sem id mas com uuid, id como string/number).
+  const getTicketKey = useCallback((t) => {
+    if (!t || typeof t !== "object") return null;
+    const source = t.ticket && typeof t.ticket === "object" ? t.ticket : t;
+    const raw =
+      source.id ??
+      source.ticketId ??
+      source.uuid ??
+      source.ticket?.id ??
+      source.ticket?.uuid;
+    if (raw === undefined || raw === null || raw === "") return null;
+    return String(raw);
+  }, []);
 
-  const dedupedPending = useMemo(() => {
+  // Deduplica preservando o registro mais recente (por updatedAt) para a mesma chave.
+  const dedupeByTicketKey = useCallback((list) => {
     const map = new Map();
-    (pendingPag.tickets || []).forEach((t) => map.set(t.id, t));
-    return applySidebarFilters(Array.from(map.values()));
-  }, [pendingPag.tickets, applySidebarFilters]);
-
-  // União deduplicada de todos (open + pending)
-  const dedupedAll = useMemo(() => {
-    const map = new Map();
-    dedupedOpen.forEach((t) => map.set(t.id, t));
-    dedupedPending.forEach((t) => map.set(t.id, t));
+    (list || []).forEach((item) => {
+      const key = getTicketKey(item);
+      if (!key) return; // descarta entradas sem identificador confiável
+      const ticket = item.ticket && typeof item.ticket === "object" ? item.ticket : item;
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, ticket);
+        return;
+      }
+      const newTs = new Date(ticket.updatedAt || ticket.createdAt || 0).getTime();
+      const oldTs = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
+      if (newTs >= oldTs) map.set(key, ticket);
+    });
     return Array.from(map.values());
-  }, [dedupedOpen, dedupedPending]);
+  }, [getTicketKey]);
+
+  // Listas deduplicadas por status (base única para contadores e exibição)
+  const dedupedOpen = useMemo(
+    () => applySidebarFilters(dedupeByTicketKey(openPag.tickets)),
+    [openPag.tickets, applySidebarFilters, dedupeByTicketKey]
+  );
+
+  const dedupedPending = useMemo(
+    () => applySidebarFilters(dedupeByTicketKey(pendingPag.tickets)),
+    [pendingPag.tickets, applySidebarFilters, dedupeByTicketKey]
+  );
+
+  // União deduplicada de todos (open + pending) usando a mesma chave canônica
+  const dedupedAll = useMemo(
+    () => dedupeByTicketKey([...dedupedOpen, ...dedupedPending]),
+    [dedupedOpen, dedupedPending, dedupeByTicketKey]
+  );
 
   // Lista exibida na aba ativa — usa exatamente as mesmas listas dos contadores
   const filteredTickets = useMemo(() => {
