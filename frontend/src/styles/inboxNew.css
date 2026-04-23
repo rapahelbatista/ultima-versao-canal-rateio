@@ -19,6 +19,7 @@ body:has(.inbox-new) #root {
   position: relative;
   flex: 1 1 auto;
   width: 100%;
+  max-width: 100%;
   height: 100%;
   min-height: 0;
   background: #f8fafc;
@@ -27,10 +28,17 @@ body:has(.inbox-new) #root {
   overflow: hidden;
 }
 
+.inbox-new,
+.inbox-new * {
+  box-sizing: border-box;
+}
+
 /* ============== SIDEBAR ESQUERDA ============== */
 .inbox-sidebar {
+  flex: 0 0 360px;
   width: 360px;
-  min-width: 320px;
+  min-width: 360px;
+  max-width: 360px;
   display: flex;
   flex-direction: column;
   background: #ffffff;
@@ -524,11 +532,24 @@ body:has(.inbox-new) #root {
 /* ============== ÁREA DE CHAT ============== */
 .inbox-chat {
   position: relative;
-  flex: 1;
+  flex: 1 1 0%;
   display: flex;
   flex-direction: column;
   background: #f8fafc;
   min-width: 0;
+  width: 1px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.inbox-chat > *:not(.inbox-chat-actionbar) {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .inbox-chat-header {
@@ -639,8 +660,8 @@ body:has(.inbox-new) #root {
 .inbox-new [class*="TicketHeader"] {
   background: #ffffff !important;
   border-bottom: 1px solid #e5e7eb !important;
-  min-height: 64px !important;
-  padding: 8px 16px !important;
+  min-height: 72px !important;
+  padding: 12px 132px 12px 18px !important;
   box-shadow: none !important;
 }
 /* Esconde os botões legados do header interno do Ticket
@@ -676,8 +697,8 @@ body:has(.inbox-new) #root {
 /* ============== ACTIONBAR FLUTUANTE (search/download/info) ============== */
 .inbox-chat-actionbar {
   position: absolute;
-  top: 12px;
-  right: 16px;
+  top: 16px;
+  right: 20px;
   z-index: 5;
   display: flex;
   align-items: center;
@@ -687,6 +708,7 @@ body:has(.inbox-new) #root {
   border-radius: 999px;
   padding: 4px 8px;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  max-width: calc(100% - 40px);
 }
 .inbox-chat-action {
   width: 32px !important;
@@ -795,6 +817,10 @@ body:has(.inbox-new) #root {
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
 }
 
 /* Esconde a barra de Tags duplicada acima do chat (já temos no painel lateral Info) */
@@ -881,11 +907,14 @@ body:has(.inbox-new) #root {
   display: none !important;
 }
 .inbox-new [class*="mainWrapperShift"] {
+  width: 100% !important;
+  max-width: 100% !important;
   margin-right: 0 !important;
 }
 
 /* ============== INBOX INFO PANEL (custom — first-image style) ============== */
 .inbox-info-panel {
+  flex: 0 0 320px;
   width: 320px;
   min-width: 320px;
   max-width: 320px;
@@ -1116,6 +1145,15 @@ body:has(.inbox-new) #root {
   justify-content: flex-start !important;
 }
 
+@media (max-width: 1280px) {
+  .inbox-info-panel {
+    flex-basis: 280px;
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
+  }
+}
+
 @media (max-width: 1100px) {
   .inbox-info-panel {
     position: absolute;
@@ -1124,6 +1162,10 @@ body:has(.inbox-new) #root {
     bottom: 0;
     z-index: 20;
     box-shadow: -4px 0 16px rgba(0,0,0,0.08);
+    flex-basis: 320px;
+    width: 320px;
+    min-width: 320px;
+    max-width: 320px;
   }
 }
 
@@ -1162,8 +1204,6 @@ body:has(.inbox-new) #root {
 
 /* 2) Hide ticket separators "#Chamado N - Sem Fila" */
 .inbox-new div[class*="ticketNumber"],
-.inbox-new div[class*="ticketInfo"],
-.inbox-new div[class*="ticketHeader"],
 .inbox-new div[class*="messageMedia"][class*="divider"],
 .inbox-new div[class*="dailyTimestamp"][class*="ticket"],
 .inbox-new div[class*="dividerTicket"],
