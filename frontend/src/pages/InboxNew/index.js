@@ -42,6 +42,7 @@ import NewTicketModal from "../../components/NewTicketModal";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import "../../styles/inboxNew.css";
+import { QueueSelectedProvider } from "../../context/QueuesSelected/QueuesSelectedContext";
 
 const Ticket = React.lazy(() => import("../../components/Ticket"));
 
