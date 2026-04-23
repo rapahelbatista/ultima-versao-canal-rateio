@@ -772,23 +772,13 @@ body:has(.inbox-new) [class*="content"] {
 }
 
 /* Esconde a barra de Tags duplicada acima do chat (já temos no painel lateral Info) */
-.inbox-new .MuiPaper-root:has(> div > [class*="Tag"]),
 .inbox-new [class*="TagsContainer"],
-.inbox-new .MuiPaper-root > .MuiAutocomplete-root {
+.inbox-new .MuiPaper-root:has(> .MuiAutocomplete-root) {
   display: none !important;
 }
 
-/* Esconde o aviso amarelo "Ticket Aguardando: Apenas mensagens internas..." */
-.inbox-new [class*="MuiBox-root"]:has(> svg + span > strong),
-.inbox-new div:has(> strong:only-child):not(.inbox-item *) {
-  /* mantém — o seletor abaixo é mais específico */
-}
-.inbox-new div[class*="MuiBox"]:has(strong:contains("Ticket Aguardando")) {
-  display: none !important;
-}
-/* Fallback robusto: aviso usa background amarelo / azul claro com Info icon */
-.inbox-new [class*="messageInputWrapper"] > div[style*="background"],
-.inbox-new [class*="MessageInput"] ~ div[style*="background"] {
+/* Esconde o aviso "Ticket Aguardando: Apenas mensagens internas..." */
+.inbox-new [class*="pendingAlert"] {
   display: none !important;
 }
 
