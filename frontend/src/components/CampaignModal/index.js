@@ -1762,6 +1762,33 @@ const CampaignModal = ({
                 >
                   {i18n.t("campaigns.dialog.buttons.close")}
                 </Button>
+
+                {campaignEditable && (
+                  <Button
+                    onClick={() => {
+                      const STORAGE_KEY = "campaignActionStats";
+                      let stats = { drafts: 0, confirmed: 0, recent: [] };
+                      try {
+                        const raw = sessionStorage.getItem(STORAGE_KEY);
+                        if (raw) stats = JSON.parse(raw);
+                      } catch (_) {}
+                      stats.drafts = (stats.drafts || 0) + 1;
+                      stats.recent = [{
+                        label: (campaign && campaign.name) || "Rascunho sem nome",
+                        time: new Date().toISOString(),
+                        type: "draft",
+                      }, ...(stats.recent || [])].slice(0, 5);
+                      try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stats)); } catch (_) {}
+                      toast.info("📝 Rascunho salvo nesta sessão");
+                      setAnalyticsModal(stats);
+                    }}
+                    color="default"
+                    variant="outlined"
+                    disabled={isSubmitting}
+                  >
+                    Salvar rascunho
+                  </Button>
+                )}
                 {(messageTab === 0 || messageTab === 1) && (campaignEditable || campaign.status === "CANCELADA") && (
                   <Button
                     type="submit"
