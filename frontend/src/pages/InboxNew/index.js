@@ -361,13 +361,27 @@ const InboxNew = () => {
     return String(raw);
   }, []);
 
+  // Normaliza um ticket garantindo tipos consistentes (especialmente unreadMessages,
+  // que pode vir como null/undefined/string do backend).
+  const normalizeTicket = useCallback((ticket) => {
+    if (!ticket || typeof ticket !== "object") return ticket;
+    const rawUnread = ticket.unreadMessages;
+    let unread = 0;
+    if (rawUnread !== null && rawUnread !== undefined && rawUnread !== "") {
+      const n = Number(rawUnread);
+      unread = Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+    }
+    return { ...ticket, unreadMessages: unread };
+  }, []);
+
   // Deduplica preservando o registro mais recente (por updatedAt) para a mesma chave.
   const dedupeByTicketKey = useCallback((list) => {
     const map = new Map();
     (list || []).forEach((item) => {
       const key = getTicketKey(item);
       if (!key) return; // descarta entradas sem identificador confiável
-      const ticket = item.ticket && typeof item.ticket === "object" ? item.ticket : item;
+      const rawTicket = item.ticket && typeof item.ticket === "object" ? item.ticket : item;
+      const ticket = normalizeTicket(rawTicket);
       const existing = map.get(key);
       if (!existing) {
         map.set(key, ticket);
@@ -378,7 +392,7 @@ const InboxNew = () => {
       if (newTs >= oldTs) map.set(key, ticket);
     });
     return Array.from(map.values());
-  }, [getTicketKey]);
+  }, [getTicketKey, normalizeTicket]);
 
   // Listas deduplicadas por status (base única para contadores e exibição)
   const dedupedOpen = useMemo(
