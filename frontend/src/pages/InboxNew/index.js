@@ -15,12 +15,20 @@ import {
   FilterList as FilterIcon,
   CheckBox as CheckBoxIcon,
   MoreVert as MoreVertIcon,
+  Archive as ArchiveIcon,
+  MarkunreadOutlined as MarkUnreadIcon,
+  DraftsOutlined as MarkReadIcon,
+  Reply as ReplyIcon,
+  CheckCircleOutline as DoneIcon,
 } from "@material-ui/icons";
 import { format, isToday, isYesterday } from "date-fns";
+import { toast } from "react-toastify";
 
 import useTickets from "../../hooks/useTickets";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import NewTicketModal from "../../components/NewTicketModal";
+import api from "../../services/api";
+import toastError from "../../errors/toastError";
 import "../../styles/inboxNew.css";
 
 const Ticket = React.lazy(() => import("../../components/Ticket"));
@@ -191,6 +199,59 @@ const InboxNew = () => {
     history.push(`/inbox/${t.uuid || t.id}`);
   };
 
+  // Feedback visual por linha
+  const [actionLoadingId, setActionLoadingId] = useState(null);
+
+  const updateTicket = async (ticket, payload, successMsg) => {
+    try {
+      setActionLoadingId(ticket.id);
+      await api.put(`/tickets/${ticket.id}`, payload);
+      toast.success(successMsg);
+      if (
+        payload.status === "closed" &&
+        String(ticket.uuid || ticket.id) === String(ticketId)
+      ) {
+        history.push("/inbox");
+      }
+    } catch (err) {
+      toastError(err);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleToggleRead = (e, ticket) => {
+    e.stopPropagation();
+    const isUnread =
+      (ticket.unreadMessages || 0) > 0 || ticket.status === "pending";
+    updateTicket(
+      ticket,
+      isUnread ? { status: "open" } : { status: "pending" },
+      isUnread ? "Marcado como lido" : "Marcado como não lido"
+    );
+  };
+
+  const handleArchive = (e, ticket) => {
+    e.stopPropagation();
+    updateTicket(ticket, { status: "closed" }, "Conversa arquivada");
+  };
+
+  const handleQuickReply = (e, ticket) => {
+    e.stopPropagation();
+    history.push(`/inbox/${ticket.uuid || ticket.id}`);
+    setTimeout(() => {
+      const input = document.querySelector(
+        ".inbox-chat textarea, .inbox-chat input[type='text']"
+      );
+      if (input) input.focus();
+    }, 300);
+  };
+
+  const currentTicket = useMemo(
+    () => filteredTickets.find((t) => String(t.uuid || t.id) === String(ticketId)),
+    [filteredTickets, ticketId]
+  );
+
   return (
     <div className="inbox-new">
       {/* ============== SIDEBAR ESQUERDA ============== */}
@@ -275,10 +336,15 @@ const InboxNew = () => {
             const isImportant = (t.tags || []).some((tg) =>
               (tg.name || "").toLowerCase().includes("import")
             );
+            const isUnread =
+              (t.unreadMessages || 0) > 0 || t.status === "pending";
+            const isBusy = actionLoadingId === t.id;
             return (
               <div
                 key={t.id}
-                className={`inbox-item ${isSelected ? "selected" : ""}`}
+                className={`inbox-item ${isSelected ? "selected" : ""} ${
+                  isBusy ? "is-busy" : ""
+                }`}
                 onClick={() => handleSelectTicket(t)}
               >
                 <div className="inbox-item-avatar">
@@ -309,6 +375,49 @@ const InboxNew = () => {
                     )}
                   </div>
                 </div>
+
+                {/* Ações rápidas no card (aparecem no hover) */}
+                <div className="inbox-item-actions">
+                  <Tooltip
+                    title={isUnread ? "Marcar como lido" : "Marcar como não lido"}
+                  >
+                    <IconButton
+                      size="small"
+                      className="inbox-card-action"
+                      disabled={isBusy}
+                      onClick={(e) => handleToggleRead(e, t)}
+                    >
+                      {isUnread ? (
+                        <MarkReadIcon fontSize="small" />
+                      ) : (
+                        <MarkUnreadIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Responder">
+                    <IconButton
+                      size="small"
+                      className="inbox-card-action inbox-card-reply"
+                      disabled={isBusy}
+                      onClick={(e) => handleQuickReply(e, t)}
+                    >
+                      <ReplyIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Arquivar">
+                    <IconButton
+                      size="small"
+                      className="inbox-card-action inbox-card-archive"
+                      disabled={isBusy}
+                      onClick={(e) => handleArchive(e, t)}
+                    >
+                      <ArchiveIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  {isBusy && (
+                    <CircularProgress size={14} className="inbox-card-spinner" />
+                  )}
+                </div>
               </div>
             );
           })}
@@ -332,15 +441,54 @@ const InboxNew = () => {
       {/* ============== ÁREA DE CHAT ============== */}
       <main className="inbox-chat">
         {ticketId ? (
-          <Suspense
-            fallback={
-              <div className="inbox-loader" style={{ height: "100%" }}>
-                <CircularProgress />
+          <>
+            {/* Toolbar flutuante com ações do chat */}
+            {currentTicket && (
+              <div className="inbox-chat-actionbar">
+                <Tooltip title="Marcar como não lido">
+                  <IconButton
+                    size="small"
+                    className="inbox-chat-action"
+                    disabled={actionLoadingId === currentTicket.id}
+                    onClick={(e) => handleToggleRead(e, currentTicket)}
+                  >
+                    <MarkUnreadIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Responder">
+                  <IconButton
+                    size="small"
+                    className="inbox-chat-action inbox-chat-action-primary"
+                    onClick={(e) => handleQuickReply(e, currentTicket)}
+                  >
+                    <ReplyIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Resolver / Arquivar">
+                  <IconButton
+                    size="small"
+                    className="inbox-chat-action inbox-chat-action-archive"
+                    disabled={actionLoadingId === currentTicket.id}
+                    onClick={(e) => handleArchive(e, currentTicket)}
+                  >
+                    <DoneIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                {actionLoadingId === currentTicket.id && (
+                  <CircularProgress size={16} style={{ marginLeft: 4 }} />
+                )}
               </div>
-            }
-          >
-            <Ticket />
-          </Suspense>
+            )}
+            <Suspense
+              fallback={
+                <div className="inbox-loader" style={{ height: "100%" }}>
+                  <CircularProgress />
+                </div>
+              }
+            >
+              <Ticket />
+            </Suspense>
+          </>
         ) : (
           <div className="inbox-empty-chat">
             <div className="inbox-empty-chat-card">
