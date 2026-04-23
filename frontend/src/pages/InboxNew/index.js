@@ -519,6 +519,7 @@ const InboxNew = () => {
   }, [msgSearch, ticketId]);
 
   return (
+    <QueueSelectedProvider>
     <div className="inbox-new">
       {/* ============== SIDEBAR ESQUERDA ============== */}
       <aside className="inbox-sidebar">
