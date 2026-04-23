@@ -750,6 +750,20 @@ const InboxNew = () => {
             {/* Toolbar flutuante com ações do chat (espelha mockup) */}
             {currentTicket && (
               <div className="inbox-chat-actionbar">
+                {currentTicket.status === "pending" && (
+                  <Tooltip title="Aceitar ticket">
+                    <Button
+                      size="small"
+                      variant="contained"
+                      className="inbox-chat-accept-btn"
+                      disabled={actionLoadingId === currentTicket.id}
+                      onClick={(e) => handleAccept(e, currentTicket)}
+                      startIcon={<DoneIcon fontSize="small" />}
+                    >
+                      Aceitar
+                    </Button>
+                  </Tooltip>
+                )}
                 <Tooltip title="Marcar como não lido">
                   <IconButton
                     size="small"
