@@ -1,51 +1,36 @@
 
-Objetivo: restaurar o layout “como era no EquipeChat” no modo de campanhas, eliminando a renderização crua mostrada na imagem.
+## Ajustes no Chat do InboxNew
 
-1. Causa raiz identificada
-- O app está entrando no modo `CAMPAIGN_ONLY_MODE`, porque `frontend/src/config/featureFlags.js` define essa flag como `true` por padrão.
-- Quando essa flag está ativa, `frontend/src/routes/index.js` troca o layout padrão (`LoggedInLayout`) por `CampaignLayout`.
-- O problema é que `frontend/src/layout/CampaignLayout.js` e `frontend/src/pages/CampaignsHome/index.js` foram escritos com classes utilitárias do Tailwind (`flex`, `bg-white`, `rounded-xl`, `text-slate-700`, etc.).
-- O projeto não possui configuração ativa do Tailwind no frontend: não há import global de Tailwind nem arquivos de configuração em uso. Resultado: essas classes não geram CSS e a tela aparece como HTML cru, exatamente como na imagem.
+Corrigir três problemas visíveis na tela atual:
+1. **Fundo amarelado** vindo do papel de parede do WhatsApp (`whatsBackground`) que vaza no chat.
+2. **Conteúdo cortado** (faixa cinza `#Chamado 2 - Sem Fila`, barra de tags amarela, mensagens iniciais escondidas).
+3. **Ícones do rodapé** (lápis vermelho de assinatura, kanban, balão) destoam do layout novo — precisam ficar em estilo Lucide minimalista.
 
-2. O que corrigir
-- Remover a dependência visual de Tailwind no fluxo de campanhas.
-- Reescrever o `CampaignLayout` para Material-UI v4, seguindo o padrão já usado no restante do sistema.
-- Reescrever a `CampaignsHome` para Material-UI v4, preservando:
-  - sidebar
-  - topbar
-  - dashboard inicial
-  - cards de métricas
-  - ações rápidas
-  - estados vazios e loading
+### O que será feito
 
-3. Estratégia de implementação
-- Arquivo `frontend/src/layout/CampaignLayout.js`
-  - substituir toda a estrutura baseada em `className` utilitária por `makeStyles` + componentes MUI (`Box`/`Paper` se já houver compatibilidade, ou `div` estilizada via `makeStyles`, `IconButton`, `Button`, `Typography`, `Avatar`, `Badge`);
-  - manter a mesma navegação, grupos de menu, colapso lateral, logout e cabeçalho;
-  - preservar o comportamento atual de rotas e permissões.
-- Arquivo `frontend/src/pages/CampaignsHome/index.js`
-  - migrar o dashboard para MUI com cards, grid responsivo, botões e placeholders;
-  - manter a lógica atual de busca de estatísticas, auto-refresh e navegação rápida;
-  - corrigir estados visuais para quando não houver dados.
-- Revisar os componentes do modo campanhas que ainda usem utilitários Tailwind para evitar o mesmo problema em outras telas relacionadas.
+**1. Eliminar o fundo amarelo (CSS — `frontend/src/styles/inboxNew.css`)**
+- Forçar `background-image: none !important` e `background-color: #f8fafc !important` em **todos** os seletores da `MessagesList` (incluindo `#messagesList`, `[id="messagesList"]`, `[class*="messagesList"]`, `[class*="messagesListWrapper"]`).
+- Sobrescrever o `style` inline aplicado pelo `makeStyles` usando seletores com maior especificidade (`.inbox-new div[class*="messagesList"]`).
+- Usar um fundo neutro claro (`#f8fafc`) no modo light e (`#0b0b0d`) no modo dark — coerente com o resto do painel.
 
-4. Resultado esperado
-- O sistema volta a ter layout visual consistente no modo campanhas.
-- A tela `/api-keys` e as demais páginas deixam de aparecer “sem CSS”.
-- O modo campanhas passa a seguir o mesmo padrão visual/tecnológico do resto do EquipeChat, sem depender de Tailwind.
+**2. Remover elementos que cortam o chat**
+- Esconder a faixa cinza **`#Chamado N - Sem Fila`** (renderizada pelo `MessagesList` como divider de tickets) dentro do `.inbox-new` — já temos essa info no header do chat e no painel lateral.
+- Esconder a barra de **Tags** acima do chat (já há regra, mas não está pegando — reforçar com `[class*="ContactTag"]`, `[class*="TagsContainer"]`, `.MuiPaper-root.MuiPaper-elevation1` que envolve o Autocomplete de tags).
+- Garantir que `MessagesList` ocupe 100% do espaço entre header e input (`flex: 1; min-height: 0`).
 
-5. Detalhes técnicos
-- Não vou ativar Tailwind no projeto como solução principal, porque isso adicionaria outra camada de styling em um frontend já padronizado em Material-UI v4.
-- A correção mais estável é migrar os arquivos do modo campanhas para MUI.
-- A flag `CAMPAIGN_ONLY_MODE` poderá continuar ativa; o problema não é a flag em si, e sim o layout alternativo estar implementado com classes sem CSS correspondente.
+**3. Modernizar ícones do rodapé do input**
+- Esconder os ícones legados que não fazem parte do novo layout:
+  - Lápis vermelho (assinatura) — `[aria-label*="sign"]`, `[class*="signSwitch"]`
+  - Kanban / trigger flow rosa — `[aria-label*="trigger-flow"]`
+  - Balão extra de mensagem interativa — `[aria-label*="interactive"]`
+- Manter apenas: **emoji**, **anexo (clip "+")**, **microfone** e **enviar** — todos com cor neutra `#64748b` e hover discreto, sem backgrounds coloridos.
+- Padronizar tamanho (36×36) e remover sombras dos FABs internos para casarem com a estética minimalista do header.
 
-6. Ordem recomendada
-1) Migrar `CampaignLayout.js` para MUI
-2) Migrar `CampaignsHome/index.js` para MUI
-3) Revisar páginas do fluxo campanhas que ainda usem classes Tailwind
-4) Validar visualmente as rotas principais do modo campanhas (`/`, `/campaigns`, `/campaigns-kanban`, `/api-keys`, `/webhooks`, `/reports`)
+**4. Dark mode coerente**
+- Atualizar `body[data-theme="dark"]` para usar `#0b0b0d` como fundo da `messagesList` (em vez de qualquer cor amarelada herdada) e manter os balões com bom contraste.
 
-7. Impacto
-- Sem mudança de backend
-- Sem alteração de lógica de autenticação
-- Mudança apenas de frontend/estilização estrutural do modo campanhas
+### Arquivos afetados
+- `frontend/src/styles/inboxNew.css` (todas as alterações são CSS — sem mudança de lógica)
+
+### Resultado esperado
+Chat com fundo cinza-claro uniforme (`#f8fafc`), sem faixa amarela, sem barra de tags duplicada, sem divisor "#Chamado X - Sem Fila", e rodapé do input com apenas 4 ícones modernos (emoji, anexo, microfone, enviar) em estilo Lucide.
