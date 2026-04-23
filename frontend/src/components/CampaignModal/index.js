@@ -694,22 +694,28 @@ const CampaignModal = ({
         fullWidth
         maxWidth="md"
         scroll="paper"
+        className="campaign-modal-redesign"
         PaperProps={{
+          className: "campaign-modal-redesign-paper",
           style: {
-            maxHeight: "90vh",
+            maxHeight: "92vh",
           }
         }}
       >
-        <DialogTitle id="form-dialog-title">
-          {campaignEditable ? (
-            <>
-              {campaignId
-                ? `${i18n.t("campaigns.dialog.update")}`
-                : `${i18n.t("campaigns.dialog.new")}`}
-            </>
-          ) : (
-            <>{`${i18n.t("campaigns.dialog.readonly")}`}</>
-          )}
+        <DialogTitle id="form-dialog-title" className="campaign-modal-redesign-title">
+          <div className="campaign-modal-redesign-title-icon">
+            <span>📣</span>
+          </div>
+          <div className="campaign-modal-redesign-title-text">
+            <h2>
+              {campaignEditable
+                ? (campaignId
+                    ? i18n.t("campaigns.dialog.update")
+                    : i18n.t("campaigns.dialog.new"))
+                : i18n.t("campaigns.dialog.readonly")}
+            </h2>
+            <p>Construa e configure sua campanha de WhatsApp passo a passo</p>
+          </div>
         </DialogTitle>
         <div style={{ display: "none" }}>
           <input
