@@ -701,6 +701,7 @@ export const FlowBuilderConfig = () => {
   const [pageNumber, setPageNumber] = useState(1);
   const [dataNode, setDataNode] = useState(null);
   const [hasMore, setHasMore] = useState(false);
+  const [flowName, setFlowName] = useState("Untitled");
 
   // Estados dos modais (mantidos)
   const [modalAddText, setModalAddText] = useState(null);
