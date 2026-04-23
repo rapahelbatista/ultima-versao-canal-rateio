@@ -3,9 +3,14 @@ import { useParams, useHistory } from "react-router-dom";
 import {
   Avatar,
   Badge,
+  Button,
   CircularProgress,
   IconButton,
   InputBase,
+  MenuItem,
+  Popover,
+  Select,
+  TextField,
   Tooltip,
 } from "@material-ui/core";
 import {
@@ -21,6 +26,12 @@ import {
   Reply as ReplyIcon,
   CheckCircleOutline as DoneIcon,
   InfoOutlined as InfoIcon,
+  GetApp as ExportIcon,
+  FlashOn as QuickReplyIcon,
+  NotificationsActive as NotifIcon,
+  NotificationsOff as NotifOffIcon,
+  Send as SendIcon,
+  Close as CloseIcon,
 } from "@material-ui/icons";
 import { format, isToday, isYesterday } from "date-fns";
 import { toast } from "react-toastify";
