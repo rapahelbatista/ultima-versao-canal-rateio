@@ -820,43 +820,182 @@ const CampaignModal = ({
     );
   };
 
+  // ---- Inline autocomplete ----
+  const allPlaceholders = () => [...messagePlaceholders, ...customPlaceholders];
+
+  const computeCaretPosition = (textarea) => {
+    // Cria um espelho invisível para medir a posição do caret
+    if (!textarea) return { top: 0, left: 0 };
+    const div = document.createElement("div");
+    const style = window.getComputedStyle(textarea);
+    [
+      "boxSizing", "width", "height", "overflowX", "overflowY",
+      "borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth",
+      "paddingTop", "paddingRight", "paddingBottom", "paddingLeft",
+      "fontStyle", "fontVariant", "fontWeight", "fontStretch", "fontSize",
+      "fontSizeAdjust", "lineHeight", "fontFamily", "textAlign", "textTransform",
+      "textIndent", "textDecoration", "letterSpacing", "wordSpacing", "tabSize",
+      "MozTabSize", "whiteSpace", "wordWrap", "wordBreak"
+    ].forEach((p) => { div.style[p] = style[p]; });
+    div.style.position = "absolute";
+    div.style.visibility = "hidden";
+    div.style.whiteSpace = "pre-wrap";
+    div.style.wordWrap = "break-word";
+    div.style.top = "0";
+    div.style.left = "0";
+    const value = textarea.value.substring(0, textarea.selectionStart);
+    div.textContent = value;
+    const span = document.createElement("span");
+    span.textContent = textarea.value.substring(textarea.selectionStart) || ".";
+    div.appendChild(span);
+    document.body.appendChild(div);
+    const rectTextarea = textarea.getBoundingClientRect();
+    const spanRect = span.getBoundingClientRect();
+    const divRect = div.getBoundingClientRect();
+    const top = rectTextarea.top + (spanRect.top - divRect.top) - textarea.scrollTop + parseInt(style.fontSize, 10) + 4;
+    const left = rectTextarea.left + (spanRect.left - divRect.left) - textarea.scrollLeft;
+    document.body.removeChild(div);
+    return { top, left };
+  };
+
+  const handleEditorChange = (e, identifier, value, setFieldValue) => {
+    const next = e.target.value;
+    setFieldValue(identifier, next);
+    const el = e.target;
+    const caret = el.selectionStart;
+    // Procura último '{' antes do caret que abre token de variável
+    const before = next.slice(0, caret);
+    const match = before.match(/\{([a-zA-Z0-9_]*)$/);
+    if (!match) {
+      if (autocomplete) setAutocomplete(null);
+      return;
+    }
+    const query = match[1].toLowerCase();
+    const items = allPlaceholders().filter((p) =>
+      p.key.toLowerCase().includes(query) || p.label.toLowerCase().includes(query)
+    );
+    if (items.length === 0) {
+      if (autocomplete) setAutocomplete(null);
+      return;
+    }
+    const { top, left } = computeCaretPosition(el);
+    setAutocomplete({
+      identifier,
+      query,
+      items,
+      index: 0,
+      top,
+      left,
+      triggerStart: caret - match[0].length, // posição do '{'
+    });
+  };
+
+  const applyAutocomplete = (identifier, value, setFieldValue, item) => {
+    const el = document.getElementById(identifier);
+    if (!el || !autocomplete) return;
+    const before = (value || "").slice(0, autocomplete.triggerStart);
+    const after = (value || "").slice(el.selectionStart);
+    const next = before + item.key + after;
+    setFieldValue(identifier, next);
+    const newPos = before.length + item.key.length;
+    requestAnimationFrame(() => {
+      el.focus();
+      try { el.setSelectionRange(newPos, newPos); } catch (_) {}
+    });
+    setAutocomplete(null);
+  };
+
+  const handleEditorKeyDown = (e, identifier, value, setFieldValue) => {
+    if (!autocomplete || autocomplete.identifier !== identifier) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setAutocomplete((a) => ({ ...a, index: (a.index + 1) % a.items.length }));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setAutocomplete((a) => ({ ...a, index: (a.index - 1 + a.items.length) % a.items.length }));
+    } else if (e.key === "Enter" || e.key === "Tab") {
+      e.preventDefault();
+      e.stopPropagation();
+      const item = autocomplete.items[autocomplete.index];
+      if (item) applyAutocomplete(identifier, value, setFieldValue, item);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      setAutocomplete(null);
+    }
+  };
+
+  const renderAutocompletePopup = (identifier, value, setFieldValue) => {
+    if (!autocomplete || autocomplete.identifier !== identifier) return null;
+    return (
+      <div
+        className="campaign-autocomplete-popup"
+        style={{ top: autocomplete.top, left: autocomplete.left, position: "fixed" }}
+      >
+        {autocomplete.items.map((item, idx) => (
+          <button
+            type="button"
+            key={item.key}
+            className={`campaign-autocomplete-item ${idx === autocomplete.index ? "is-active" : ""}`}
+            onMouseDown={(e) => { e.preventDefault(); applyAutocomplete(identifier, value, setFieldValue, item); }}
+            onMouseEnter={() => setAutocomplete((a) => a ? { ...a, index: idx } : a)}
+          >
+            <code>{item.key}</code>
+            <span>{item.label}</span>
+          </button>
+        ))}
+        <div className="campaign-autocomplete-hint">↑↓ navegar · Enter/Tab inserir · Esc fechar</div>
+      </div>
+    );
+  };
+
   const renderMessageField = (identifier, values, setFieldValue) => {
+    const value = values ? values[identifier] : "";
     return (
       <div className="campaign-message-editor">
-        {values && setFieldValue && renderPlaceholderChips(identifier, values[identifier], setFieldValue)}
-        <Field
-          as={TextField}
+        {values && setFieldValue && renderPlaceholderChips(identifier, value, setFieldValue)}
+        <TextField
           id={identifier}
           name={identifier}
+          value={value || ""}
           fullWidth
           rows={5}
           label={i18n.t(`campaigns.dialog.form.${identifier}`)}
           placeholder={i18n.t("campaigns.dialog.form.messagePlaceholder")}
-          multiline={true}
+          multiline
           variant="outlined"
-          helperText="Clique nas variáveis acima ou digite {nome}, {numero}, {email}…"
+          helperText="Digite { para sugestões · ou clique nas variáveis acima"
           disabled={!campaignEditable && campaign.status !== "CANCELADA"}
+          onChange={(e) => handleEditorChange(e, identifier, value, setFieldValue)}
+          onKeyDown={(e) => handleEditorKeyDown(e, identifier, value, setFieldValue)}
+          onBlur={() => setTimeout(() => setAutocomplete((a) => a && a.identifier === identifier ? null : a), 120)}
         />
+        {renderAutocompletePopup(identifier, value, setFieldValue)}
       </div>
     );
   };
 
   const renderConfirmationMessageField = (identifier, values, setFieldValue) => {
+    const value = values ? values[identifier] : "";
     return (
       <div className="campaign-message-editor">
-        {values && setFieldValue && renderPlaceholderChips(identifier, values[identifier], setFieldValue)}
-        <Field
-          as={TextField}
+        {values && setFieldValue && renderPlaceholderChips(identifier, value, setFieldValue)}
+        <TextField
           id={identifier}
           name={identifier}
+          value={value || ""}
           fullWidth
           rows={5}
           label={i18n.t(`campaigns.dialog.form.${identifier}`)}
           placeholder={i18n.t("campaigns.dialog.form.messagePlaceholder")}
-          multiline={true}
+          multiline
           variant="outlined"
           disabled={!campaignEditable && campaign.status !== "CANCELADA"}
+          onChange={(e) => handleEditorChange(e, identifier, value, setFieldValue)}
+          onKeyDown={(e) => handleEditorKeyDown(e, identifier, value, setFieldValue)}
+          onBlur={() => setTimeout(() => setAutocomplete((a) => a && a.identifier === identifier ? null : a), 120)}
         />
+        {renderAutocompletePopup(identifier, value, setFieldValue)}
       </div>
     );
   };
