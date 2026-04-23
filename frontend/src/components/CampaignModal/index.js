@@ -1703,7 +1703,26 @@ const CampaignModal = ({
                     {i18n.t("campaigns.dialog.buttons.cancel")}
                   </Button>
                 )}
-                
+              <DialogActions>
+                {campaign.status === "CANCELADA" && (
+                  <Button
+                    color="primary"
+                    onClick={() => restartCampaign()}
+                    variant="outlined"
+                  >
+                    {i18n.t("campaigns.dialog.buttons.restart")}
+                  </Button>
+                )}
+                {campaign.status === "EM_ANDAMENTO" && (
+                  <Button
+                    color="primary"
+                    onClick={() => cancelCampaign()}
+                    variant="outlined"
+                  >
+                    {i18n.t("campaigns.dialog.buttons.cancel")}
+                  </Button>
+                )}
+
                 <Button
                   onClick={handleClose}
                   color="primary"
@@ -1712,7 +1731,30 @@ const CampaignModal = ({
                 >
                   {i18n.t("campaigns.dialog.buttons.close")}
                 </Button>
-                {(messageTab === 0 || messageTab === 1) && (campaignEditable || campaign.status === "CANCELADA") && (
+
+                {messageTab > 0 && (
+                  <Button
+                    onClick={() => setMessageTab((t) => Math.max(0, t - 1))}
+                    color="primary"
+                    variant="outlined"
+                    disabled={isSubmitting}
+                  >
+                    ← Voltar
+                  </Button>
+                )}
+
+                {messageTab < 2 && (
+                  <Button
+                    onClick={() => setMessageTab((t) => Math.min(2, t + 1))}
+                    color="primary"
+                    variant="contained"
+                    disabled={isSubmitting}
+                  >
+                    Próximo →
+                  </Button>
+                )}
+
+                {messageTab === 2 && (campaignEditable || campaign.status === "CANCELADA") && (
                   <Button
                     type="submit"
                     color="primary"
