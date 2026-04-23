@@ -386,6 +386,28 @@ const InboxNew = () => {
   const pendingReady = Array.isArray(pendingPag.tickets) && pendingPag.tickets.length > 0;
   const noFiltersActive = filterOrigin === "all" && filterAgent === "all";
 
+  // Marca quando a primeira sincronização (via socket/fetch) já trouxe dados ao menos uma vez.
+  // Antes disso, exibimos um indicador de carregamento nos contadores em vez de números.
+  const [openSynced, setOpenSynced] = useState(false);
+  const [pendingSynced, setPendingSynced] = useState(false);
+  useEffect(() => {
+    if (!openSynced && Array.isArray(openPag.tickets) && !openPag.loading) {
+      setOpenSynced(true);
+    }
+  }, [openPag.tickets, openPag.loading, openSynced]);
+  useEffect(() => {
+    if (!pendingSynced && Array.isArray(pendingPag.tickets) && !pendingPag.loading) {
+      setPendingSynced(true);
+    }
+  }, [pendingPag.tickets, pendingPag.loading, pendingSynced]);
+
+  // Loading dos contadores enquanto a primeira sincronização não terminou para a aba.
+  const countsLoading = useMemo(() => ({
+    all: !openSynced || !pendingSynced,
+    unread: !pendingSynced,
+    read: !openSynced,
+  }), [openSynced, pendingSynced]);
+
   const counts = useMemo(() => {
     const openCount = openReady
       ? dedupedOpen.length
