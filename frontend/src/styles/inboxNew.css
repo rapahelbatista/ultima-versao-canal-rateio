@@ -378,6 +378,7 @@
 
 /* ============== ÁREA DE CHAT ============== */
 .inbox-chat {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
