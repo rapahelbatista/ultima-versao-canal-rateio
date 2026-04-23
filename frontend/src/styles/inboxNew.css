@@ -643,13 +643,13 @@ body:has(.inbox-new) [class*="content"] {
   padding: 8px 16px !important;
   box-shadow: none !important;
 }
-/* Remove botões de ação grandes (Aceitar/Resolver) do header interno
-   pois usamos a actionbar superior para isso */
-.inbox-new [class*="ticketActionButtons"] button,
-.inbox-new [class*="TicketActionButtons"] button {
-  text-transform: none !important;
-  border-radius: 999px !important;
-  font-weight: 600 !important;
+/* Esconde os botões legados do header interno do Ticket
+   (copy phone, template, flash, switch bot, 3-dot menu)
+   Já temos a actionbar superior moderna com ícones Lucide. */
+.inbox-new [class*="ticketActionButtons"],
+.inbox-new [class*="TicketActionButtons"],
+.inbox-new [class*="actionButtons"] {
+  display: none !important;
 }
 /* Avatar do header maior e estilizado */
 .inbox-new [class*="ticketHeader"] .MuiAvatar-root,
