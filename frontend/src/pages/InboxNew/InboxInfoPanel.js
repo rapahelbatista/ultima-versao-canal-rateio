@@ -56,6 +56,7 @@ const initials = (name) => {
 };
 
 const InboxInfoPanel = ({ ticket, contact, onClose }) => {
+  const history = useHistory();
   const [tags, setTags] = useState([]);
   const [contactTags, setContactTags] = useState([]);
   const [agents, setAgents] = useState([]);
@@ -65,6 +66,8 @@ const InboxInfoPanel = ({ ticket, contact, onClose }) => {
   const [stats, setStats] = useState({ total: 0, media: 0 });
   const [loadingNote, setLoadingNote] = useState(false);
   const [agentQuery, setAgentQuery] = useState("");
+  const [tagAnchor, setTagAnchor] = useState(null);
+  const [tagSearch, setTagSearch] = useState("");
 
   const loadAll = useCallback(async () => {
     if (!contact?.id || !ticket?.id) return;
