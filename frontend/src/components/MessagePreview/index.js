@@ -536,6 +536,30 @@ const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
         </Box>
       </Box>
 
+      {/* Aviso de placeholders desconhecidos */}
+      {unknownVars.length > 0 && (
+        <Box className={classes.warnBox}>
+          <span className={classes.warnTitle}>
+            ⚠️ {unknownVars.length === 1 ? "Placeholder desconhecido" : `${unknownVars.length} placeholders desconhecidos`}
+          </span>
+          {unknownVars.map(({ key, suggestions }) => (
+            <span key={key} className={classes.warnItem}>
+              <span className={classes.warnChip}>{`{${key}}`}</span>
+              {suggestions.length > 0 ? (
+                <>
+                  <span>— você quis dizer:</span>
+                  {suggestions.map((s) => (
+                    <span key={s} className={classes.suggestChip}>{`{${s}}`}</span>
+                  ))}
+                </>
+              ) : (
+                <span>— não há substituição; será enviado literalmente.</span>
+              )}
+            </span>
+          ))}
+        </Box>
+      )}
+
       {/* Toggle entre exemplos e bruto */}
       <Box className={classes.toggleRow}>
         <span>{useExamples ? "✨ Exibindo exemplos fictícios" : "🔤 Exibindo placeholders crus"}</span>
