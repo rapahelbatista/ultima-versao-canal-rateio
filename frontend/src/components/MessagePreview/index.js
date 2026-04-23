@@ -167,24 +167,83 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const replaceCustomVars = (text) => {
-  if (!text) return text;
-  return text
-    .replace(/\{nome\}/gi, "João Silva")
-    .replace(/\{numero\}/gi, "5511999999999")
-    .replace(/\{email\}/gi, "joao@email.com")
-    .replace(/\{greeting\}/gi, "Bom dia")
-    .replace(/\{protocol\}/gi, "2024010001")
-    .replace(/\{([\w]+)\}/gi, (match, varName) => `[${varName}]`);
+// Calcula saudação baseada no horário atual
+const getSaudacao = () => {
+  const h = new Date().getHours();
+  if (h < 12) return "Bom dia";
+  if (h < 18) return "Boa tarde";
+  return "Boa noite";
 };
 
-const renderTextWithVars = (text, classes) => {
+// Lê variáveis customizadas salvas pelo editor (localStorage do CampaignModal)
+const loadCustomVars = () => {
+  try {
+    const raw = localStorage.getItem("campaignCustomVars");
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+};
+
+// Heurística para gerar valores de exemplo para variáveis customizadas
+const sampleForKey = (key, label) => {
+  const k = (key || "").replace(/[{}]/g, "").toLowerCase();
+  const l = (label || "").toLowerCase();
+  if (/cidade|city/.test(k) || /cidade|city/.test(l)) return "São Paulo";
+  if (/estado|state|uf/.test(k)) return "SP";
+  if (/cpf/.test(k)) return "123.456.789-00";
+  if (/cnpj/.test(k)) return "12.345.678/0001-99";
+  if (/telefone|phone|whatsapp/.test(k)) return "(11) 99999-9999";
+  if (/produto|product/.test(k)) return "Plano Premium";
+  if (/preco|valor|price|amount/.test(k)) return "R$ 199,90";
+  if (/data|date/.test(k)) return new Date().toLocaleDateString("pt-BR");
+  if (/hora|hour|time/.test(k)) return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  if (/empresa|company/.test(k)) return "Equipe Chat";
+  if (/atendente|user|operator/.test(k)) return "Maria";
+  if (/protocolo|protocol/.test(k)) return "2024010001";
+  return `Exemplo ${label || key}`;
+};
+
+const SAMPLE_VALUES = () => {
+  const base = {
+    nome: "João Silva",
+    numero: "(11) 99999-9999",
+    email: "joao@email.com",
+    saudacao: getSaudacao(),
+    data: new Date().toLocaleDateString("pt-BR"),
+    empresa: "Equipe Chat",
+    greeting: getSaudacao(),
+    protocol: "2024010001",
+  };
+  loadCustomVars().forEach((v) => {
+    const k = (v.key || "").replace(/[{}]/g, "");
+    if (k && !(k in base)) base[k] = sampleForKey(v.key, v.label);
+  });
+  return base;
+};
+
+const replaceCustomVars = (text, sampleValues) => {
+  if (!text) return text;
+  const samples = sampleValues || SAMPLE_VALUES();
+  return text.replace(/\{([\w]+)\}/gi, (match, varName) => {
+    const key = varName.toLowerCase();
+    if (samples[key] !== undefined) return samples[key];
+    return `[${varName}]`;
+  });
+};
+
+const renderTextWithVars = (text, classes, samples, useExamples) => {
   if (!text) return null;
   const parts = text.split(/(\{[\w]+\})/gi);
   return parts.map((part, i) => {
     if (/^\{[\w]+\}$/i.test(part)) {
-      const replaced = replaceCustomVars(part);
-      return <span key={i} className={classes.highlight}>{replaced}</span>;
+      if (!useExamples) {
+        return <span key={i} className={classes.highlightRaw}>{part}</span>;
+      }
+      const replaced = replaceCustomVars(part, samples);
+      return <span key={i} className={classes.highlight} title={part}>{replaced}</span>;
     }
     return <span key={i}>{part}</span>;
   });
