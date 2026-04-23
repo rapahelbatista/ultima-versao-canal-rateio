@@ -349,12 +349,8 @@
   border-bottom: 1px solid var(--inbox-border) !important;
 }
 
-/* Input de mensagem */
-.inbox-skin [class*="mainWrapper"] [class*="newMessageBox"],
-.inbox-skin [class*="messageInputWrapper"] {
-  background: #fff !important;
-  border-top: 1px solid var(--inbox-border) !important;
-}
+/* Input de mensagem — detalhes definidos no bloco BARRA DE DIGITAR acima */
+
 
 /* ----------- CONTACT DRAWER (PAINEL DIREITO) ----------- */
 .inbox-skin [class*="drawer"] .MuiPaper-root,
