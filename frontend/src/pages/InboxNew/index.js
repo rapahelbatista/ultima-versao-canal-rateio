@@ -447,6 +447,26 @@ const InboxNew = () => {
     updateTicket(ticket, { status: "closed" }, "Conversa arquivada");
   };
 
+  // Aceitar ticket (pending -> open) sem sair do /inbox.
+  // Após aceitar, vai pra aba "Lidas".
+  const handleAccept = async (e, ticket) => {
+    e.stopPropagation();
+    try {
+      setActionLoadingId(ticket.id);
+      await api.put(`/tickets/${ticket.id}`, {
+        status: ticket.isGroup ? "group" : "open",
+        userId: user?.id,
+      });
+      toast.success("Ticket aceito");
+      setTab("read");
+      history.push(`/inbox/${ticket.uuid || ticket.id}`);
+    } catch (err) {
+      toastError(err);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   const handleQuickReply = (e, ticket) => {
     e.stopPropagation();
     history.push(`/inbox/${ticket.uuid || ticket.id}`);
