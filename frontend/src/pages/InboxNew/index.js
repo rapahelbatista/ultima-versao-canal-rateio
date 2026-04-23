@@ -1139,7 +1139,40 @@ const InboxNew = () => {
         PaperProps={{ className: "inbox-pop" }}
       >
         <div className="inbox-pop-header"><QuickReplyIcon fontSize="small" /> <span>Respostas Rápidas</span></div>
-        <div className="inbox-pop-body" style={{ maxHeight: 320, overflow: "auto", minWidth: 280 }}>
+        <div className="inbox-pop-body" style={{ maxHeight: 420, overflow: "auto", minWidth: 320 }}>
+          {/* Form de criação */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "4px 4px 10px", borderBottom: "1px solid #e5e7eb", marginBottom: 8 }}>
+            <TextField
+              size="small"
+              variant="outlined"
+              placeholder="Atalho (ex: ola)"
+              value={qrShortcode}
+              onChange={(e) => setQrShortcode(e.target.value)}
+              inputProps={{ maxLength: 50 }}
+            />
+            <TextField
+              size="small"
+              variant="outlined"
+              placeholder="Mensagem"
+              value={qrMessage}
+              onChange={(e) => setQrMessage(e.target.value)}
+              multiline
+              minRows={2}
+              maxRows={4}
+              inputProps={{ maxLength: 1000 }}
+            />
+            <Button
+              size="small"
+              variant="contained"
+              color="primary"
+              onClick={handleCreateQuickReply}
+              disabled={qrSaving}
+              startIcon={<AddIcon fontSize="small" />}
+            >
+              {qrSaving ? "Salvando..." : "Criar resposta rápida"}
+            </Button>
+          </div>
+
           {quickReplies.length === 0 && (
             <div style={{ fontSize: 12, color: "#94a3b8", padding: "8px 4px" }}>
               Nenhuma resposta rápida cadastrada.
@@ -1149,14 +1182,33 @@ const InboxNew = () => {
             <div
               key={q.id}
               className="inbox-quick-item"
-              onClick={() => {
-                navigator.clipboard?.writeText(q.message || "");
-                toast.success(`"/${q.shortcode}" copiada`);
-                setQuickReplyAnchor(null);
-              }}
+              style={{ display: "flex", alignItems: "center", gap: 8 }}
             >
-              <strong>/{q.shortcode}</strong>
-              <span>{q.message}</span>
+              <div
+                style={{ flex: 1, minWidth: 0, cursor: "pointer" }}
+                onClick={() => {
+                  navigator.clipboard?.writeText(q.message || "");
+                  toast.success(`"/${q.shortcode}" copiada`);
+                }}
+                title="Copiar mensagem"
+              >
+                <strong>/{q.shortcode}</strong>
+                <span style={{ display: "block", fontSize: 12, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {q.message}
+                </span>
+              </div>
+              <Tooltip title={ticketId ? "Enviar no atendimento aberto" : "Abra um atendimento para enviar"}>
+                <span>
+                  <IconButton
+                    size="small"
+                    color="primary"
+                    disabled={!ticketId}
+                    onClick={() => handleSendQuickReply(q)}
+                  >
+                    <SendIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
             </div>
           ))}
         </div>
