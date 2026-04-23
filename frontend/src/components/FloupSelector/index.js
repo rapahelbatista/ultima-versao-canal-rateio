@@ -392,8 +392,8 @@ const FloupSelector = ({ contact, ticket }) => {
       >
         <Box display="flex" alignItems="center" justifyContent="space-between" marginBottom={2}>
           <Box display="flex" alignItems="center" gap={1}>
-            <Schedule style={{ fontSize: 18, color: '#1976d2' }} />
-            <Typography variant="subtitle2" style={{ fontWeight: 'bold' }}>Follow UP</Typography>
+            <Schedule style={{ fontSize: 16, color: '#475569' }} />
+            <Typography variant="subtitle2" style={{ fontWeight: 'bold', color: '#0f172a' }}>Follow UP</Typography>
             <IconButton 
               size="small" 
               onClick={() => {
@@ -403,14 +403,16 @@ const FloupSelector = ({ contact, ticket }) => {
               title="Informações sobre Follow UP"
               style={{ padding: 4 }}
             >
-              <Info style={{ fontSize: 16 }} />
+              <Info style={{ fontSize: 16, color: '#475569' }} />
             </IconButton>
           </Box>
         </Box>
 
         <Box marginBottom={2}>
+          <Typography variant="caption" style={{ display: 'block', marginBottom: 6, color: '#475569', fontWeight: 600 }}>
+            Selecionar Follow UP
+          </Typography>
           <FormControl size="small" fullWidth>
-            <InputLabel shrink style={{ backgroundColor: 'white', padding: '0 8px', zIndex: 1 }}>Selecionar Follow UP</InputLabel>
             <Select 
               value={selectedFloup || ""} 
               onChange={(e) => {
@@ -419,9 +421,8 @@ const FloupSelector = ({ contact, ticket }) => {
               }} 
               disabled={loading || !!activeFloup} 
               displayEmpty 
-              style={{ zIndex: 1 }}
             >
-              <MenuItem value=""><em>Escolher template...</em></MenuItem>
+              <MenuItem value=""><span style={{ color: '#94a3b8' }}>Escolher template…</span></MenuItem>
               {floups.map(floup => (
                 <MenuItem key={floup.id} value={floup.id}>
                   <Box display="flex" alignItems="center" justifyContent="space-between" width="100%">
