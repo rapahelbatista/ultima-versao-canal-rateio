@@ -14,7 +14,7 @@ import Card from "@material-ui/core/Card";
 import CardContent from "@material-ui/core/CardContent";
 
 import SearchIcon from "@material-ui/icons/Search";
-import { AddCircle, Build } from "@mui/icons-material";
+import { Build } from "@mui/icons-material";
 import {
   GitBranch,
   Plus,
