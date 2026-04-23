@@ -851,7 +851,7 @@ const FlowBuilder = () => {
             </div>
           ) : filteredWebhooks.length === 0 ? (
             <div className={classes.emptyState}>
-              <DevicesFold className={classes.emptyIcon} />
+              <Workflow className={classes.emptyIcon} size={64} strokeWidth={1.5} />
               <Typography className={classes.emptyTitle}>
                 {searchParam
                   ? "Nenhum fluxo encontrado"
