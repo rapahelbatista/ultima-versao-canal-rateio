@@ -882,13 +882,11 @@ body:has(.inbox-new) #root {
 }
 
 /* Esconde a barra de Tags duplicada acima do chat (já temos no painel lateral Info) */
+/* IMPORTANTE: não usar seletores genéricos com :has(.MuiAutocomplete-root) porque o
+   próprio MessageInput contém Autocomplete (mentions/quick replies) e seria escondido. */
 .inbox-new [class*="TagsContainer"],
 .inbox-new [class*="contactTagsContainer"],
-.inbox-new .MuiPaper-root:has(> .MuiAutocomplete-root),
-.inbox-new .MuiPaper-root:has(.MuiAutocomplete-root[role]),
-.inbox-new main.inbox-chat .MuiPaper-root:has(input[placeholder="Tags" i]),
-.inbox-new [class*="ticketRoot"] > .MuiPaper-root:has(.MuiAutocomplete-root),
-.inbox-new main.inbox-chat > .MuiPaper-elevation1:not([class*="MessageInput"]):not([class*="ticketHeader"]):not([class*="messagesList"]) {
+.inbox-new main.inbox-chat .MuiPaper-root:has(input[placeholder="Tags" i]) {
   display: none !important;
 }
 
