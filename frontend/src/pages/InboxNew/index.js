@@ -447,6 +447,26 @@ const InboxNew = () => {
     updateTicket(ticket, { status: "closed" }, "Conversa arquivada");
   };
 
+  // Aceitar ticket (pending -> open) sem sair do /inbox.
+  // Após aceitar, vai pra aba "Lidas".
+  const handleAccept = async (e, ticket) => {
+    e.stopPropagation();
+    try {
+      setActionLoadingId(ticket.id);
+      await api.put(`/tickets/${ticket.id}`, {
+        status: ticket.isGroup ? "group" : "open",
+        userId: user?.id,
+      });
+      toast.success("Ticket aceito");
+      setActiveTab("read");
+      history.push(`/inbox/${ticket.uuid || ticket.id}`);
+    } catch (err) {
+      toastError(err);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   const handleQuickReply = (e, ticket) => {
     e.stopPropagation();
     history.push(`/inbox/${ticket.uuid || ticket.id}`);
@@ -730,6 +750,20 @@ const InboxNew = () => {
             {/* Toolbar flutuante com ações do chat (espelha mockup) */}
             {currentTicket && (
               <div className="inbox-chat-actionbar">
+                {currentTicket.status === "pending" && (
+                  <Tooltip title="Aceitar ticket">
+                    <Button
+                      size="small"
+                      variant="contained"
+                      className="inbox-chat-accept-btn"
+                      disabled={actionLoadingId === currentTicket.id}
+                      onClick={(e) => handleAccept(e, currentTicket)}
+                      startIcon={<DoneIcon fontSize="small" />}
+                    >
+                      Aceitar
+                    </Button>
+                  </Tooltip>
+                )}
                 <Tooltip title="Marcar como não lido">
                   <IconButton
                     size="small"

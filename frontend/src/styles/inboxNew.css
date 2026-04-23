@@ -712,6 +712,32 @@ body:has(.inbox-new) [class*="content"] {
   background: #e5e7eb;
 }
 
+/* Botão Aceitar dentro da actionbar */
+.inbox-chat-accept-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #fff !important;
+  border-radius: 999px !important;
+  text-transform: none !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  padding: 4px 14px !important;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3) !important;
+  margin-right: 4px !important;
+}
+.inbox-chat-accept-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+}
+.inbox-chat-accept-btn.Mui-disabled {
+  background: #e5e7eb !important;
+  color: #94a3b8 !important;
+}
+
+/* Esconde o botão "Aceitar" interno do <Ticket /> que redirecionaria para /tickets */
+.inbox-new [class*="acceptButton"],
+.inbox-new button[class*="MuiButton"][class*="containedPrimary"]:not(.inbox-chat-accept-btn):not(.inbox-pop-btn-primary) {
+  display: none !important;
+}
+
 /* ============== INPUT DE MENSAGEM (estilo WhatsApp) ============== */
 .inbox-new [class*="MessageInput"] [class*="mainWrapper"],
 .inbox-new [class*="messageInput"] {
