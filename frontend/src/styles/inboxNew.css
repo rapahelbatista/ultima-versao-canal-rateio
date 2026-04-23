@@ -745,6 +745,68 @@ body:has(.inbox-new) [class*="content"] {
   background: #f8fafc !important;
 }
 
+/* ============== AJUSTE DE LAYOUT — sem corte ==============
+   Removemos elementos duplicados (Tags bar, aviso "Ticket Aguardando")
+   e garantimos que o Ticket interno preencha 100% da altura disponível
+   sem gerar overflow vertical. */
+
+/* Container interno do <Ticket /> deve ocupar toda a altura do .inbox-chat-body */
+.inbox-chat-body > * {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+/* MainContainer / root do Ticket */
+.inbox-new [class*="root"][class*="Ticket"],
+.inbox-new [class*="mainWrapper"] {
+  height: 100% !important;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+/* Esconde a barra de Tags duplicada acima do chat (já temos no painel lateral Info) */
+.inbox-new .MuiPaper-root:has(> div > [class*="Tag"]),
+.inbox-new [class*="TagsContainer"],
+.inbox-new .MuiPaper-root > .MuiAutocomplete-root {
+  display: none !important;
+}
+
+/* Esconde o aviso amarelo "Ticket Aguardando: Apenas mensagens internas..." */
+.inbox-new [class*="MuiBox-root"]:has(> svg + span > strong),
+.inbox-new div:has(> strong:only-child):not(.inbox-item *) {
+  /* mantém — o seletor abaixo é mais específico */
+}
+.inbox-new div[class*="MuiBox"]:has(strong:contains("Ticket Aguardando")) {
+  display: none !important;
+}
+/* Fallback robusto: aviso usa background amarelo / azul claro com Info icon */
+.inbox-new [class*="messageInputWrapper"] > div[style*="background"],
+.inbox-new [class*="MessageInput"] ~ div[style*="background"] {
+  display: none !important;
+}
+
+/* Lista de mensagens deve rolar internamente, não a página */
+.inbox-new [class*="messagesList"],
+.inbox-new [class*="MessagesList"] {
+  background: #f8fafc !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
+/* MessageInput sempre visível no rodapé */
+.inbox-new [class*="MessageInput"],
+.inbox-new [class*="messageInput"] {
+  flex-shrink: 0 !important;
+}
+
 /* Responsivo */
 @media (max-width: 900px) {
   .inbox-sidebar {
