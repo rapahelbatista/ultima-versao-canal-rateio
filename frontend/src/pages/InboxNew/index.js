@@ -398,6 +398,61 @@ const InboxNew = () => {
     [filteredTickets, ticketId]
   );
 
+  // Exportar conversa atual em .txt
+  const handleExportConversation = async (ticket) => {
+    if (!ticket) return;
+    try {
+      toast.info("Preparando exportação...");
+      const { data } = await api.get(`/messages/${ticket.id}`, {
+        params: { pageNumber: 1 },
+      });
+      const messages = data?.messages || [];
+      const lines = messages.map((m) => {
+        const who = m.fromMe ? "Eu" : (ticket.contact?.name || "Contato");
+        const ts = m.createdAt ? format(new Date(m.createdAt), "dd/MM/yy HH:mm") : "";
+        return `[${ts}] ${who}: ${m.body || (m.mediaUrl ? "[mídia]" : "")}`;
+      });
+      const blob = new Blob(
+        [
+          `Conversa com ${ticket.contact?.name || "?"}\n` +
+            `${ticket.contact?.number || ""}\n` +
+            `Exportado em ${format(new Date(), "dd/MM/yy HH:mm")}\n` +
+            `\n${lines.join("\n")}`,
+        ],
+        { type: "text/plain;charset=utf-8" }
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `conversa-${ticket.contact?.name || ticket.id}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Conversa exportada!");
+    } catch (err) {
+      toastError(err);
+    }
+  };
+
+  // Aplica busca dentro da conversa via highlight no DOM dos balões
+  useEffect(() => {
+    const root = document.querySelector(".inbox-chat");
+    if (!root) return;
+    // limpa highlights anteriores
+    root.querySelectorAll(".inbox-msg-hl").forEach((el) => {
+      el.classList.remove("inbox-msg-hl");
+    });
+    if (!msgSearch?.trim()) return;
+    const q = msgSearch.trim().toLowerCase();
+    const bubbles = root.querySelectorAll('[class*="messageRight"], [class*="messageLeft"], [class*="messageOut"], [class*="messageIn"]');
+    bubbles.forEach((b) => {
+      if ((b.textContent || "").toLowerCase().includes(q)) {
+        b.classList.add("inbox-msg-hl");
+      }
+    });
+  }, [msgSearch, ticketId]);
+
   return (
     <div className="inbox-new">
       {/* ============== SIDEBAR ESQUERDA ============== */}
