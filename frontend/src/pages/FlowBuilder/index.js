@@ -867,7 +867,7 @@ const FlowBuilder = () => {
                 <Button
                   className={classes.addButton}
                   onClick={handleOpenContactModal}
-                  startIcon={<AddCircle />}
+                  startIcon={<Plus size={18} />}
                   style={{ marginTop: 24 }}
                 >
                   Criar Primeiro Fluxo
