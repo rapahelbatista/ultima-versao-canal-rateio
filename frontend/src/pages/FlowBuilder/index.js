@@ -64,7 +64,7 @@ import { Can } from "../../components/Can";
 import ForbiddenPage from "../../components/ForbiddenPage";
 import NewTicketModal from "../../components/NewTicketModal";
 import { SocketContext } from "../../context/Socket/SocketContext";
-import { GitBranch } from "lucide-react";
+
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_CONTACTS") {
