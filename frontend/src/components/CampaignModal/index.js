@@ -266,6 +266,7 @@ const CampaignModal = ({
   const [templateVarValues, setTemplateVarValues] = useState({});
   const [individualContacts, setIndividualContacts] = useState([]);
   const [showSuccessAnim, setShowSuccessAnim] = useState(false);
+  const [analyticsModal, setAnalyticsModal] = useState(null); // { drafts, confirmed, recent: [{label, time, type}] }
 
   // Opções para dias da semana
   const daysOfWeekOptions = [
@@ -596,6 +597,23 @@ const CampaignModal = ({
           onSave(data);
         }
       }
+      // Atualiza analytics da sessão
+      const STORAGE_KEY = "campaignActionStats";
+      let stats = { drafts: 0, confirmed: 0, recent: [] };
+      try {
+        const raw = sessionStorage.getItem(STORAGE_KEY);
+        if (raw) stats = JSON.parse(raw);
+      } catch (_) {}
+      const actionType = isUpdate ? "update" : "create";
+      stats.confirmed = (stats.confirmed || 0) + 1;
+      const entry = {
+        label: dataValues.name || "Campanha sem nome",
+        time: new Date().toISOString(),
+        type: actionType,
+      };
+      stats.recent = [entry, ...(stats.recent || [])].slice(0, 5);
+      try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stats)); } catch (_) {}
+
       // Animação de confirmação
       setShowSuccessAnim(true);
       toast.success(
@@ -606,7 +624,7 @@ const CampaignModal = ({
       );
       setTimeout(() => {
         setShowSuccessAnim(false);
-        handleClose();
+        setAnalyticsModal(stats);
       }, 1200);
     } catch (err) {
       console.log(err);
@@ -1744,6 +1762,33 @@ const CampaignModal = ({
                 >
                   {i18n.t("campaigns.dialog.buttons.close")}
                 </Button>
+
+                {campaignEditable && (
+                  <Button
+                    onClick={() => {
+                      const STORAGE_KEY = "campaignActionStats";
+                      let stats = { drafts: 0, confirmed: 0, recent: [] };
+                      try {
+                        const raw = sessionStorage.getItem(STORAGE_KEY);
+                        if (raw) stats = JSON.parse(raw);
+                      } catch (_) {}
+                      stats.drafts = (stats.drafts || 0) + 1;
+                      stats.recent = [{
+                        label: (campaign && campaign.name) || "Rascunho sem nome",
+                        time: new Date().toISOString(),
+                        type: "draft",
+                      }, ...(stats.recent || [])].slice(0, 5);
+                      try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stats)); } catch (_) {}
+                      toast.info("📝 Rascunho salvo nesta sessão");
+                      setAnalyticsModal(stats);
+                    }}
+                    color="default"
+                    variant="outlined"
+                    disabled={isSubmitting}
+                  >
+                    Salvar rascunho
+                  </Button>
+                )}
                 {(messageTab === 0 || messageTab === 1) && (campaignEditable || campaign.status === "CANCELADA") && (
                   <Button
                     type="submit"
@@ -1776,6 +1821,81 @@ const CampaignModal = ({
               </svg>
               <h3>Tudo certo!</h3>
               <p>Sua campanha foi salva com sucesso.</p>
+            </div>
+          </div>
+        )}
+        {analyticsModal && (
+          <div className="campaign-analytics-overlay" onClick={() => { setAnalyticsModal(null); handleClose(); }}>
+            <div className="campaign-analytics-card" onClick={(e) => e.stopPropagation()}>
+              <div className="campaign-analytics-header">
+                <span className="campaign-analytics-icon">📊</span>
+                <div>
+                  <h3>Resumo da sessão</h3>
+                  <p>Suas ações nesta janela</p>
+                </div>
+                <button
+                  type="button"
+                  className="campaign-analytics-close"
+                  onClick={() => { setAnalyticsModal(null); handleClose(); }}
+                  aria-label="Fechar"
+                >×</button>
+              </div>
+
+              <div className="campaign-analytics-stats">
+                <div className="campaign-analytics-stat is-draft">
+                  <span className="campaign-analytics-stat-value">{analyticsModal.drafts || 0}</span>
+                  <span className="campaign-analytics-stat-label">Rascunhos</span>
+                </div>
+                <div className="campaign-analytics-stat is-confirmed">
+                  <span className="campaign-analytics-stat-value">{analyticsModal.confirmed || 0}</span>
+                  <span className="campaign-analytics-stat-label">Confirmadas</span>
+                </div>
+              </div>
+
+              <div className="campaign-analytics-recent">
+                <span className="campaign-analytics-recent-title">Últimas ações</span>
+                {(!analyticsModal.recent || analyticsModal.recent.length === 0) ? (
+                  <p className="campaign-analytics-empty">Nenhuma ação registrada.</p>
+                ) : (
+                  <ul>
+                    {analyticsModal.recent.map((r, idx) => {
+                      const t = new Date(r.time);
+                      const time = t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                      const meta = r.type === "draft" ? { icon: "📝", label: "Rascunho", cls: "draft" }
+                        : r.type === "update" ? { icon: "✏️", label: "Atualizada", cls: "update" }
+                        : { icon: "🚀", label: "Criada", cls: "create" };
+                      return (
+                        <li key={idx} className={`campaign-analytics-item is-${meta.cls}`}>
+                          <span className="campaign-analytics-item-icon">{meta.icon}</span>
+                          <span className="campaign-analytics-item-label">{r.label}</span>
+                          <span className="campaign-analytics-item-tag">{meta.label}</span>
+                          <span className="campaign-analytics-item-time">{time}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              <div className="campaign-analytics-actions">
+                <button
+                  type="button"
+                  className="campaign-analytics-btn-ghost"
+                  onClick={() => {
+                    try { sessionStorage.removeItem("campaignActionStats"); } catch (_) {}
+                    setAnalyticsModal({ drafts: 0, confirmed: 0, recent: [] });
+                  }}
+                >
+                  Limpar histórico
+                </button>
+                <button
+                  type="button"
+                  className="campaign-analytics-btn-primary"
+                  onClick={() => { setAnalyticsModal(null); handleClose(); }}
+                >
+                  Fechar
+                </button>
+              </div>
             </div>
           </div>
         )}
