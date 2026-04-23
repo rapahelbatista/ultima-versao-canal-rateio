@@ -170,13 +170,18 @@
   background: var(--inbox-bg) !important;
 }
 
-/* Bolhas: enviado por mim (à direita) — verde sólido tipo WhatsApp */
+/* ==========================================================
+   BALÕES DE MENSAGEM — estilo do print (WhatsApp moderno)
+   Enviadas: verde sólido #00A884 com cantos 16/16/4/16
+   Recebidas: branco puro com sombra suave e canto 16/16/16/4
+   ========================================================== */
 .inbox-skin [class*="messageRight"],
 .inbox-skin [class*="messageOut"] {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  background: #00A884 !important;
   color: #ffffff !important;
-  border-radius: 18px 18px 4px 18px !important;
-  box-shadow: 0 2px 6px rgba(16,185,129,.25) !important;
+  border-radius: 16px 16px 4px 16px !important;
+  box-shadow: 0 1px 2px rgba(11, 20, 26, 0.13) !important;
+  padding: 8px 12px 8px 12px !important;
 }
 .inbox-skin [class*="messageRight"] *,
 .inbox-skin [class*="messageOut"] * {
@@ -184,16 +189,116 @@
 }
 .inbox-skin [class*="messageRight"] [class*="timestamp"],
 .inbox-skin [class*="messageOut"] [class*="timestamp"] {
-  color: rgba(255,255,255,.85) !important;
+  color: rgba(255, 255, 255, 0.78) !important;
+  font-size: 11px !important;
 }
 
-/* Bolhas: recebidas — branco arredondado */
 .inbox-skin [class*="messageLeft"],
 .inbox-skin [class*="messageIn"] {
   background: #ffffff !important;
   color: var(--inbox-text) !important;
-  border-radius: 18px 18px 18px 4px !important;
-  box-shadow: 0 1px 3px rgba(15,23,42,.06) !important;
+  border-radius: 16px 16px 16px 4px !important;
+  box-shadow: 0 1px 2px rgba(11, 20, 26, 0.10) !important;
+  padding: 8px 12px 8px 12px !important;
+}
+.inbox-skin [class*="messageLeft"] [class*="timestamp"],
+.inbox-skin [class*="messageIn"] [class*="timestamp"] {
+  color: #667781 !important;
+  font-size: 11px !important;
+}
+
+/* "Responder a" / quoted reply dentro do balão recebido */
+.inbox-skin [class*="messageLeft"] [class*="quotedContainerLeft"],
+.inbox-skin [class*="messageIn"] [class*="quotedContainerLeft"] {
+  background: #f0fdf9 !important;
+  border-left: 4px solid #00A884 !important;
+  border-radius: 8px !important;
+}
+.inbox-skin [class*="quotedSideColorLeft"] {
+  background: #00A884 !important;
+}
+
+/* ==========================================================
+   BARRA DE DIGITAR — pílula cinza-claro com ícones modernos
+   Fundo #F9F9FB, ícones cinza, emoji/mic à direita
+   ========================================================== */
+.inbox-skin [class*="newMessageBox"] {
+  background: #ffffff !important;
+  border-top: 1px solid var(--inbox-border) !important;
+  padding: 10px 14px !important;
+  gap: 8px !important;
+}
+
+.inbox-skin [class*="messageInputWrapper"] {
+  background: #f6f7f9 !important;
+  border-radius: 999px !important;
+  border: 1px solid #eceef2 !important;
+  padding: 4px 6px !important;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+.inbox-skin [class*="messageInputWrapper"] input,
+.inbox-skin [class*="messageInputWrapper"] textarea,
+.inbox-skin [class*="messageInput"] {
+  background: transparent !important;
+  font-size: 14px !important;
+  color: var(--inbox-text) !important;
+}
+.inbox-skin [class*="messageInputWrapper"] input::placeholder,
+.inbox-skin [class*="messageInputWrapper"] textarea::placeholder {
+  color: #9aa3af !important;
+  font-size: 14px !important;
+}
+
+/* Ícones da barra (anexo, emoji, mic, enviar) */
+.inbox-skin [class*="newMessageBox"] .MuiIconButton-root {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 999px !important;
+  color: #6b7280 !important;
+  transition: background .15s ease, color .15s ease !important;
+}
+.inbox-skin [class*="newMessageBox"] .MuiIconButton-root:hover {
+  background: var(--inbox-green-soft) !important;
+  color: var(--inbox-green-dark) !important;
+}
+.inbox-skin [class*="newMessageBox"] .MuiIconButton-root svg {
+  font-size: 22px !important;
+}
+
+/* Ícone do microfone em vermelho coral (igual ao print) */
+.inbox-skin [class*="newMessageBox"] [class*="audio"] svg,
+.inbox-skin [class*="newMessageBox"] [aria-label*="audio" i] svg,
+.inbox-skin [class*="newMessageBox"] [aria-label*="mic" i] svg,
+.inbox-skin [class*="newMessageBox"] [aria-label*="gravar" i] svg {
+  color: #ef4444 !important;
+}
+
+/* Botão enviar (avião) verde sólido circular */
+.inbox-skin [class*="newMessageBox"] [aria-label*="send" i],
+.inbox-skin [class*="newMessageBox"] [aria-label*="enviar" i] {
+  background: var(--inbox-green) !important;
+  color: #fff !important;
+}
+.inbox-skin [class*="newMessageBox"] [aria-label*="send" i]:hover,
+.inbox-skin [class*="newMessageBox"] [aria-label*="enviar" i]:hover {
+  background: var(--inbox-green-dark) !important;
+}
+.inbox-skin [class*="newMessageBox"] [aria-label*="send" i] svg,
+.inbox-skin [class*="newMessageBox"] [aria-label*="enviar" i] svg {
+  color: #fff !important;
+}
+
+/* Separador de data redondo igual ao print */
+.inbox-skin [class*="dailyTimestamp"] [class*="dailyTimestampText"],
+.inbox-skin [class*="dailyTimestamp"] {
+  background: #ffffff !important;
+  color: #54656f !important;
+  border-radius: 999px !important;
+  padding: 4px 12px !important;
+  box-shadow: 0 1px 2px rgba(11, 20, 26, 0.08) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
 }
 
 /* Tags coloridas por nome (Telegram / Important / Meta) */
