@@ -784,15 +784,17 @@ const InboxNew = () => {
                 )}
               </div>
             )}
-            <Suspense
-              fallback={
-                <div className="inbox-loader" style={{ height: "100%" }}>
-                  <CircularProgress />
-                </div>
-              }
-            >
-              <Ticket />
-            </Suspense>
+            <TicketErrorBoundary resetKey={ticketId}>
+              <Suspense
+                fallback={
+                  <div className="inbox-loader" style={{ height: "100%" }}>
+                    <CircularProgress />
+                  </div>
+                }
+              >
+                <Ticket />
+              </Suspense>
+            </TicketErrorBoundary>
           </>
         ) : (
           <div className="inbox-empty-chat">
