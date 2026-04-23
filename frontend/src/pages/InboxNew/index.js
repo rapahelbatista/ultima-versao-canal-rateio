@@ -157,6 +157,101 @@ const InboxNew = () => {
   const [search, setSearch] = useState("");
   const [newTicketOpen, setNewTicketOpen] = useState(false);
 
+  // ---- Popovers (anchors) ----
+  const [filterAnchor, setFilterAnchor] = useState(null);
+  const [optionsAnchor, setOptionsAnchor] = useState(null);
+  const [newConvAnchor, setNewConvAnchor] = useState(null);
+  const [msgFilterAnchor, setMsgFilterAnchor] = useState(null);
+  const [quickReplyAnchor, setQuickReplyAnchor] = useState(null);
+
+  // ---- Filtros sidebar ----
+  const [filterOrigin, setFilterOrigin] = useState("all"); // all|whatsapp|telegram|meta
+  const [filterAgent, setFilterAgent] = useState("all");
+  const [tempOrigin, setTempOrigin] = useState("all");
+  const [tempAgent, setTempAgent] = useState("all");
+
+  // ---- Filtro de mensagens (chat) ----
+  const [msgSearch, setMsgSearch] = useState("");
+  const [tempMsgSearch, setTempMsgSearch] = useState("");
+
+  // ---- Som de notificação ----
+  const [notifSound, setNotifSound] = useState(() => {
+    return localStorage.getItem("inbox:notifSound") !== "off";
+  });
+  useEffect(() => {
+    localStorage.setItem("inbox:notifSound", notifSound ? "on" : "off");
+  }, [notifSound]);
+
+  // ---- Carregar agentes (apenas para admin) ----
+  const [agents, setAgents] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await api.get("/users/");
+        if (!cancelled) setAgents(data?.users || []);
+      } catch (e) {
+        // silencioso
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // ---- Carregar conexões para "Iniciar Nova Conversa" ----
+  const [whatsapps, setWhatsapps] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await api.get("/whatsapp/?session=0");
+        if (!cancelled) setWhatsapps((data || []).filter((w) => w.status === "CONNECTED"));
+      } catch (e) {
+        // silencioso
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // ---- Quick replies ----
+  const [quickReplies, setQuickReplies] = useState([]);
+  const loadQuickReplies = useCallback(async () => {
+    try {
+      const { data } = await api.get("/quickMessages", { params: { searchParam: "" } });
+      setQuickReplies(data?.records || data || []);
+    } catch (e) {
+      // silencioso
+    }
+  }, []);
+
+  // ---- Form de nova conversa ----
+  const [ncWhatsappId, setNcWhatsappId] = useState("");
+  const [ncNumber, setNcNumber] = useState("");
+  const [ncMessage, setNcMessage] = useState("");
+  const [ncSending, setNcSending] = useState(false);
+  const handleSendNewConversation = async () => {
+    if (!ncWhatsappId || !ncNumber.trim() || !ncMessage.trim()) {
+      toast.error("Preencha todos os campos");
+      return;
+    }
+    try {
+      setNcSending(true);
+      await api.post("/api/messages/send", {
+        number: ncNumber.replace(/\D/g, ""),
+        body: ncMessage,
+        whatsappId: ncWhatsappId,
+      });
+      toast.success("Mensagem enviada!");
+      setNewConvAnchor(null);
+      setNcNumber("");
+      setNcMessage("");
+    } catch (err) {
+      toastError(err);
+    } finally {
+      setNcSending(false);
+    }
+  };
+
+
   const tabConfig = TABS.find((t) => t.id === activeTab) || TABS[0];
 
   const queueIds = useMemo(
