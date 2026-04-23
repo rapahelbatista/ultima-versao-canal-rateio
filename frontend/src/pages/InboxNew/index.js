@@ -284,10 +284,21 @@ const InboxNew = () => {
     if (tabConfig.statuses.includes("pending")) list = list.concat(pendingPag.tickets || []);
     const map = new Map();
     list.forEach((t) => map.set(t.id, t));
-    return Array.from(map.values()).sort(
+    let arr = Array.from(map.values());
+
+    if (filterOrigin !== "all") {
+      arr = arr.filter((t) => getChannelTag(t).label.toLowerCase() === filterOrigin);
+    }
+    if (filterAgent !== "all") {
+      arr = arr.filter(
+        (t) => String(t.userId || t.user?.id || "") === String(filterAgent)
+      );
+    }
+
+    return arr.sort(
       (a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
     );
-  }, [openPag.tickets, pendingPag.tickets, tabConfig]);
+  }, [openPag.tickets, pendingPag.tickets, tabConfig, filterOrigin, filterAgent]);
 
   // Totais por aba (vindos do backend via count)
   const counts = useMemo(() => ({
