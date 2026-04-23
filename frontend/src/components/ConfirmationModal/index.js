@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Button from "@material-ui/core/Button";
 import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
@@ -24,6 +24,23 @@ const ConfirmationModal = ({ title, children, open, onClose, onConfirm }) => {
 		console.log('[ConfirmationModal] Cancelando exclusão');
 		onClose(false);
 	};
+
+	// Atalhos de teclado: Esc cancela, Ctrl/Cmd+Enter confirma
+	useEffect(() => {
+		if (!open) return undefined;
+		const onKey = (e) => {
+			if (e.key === "Escape") {
+				e.preventDefault();
+				handleCancel();
+			} else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+				e.preventDefault();
+				handleConfirm();
+			}
+		};
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [open]);
 
 	return (
 		<Portal container={document.body}>

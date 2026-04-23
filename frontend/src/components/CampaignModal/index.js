@@ -266,6 +266,20 @@ const CampaignModal = ({
   const [templateVarValues, setTemplateVarValues] = useState({});
   const [individualContacts, setIndividualContacts] = useState([]);
   const [showSuccessAnim, setShowSuccessAnim] = useState(false);
+  const [analyticsModal, setAnalyticsModal] = useState(null); // { drafts, confirmed, recent: [{label, time, type}] }
+  const CUSTOM_VARS_KEY = "campaignCustomVars";
+  const [customPlaceholders, setCustomPlaceholders] = useState(() => {
+    try {
+      const raw = localStorage.getItem(CUSTOM_VARS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (_) {}
+    return [];
+  });
+  const [newVarKey, setNewVarKey] = useState("");
+  const [newVarLabel, setNewVarLabel] = useState("");
+  const [showVarManager, setShowVarManager] = useState(false);
+  // Autocomplete inline de variáveis
+  const [autocomplete, setAutocomplete] = useState(null); // { identifier, query, items, index, top, left, triggerStart }
 
   // Opções para dias da semana
   const daysOfWeekOptions = [
@@ -520,6 +534,42 @@ const CampaignModal = ({
     setTemplateVarValues({});
   };
 
+  // Atalhos de teclado: Esc fecha, Ctrl/Cmd+Enter envia formulário
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => {
+      // Se o autocomplete de variáveis está aberto, deixa ele tratar Esc/Enter
+      if (autocomplete && (e.key === "Enter" || e.key === "Escape" || e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Tab")) {
+        return;
+      }
+      if (e.key === "Escape") {
+        // Se houver popover de analytics, fecha apenas ele
+        if (analyticsModal) {
+          e.preventDefault();
+          setAnalyticsModal(null);
+          handleClose();
+          return;
+        }
+        e.preventDefault();
+        handleClose();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        // Localiza o form do CampaignModal e dispara submit
+        const form = document.querySelector('.campaign-modal-redesign form');
+        if (form) {
+          if (typeof form.requestSubmit === "function") {
+            form.requestSubmit();
+          } else {
+            form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+          }
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, analyticsModal, autocomplete]);
+
   const handleAttachmentFile = (e) => {
     const file = head(e.target.files);
     if (file) {
@@ -596,6 +646,23 @@ const CampaignModal = ({
           onSave(data);
         }
       }
+      // Atualiza analytics da sessão
+      const STORAGE_KEY = "campaignActionStats";
+      let stats = { drafts: 0, confirmed: 0, recent: [] };
+      try {
+        const raw = sessionStorage.getItem(STORAGE_KEY);
+        if (raw) stats = JSON.parse(raw);
+      } catch (_) {}
+      const actionType = isUpdate ? "update" : "create";
+      stats.confirmed = (stats.confirmed || 0) + 1;
+      const entry = {
+        label: dataValues.name || "Campanha sem nome",
+        time: new Date().toISOString(),
+        type: actionType,
+      };
+      stats.recent = [entry, ...(stats.recent || [])].slice(0, 5);
+      try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stats)); } catch (_) {}
+
       // Animação de confirmação
       setShowSuccessAnim(true);
       toast.success(
@@ -606,7 +673,7 @@ const CampaignModal = ({
       );
       setTimeout(() => {
         setShowSuccessAnim(false);
-        handleClose();
+        setAnalyticsModal(stats);
       }, 1200);
     } catch (err) {
       console.log(err);
@@ -627,38 +694,312 @@ const CampaignModal = ({
     }
   };
 
-  const renderMessageField = (identifier) => {
+  const messagePlaceholders = [
+    { key: "{nome}", label: "Nome" },
+    { key: "{numero}", label: "Número" },
+    { key: "{email}", label: "E-mail" },
+    { key: "{saudacao}", label: "Saudação" },
+    { key: "{data}", label: "Data" },
+    { key: "{empresa}", label: "Empresa" },
+  ];
+
+  const persistCustomVars = (next) => {
+    setCustomPlaceholders(next);
+    try { localStorage.setItem(CUSTOM_VARS_KEY, JSON.stringify(next)); } catch (_) {}
+  };
+
+  const addCustomVar = () => {
+    const rawKey = newVarKey.trim().replace(/[{}\s]/g, "");
+    const label = newVarLabel.trim() || rawKey;
+    if (!rawKey) {
+      toast.error("Informe o nome da variável (ex.: cidade)");
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(rawKey)) {
+      toast.error("Use apenas letras, números e _");
+      return;
+    }
+    const key = `{${rawKey}}`;
+    const reserved = messagePlaceholders.some((p) => p.key === key);
+    const exists = customPlaceholders.some((p) => p.key === key);
+    if (reserved || exists) {
+      toast.error("Essa variável já existe");
+      return;
+    }
+    persistCustomVars([...customPlaceholders, { key, label }]);
+    setNewVarKey("");
+    setNewVarLabel("");
+    toast.success(`Variável ${key} adicionada`);
+  };
+
+  const removeCustomVar = (key) => {
+    persistCustomVars(customPlaceholders.filter((p) => p.key !== key));
+  };
+
+  const insertPlaceholder = (identifier, value, setFieldValue, placeholder) => {
+    const el = document.getElementById(identifier);
+    const current = value || "";
+    if (el && typeof el.selectionStart === "number") {
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const next = current.slice(0, start) + placeholder + current.slice(end);
+      setFieldValue(identifier, next);
+      // Reposicionar cursor após inserção
+      requestAnimationFrame(() => {
+        el.focus();
+        const pos = start + placeholder.length;
+        try { el.setSelectionRange(pos, pos); } catch (_) {}
+      });
+    } else {
+      setFieldValue(identifier, current + placeholder);
+    }
+  };
+
+  const renderPlaceholderChips = (identifier, value, setFieldValue) => {
+    const allChips = [...messagePlaceholders, ...customPlaceholders];
     return (
-      <Field
-        as={TextField}
-        id={identifier}
-        name={identifier}
-        fullWidth
-        rows={5}
-        label={i18n.t(`campaigns.dialog.form.${identifier}`)}
-        placeholder={i18n.t("campaigns.dialog.form.messagePlaceholder")}
-        multiline={true}
-        variant="outlined"
-        helperText="Utilize variáveis como {nome}, {numero}, {email} ou defina variáveis personalizadas."
-        disabled={!campaignEditable && campaign.status !== "CANCELADA"}
-      />
+      <div className="campaign-placeholder-chips">
+        <span className="campaign-placeholder-chips-label">Inserir variável:</span>
+        {allChips.map((p) => {
+          const isCustom = customPlaceholders.some((c) => c.key === p.key);
+          return (
+            <span key={p.key} className={`campaign-placeholder-chip-wrap ${isCustom ? "is-custom" : ""}`}>
+              <button
+                type="button"
+                className="campaign-placeholder-chip"
+                onClick={() => insertPlaceholder(identifier, value, setFieldValue, p.key)}
+                disabled={!campaignEditable && campaign.status !== "CANCELADA"}
+                title={`Inserir ${p.key}`}
+              >
+                <code>{p.key}</code>
+                <span>{p.label}</span>
+              </button>
+              {isCustom && (
+                <button
+                  type="button"
+                  className="campaign-placeholder-chip-remove"
+                  onClick={() => removeCustomVar(p.key)}
+                  title="Remover variável personalizada"
+                  aria-label={`Remover ${p.key}`}
+                >×</button>
+              )}
+            </span>
+          );
+        })}
+        <button
+          type="button"
+          className="campaign-placeholder-chip-add"
+          onClick={() => setShowVarManager((s) => !s)}
+          title="Adicionar variável personalizada"
+        >
+          {showVarManager ? "− Fechar" : "+ Nova variável"}
+        </button>
+        {showVarManager && (
+          <div className="campaign-var-manager">
+            <input
+              type="text"
+              className="campaign-var-manager-input"
+              placeholder="chave (ex.: cidade)"
+              value={newVarKey}
+              onChange={(e) => setNewVarKey(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomVar(); } }}
+            />
+            <input
+              type="text"
+              className="campaign-var-manager-input"
+              placeholder="rótulo (opcional)"
+              value={newVarLabel}
+              onChange={(e) => setNewVarLabel(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomVar(); } }}
+            />
+            <button
+              type="button"
+              className="campaign-var-manager-add"
+              onClick={addCustomVar}
+            >Adicionar</button>
+          </div>
+        )}
+      </div>
     );
   };
 
-  const renderConfirmationMessageField = (identifier) => {
+  // ---- Inline autocomplete ----
+  const allPlaceholders = () => [...messagePlaceholders, ...customPlaceholders];
+
+  const computeCaretPosition = (textarea) => {
+    // Cria um espelho invisível para medir a posição do caret
+    if (!textarea) return { top: 0, left: 0 };
+    const div = document.createElement("div");
+    const style = window.getComputedStyle(textarea);
+    [
+      "boxSizing", "width", "height", "overflowX", "overflowY",
+      "borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth",
+      "paddingTop", "paddingRight", "paddingBottom", "paddingLeft",
+      "fontStyle", "fontVariant", "fontWeight", "fontStretch", "fontSize",
+      "fontSizeAdjust", "lineHeight", "fontFamily", "textAlign", "textTransform",
+      "textIndent", "textDecoration", "letterSpacing", "wordSpacing", "tabSize",
+      "MozTabSize", "whiteSpace", "wordWrap", "wordBreak"
+    ].forEach((p) => { div.style[p] = style[p]; });
+    div.style.position = "absolute";
+    div.style.visibility = "hidden";
+    div.style.whiteSpace = "pre-wrap";
+    div.style.wordWrap = "break-word";
+    div.style.top = "0";
+    div.style.left = "0";
+    const value = textarea.value.substring(0, textarea.selectionStart);
+    div.textContent = value;
+    const span = document.createElement("span");
+    span.textContent = textarea.value.substring(textarea.selectionStart) || ".";
+    div.appendChild(span);
+    document.body.appendChild(div);
+    const rectTextarea = textarea.getBoundingClientRect();
+    const spanRect = span.getBoundingClientRect();
+    const divRect = div.getBoundingClientRect();
+    const top = rectTextarea.top + (spanRect.top - divRect.top) - textarea.scrollTop + parseInt(style.fontSize, 10) + 4;
+    const left = rectTextarea.left + (spanRect.left - divRect.left) - textarea.scrollLeft;
+    document.body.removeChild(div);
+    return { top, left };
+  };
+
+  const handleEditorChange = (e, identifier, value, setFieldValue) => {
+    const next = e.target.value;
+    setFieldValue(identifier, next);
+    const el = e.target;
+    const caret = el.selectionStart;
+    // Procura último '{' antes do caret que abre token de variável
+    const before = next.slice(0, caret);
+    const match = before.match(/\{([a-zA-Z0-9_]*)$/);
+    if (!match) {
+      if (autocomplete) setAutocomplete(null);
+      return;
+    }
+    const query = match[1].toLowerCase();
+    const items = allPlaceholders().filter((p) =>
+      p.key.toLowerCase().includes(query) || p.label.toLowerCase().includes(query)
+    );
+    if (items.length === 0) {
+      if (autocomplete) setAutocomplete(null);
+      return;
+    }
+    const { top, left } = computeCaretPosition(el);
+    setAutocomplete({
+      identifier,
+      query,
+      items,
+      index: 0,
+      top,
+      left,
+      triggerStart: caret - match[0].length, // posição do '{'
+    });
+  };
+
+  const applyAutocomplete = (identifier, value, setFieldValue, item) => {
+    const el = document.getElementById(identifier);
+    if (!el || !autocomplete) return;
+    const before = (value || "").slice(0, autocomplete.triggerStart);
+    const after = (value || "").slice(el.selectionStart);
+    const next = before + item.key + after;
+    setFieldValue(identifier, next);
+    const newPos = before.length + item.key.length;
+    requestAnimationFrame(() => {
+      el.focus();
+      try { el.setSelectionRange(newPos, newPos); } catch (_) {}
+    });
+    setAutocomplete(null);
+  };
+
+  const handleEditorKeyDown = (e, identifier, value, setFieldValue) => {
+    if (!autocomplete || autocomplete.identifier !== identifier) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setAutocomplete((a) => ({ ...a, index: (a.index + 1) % a.items.length }));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setAutocomplete((a) => ({ ...a, index: (a.index - 1 + a.items.length) % a.items.length }));
+    } else if (e.key === "Enter" || e.key === "Tab") {
+      e.preventDefault();
+      e.stopPropagation();
+      const item = autocomplete.items[autocomplete.index];
+      if (item) applyAutocomplete(identifier, value, setFieldValue, item);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      setAutocomplete(null);
+    }
+  };
+
+  const renderAutocompletePopup = (identifier, value, setFieldValue) => {
+    if (!autocomplete || autocomplete.identifier !== identifier) return null;
     return (
-      <Field
-        as={TextField}
-        id={identifier}
-        name={identifier}
-        fullWidth
-        rows={5}
-        label={i18n.t(`campaigns.dialog.form.${identifier}`)}
-        placeholder={i18n.t("campaigns.dialog.form.messagePlaceholder")}
-        multiline={true}
-        variant="outlined"
-        disabled={!campaignEditable && campaign.status !== "CANCELADA"}
-      />
+      <div
+        className="campaign-autocomplete-popup"
+        style={{ top: autocomplete.top, left: autocomplete.left, position: "fixed" }}
+      >
+        {autocomplete.items.map((item, idx) => (
+          <button
+            type="button"
+            key={item.key}
+            className={`campaign-autocomplete-item ${idx === autocomplete.index ? "is-active" : ""}`}
+            onMouseDown={(e) => { e.preventDefault(); applyAutocomplete(identifier, value, setFieldValue, item); }}
+            onMouseEnter={() => setAutocomplete((a) => a ? { ...a, index: idx } : a)}
+          >
+            <code>{item.key}</code>
+            <span>{item.label}</span>
+          </button>
+        ))}
+        <div className="campaign-autocomplete-hint">↑↓ navegar · Enter/Tab inserir · Esc fechar</div>
+      </div>
+    );
+  };
+
+  const renderMessageField = (identifier, values, setFieldValue) => {
+    const value = values ? values[identifier] : "";
+    return (
+      <div className="campaign-message-editor">
+        {values && setFieldValue && renderPlaceholderChips(identifier, value, setFieldValue)}
+        <TextField
+          id={identifier}
+          name={identifier}
+          value={value || ""}
+          fullWidth
+          rows={5}
+          label={i18n.t(`campaigns.dialog.form.${identifier}`)}
+          placeholder={i18n.t("campaigns.dialog.form.messagePlaceholder")}
+          multiline
+          variant="outlined"
+          helperText="Digite { para sugestões · ou clique nas variáveis acima"
+          disabled={!campaignEditable && campaign.status !== "CANCELADA"}
+          onChange={(e) => handleEditorChange(e, identifier, value, setFieldValue)}
+          onKeyDown={(e) => handleEditorKeyDown(e, identifier, value, setFieldValue)}
+          onBlur={() => setTimeout(() => setAutocomplete((a) => a && a.identifier === identifier ? null : a), 120)}
+        />
+        {renderAutocompletePopup(identifier, value, setFieldValue)}
+      </div>
+    );
+  };
+
+  const renderConfirmationMessageField = (identifier, values, setFieldValue) => {
+    const value = values ? values[identifier] : "";
+    return (
+      <div className="campaign-message-editor">
+        {values && setFieldValue && renderPlaceholderChips(identifier, value, setFieldValue)}
+        <TextField
+          id={identifier}
+          name={identifier}
+          value={value || ""}
+          fullWidth
+          rows={5}
+          label={i18n.t(`campaigns.dialog.form.${identifier}`)}
+          placeholder={i18n.t("campaigns.dialog.form.messagePlaceholder")}
+          multiline
+          variant="outlined"
+          disabled={!campaignEditable && campaign.status !== "CANCELADA"}
+          onChange={(e) => handleEditorChange(e, identifier, value, setFieldValue)}
+          onKeyDown={(e) => handleEditorKeyDown(e, identifier, value, setFieldValue)}
+          onBlur={() => setTimeout(() => setAutocomplete((a) => a && a.identifier === identifier ? null : a), 120)}
+        />
+        {renderAutocompletePopup(identifier, value, setFieldValue)}
+      </div>
     );
   };
 
@@ -764,43 +1105,22 @@ const CampaignModal = ({
                     });
                 }}
               />
-              <div className="campaign-wizard-stepper">
-                {[
-                  { label: "Campanha", icon: "📣" },
-                  { label: "Listas de Contatos", icon: "📋" },
-                  { label: "Configurações", icon: "⚙️" },
-                ].map((step, idx) => (
-                  <React.Fragment key={idx}>
-                    <button
-                      type="button"
-                      className={`campaign-wizard-step ${messageTab === idx ? "is-active" : ""} ${messageTab > idx ? "is-done" : ""}`}
-                      onClick={() => setMessageTab(idx)}
-                    >
-                      <span className="campaign-wizard-step-circle">
-                        {messageTab > idx ? "✓" : idx + 1}
-                      </span>
-                      <span className="campaign-wizard-step-label">
-                        <span className="campaign-wizard-step-icon">{step.icon}</span>
-                        {step.label}
-                      </span>
-                    </button>
-                    {idx < 2 && (
-                      <span className={`campaign-wizard-bar ${messageTab > idx ? "is-done" : ""}`}>
-                        <span className="campaign-wizard-bar-fill" />
-                      </span>
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
-              <div className="campaign-wizard-progress">
-                <div
-                  className="campaign-wizard-progress-fill"
-                  style={{ width: `${((messageTab + 1) / 3) * 100}%` }}
-                />
-              </div>
+              <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                <Tabs
+                  value={messageTab}
+                  onChange={(e, val) => setMessageTab(val)}
+                  indicatorColor="primary"
+                  textColor="primary"
+                  variant="fullWidth"
+                >
+                  <Tab label="Campanha" />
+                  <Tab label="📋 Listas de Contatos" />
+                  <Tab label="⚙️ Configurações" />
+                </Tabs>
+              </Box>
 
               {/* ABA 0: Configurações da Campanha */}
-              <div hidden={messageTab !== 0} className={messageTab === 0 ? "campaign-wizard-pane is-active" : "campaign-wizard-pane"}>
+              <div hidden={messageTab !== 0}>
               <DialogContent dividers>
                 <Grid spacing={2} container>
                   <Grid xs={12} md={4} item>
@@ -1355,14 +1675,14 @@ const CampaignModal = ({
                         ) : values.confirmation ? (
                           <Grid spacing={2} container>
                             <Grid xs={12} item>
-                              <>{renderMessageField("message1")}</>
+                              <>{renderMessageField("message1", values, setFieldValue)}</>
                             </Grid>
                             <Grid xs={12} item>
-                              <>{renderConfirmationMessageField("confirmationMessage1")}</>
+                              <>{renderConfirmationMessageField("confirmationMessage1", values, setFieldValue)}</>
                             </Grid>
                           </Grid>
                         ) : (
-                          <>{renderMessageField("message1")}</>
+                          <>{renderMessageField("message1", values, setFieldValue)}</>
                         )}
 
                         {/* Botão de anexar mídia + mídia anexada - ocultos para API Oficial */}
@@ -1420,7 +1740,8 @@ const CampaignModal = ({
                         )}
                       </Grid>
                     </Grid>
-                    </Grid>
+                  </Grid>
+
                   {/* Seletor simples de lista de contatos e tags */}
                   <Grid xs={12} item>
                     <Box style={{ border: "1px solid #e0e0e0", borderRadius: 8, padding: "12px 16px" }}>
@@ -1506,7 +1827,7 @@ const CampaignModal = ({
               </div>
 
               {/* ABA 1: Listas de Contatos */}
-              <div hidden={messageTab !== 1} className={messageTab === 1 ? "campaign-wizard-pane is-active" : "campaign-wizard-pane"}>
+              <div hidden={messageTab !== 1}>
                 <DialogContent dividers>
                   <CampaignContactSelector
                     contactListId={values.contactListId}
@@ -1533,7 +1854,7 @@ const CampaignModal = ({
               </div>
 
               {/* ABA 2: Configurações de Disparo */}
-              <div hidden={messageTab !== 2} className={messageTab === 2 ? "campaign-wizard-pane is-active" : "campaign-wizard-pane"}>
+              <div hidden={messageTab !== 2}>
                 <DialogContent dividers>
                     <Grid spacing={2} container>
                       <Grid xs={12} item>
@@ -1703,26 +2024,7 @@ const CampaignModal = ({
                     {i18n.t("campaigns.dialog.buttons.cancel")}
                   </Button>
                 )}
-              <DialogActions>
-                {campaign.status === "CANCELADA" && (
-                  <Button
-                    color="primary"
-                    onClick={() => restartCampaign()}
-                    variant="outlined"
-                  >
-                    {i18n.t("campaigns.dialog.buttons.restart")}
-                  </Button>
-                )}
-                {campaign.status === "EM_ANDAMENTO" && (
-                  <Button
-                    color="primary"
-                    onClick={() => cancelCampaign()}
-                    variant="outlined"
-                  >
-                    {i18n.t("campaigns.dialog.buttons.cancel")}
-                  </Button>
-                )}
-
+                
                 <Button
                   onClick={handleClose}
                   color="primary"
@@ -1732,29 +2034,33 @@ const CampaignModal = ({
                   {i18n.t("campaigns.dialog.buttons.close")}
                 </Button>
 
-                {messageTab > 0 && (
+                {campaignEditable && (
                   <Button
-                    onClick={() => setMessageTab((t) => Math.max(0, t - 1))}
-                    color="primary"
+                    onClick={() => {
+                      const STORAGE_KEY = "campaignActionStats";
+                      let stats = { drafts: 0, confirmed: 0, recent: [] };
+                      try {
+                        const raw = sessionStorage.getItem(STORAGE_KEY);
+                        if (raw) stats = JSON.parse(raw);
+                      } catch (_) {}
+                      stats.drafts = (stats.drafts || 0) + 1;
+                      stats.recent = [{
+                        label: (campaign && campaign.name) || "Rascunho sem nome",
+                        time: new Date().toISOString(),
+                        type: "draft",
+                      }, ...(stats.recent || [])].slice(0, 5);
+                      try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stats)); } catch (_) {}
+                      toast.info("📝 Rascunho salvo nesta sessão");
+                      setAnalyticsModal(stats);
+                    }}
+                    color="default"
                     variant="outlined"
                     disabled={isSubmitting}
                   >
-                    ← Voltar
+                    Salvar rascunho
                   </Button>
                 )}
-
-                {messageTab < 2 && (
-                  <Button
-                    onClick={() => setMessageTab((t) => Math.min(2, t + 1))}
-                    color="primary"
-                    variant="contained"
-                    disabled={isSubmitting}
-                  >
-                    Próximo →
-                  </Button>
-                )}
-
-                {messageTab === 2 && (campaignEditable || campaign.status === "CANCELADA") && (
+                {(messageTab === 0 || messageTab === 1) && (campaignEditable || campaign.status === "CANCELADA") && (
                   <Button
                     type="submit"
                     color="primary"
@@ -1786,6 +2092,81 @@ const CampaignModal = ({
               </svg>
               <h3>Tudo certo!</h3>
               <p>Sua campanha foi salva com sucesso.</p>
+            </div>
+          </div>
+        )}
+        {analyticsModal && (
+          <div className="campaign-analytics-overlay" onClick={() => { setAnalyticsModal(null); handleClose(); }}>
+            <div className="campaign-analytics-card" onClick={(e) => e.stopPropagation()}>
+              <div className="campaign-analytics-header">
+                <span className="campaign-analytics-icon">📊</span>
+                <div>
+                  <h3>Resumo da sessão</h3>
+                  <p>Suas ações nesta janela</p>
+                </div>
+                <button
+                  type="button"
+                  className="campaign-analytics-close"
+                  onClick={() => { setAnalyticsModal(null); handleClose(); }}
+                  aria-label="Fechar"
+                >×</button>
+              </div>
+
+              <div className="campaign-analytics-stats">
+                <div className="campaign-analytics-stat is-draft">
+                  <span className="campaign-analytics-stat-value">{analyticsModal.drafts || 0}</span>
+                  <span className="campaign-analytics-stat-label">Rascunhos</span>
+                </div>
+                <div className="campaign-analytics-stat is-confirmed">
+                  <span className="campaign-analytics-stat-value">{analyticsModal.confirmed || 0}</span>
+                  <span className="campaign-analytics-stat-label">Confirmadas</span>
+                </div>
+              </div>
+
+              <div className="campaign-analytics-recent">
+                <span className="campaign-analytics-recent-title">Últimas ações</span>
+                {(!analyticsModal.recent || analyticsModal.recent.length === 0) ? (
+                  <p className="campaign-analytics-empty">Nenhuma ação registrada.</p>
+                ) : (
+                  <ul>
+                    {analyticsModal.recent.map((r, idx) => {
+                      const t = new Date(r.time);
+                      const time = t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                      const meta = r.type === "draft" ? { icon: "📝", label: "Rascunho", cls: "draft" }
+                        : r.type === "update" ? { icon: "✏️", label: "Atualizada", cls: "update" }
+                        : { icon: "🚀", label: "Criada", cls: "create" };
+                      return (
+                        <li key={idx} className={`campaign-analytics-item is-${meta.cls}`}>
+                          <span className="campaign-analytics-item-icon">{meta.icon}</span>
+                          <span className="campaign-analytics-item-label">{r.label}</span>
+                          <span className="campaign-analytics-item-tag">{meta.label}</span>
+                          <span className="campaign-analytics-item-time">{time}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              <div className="campaign-analytics-actions">
+                <button
+                  type="button"
+                  className="campaign-analytics-btn-ghost"
+                  onClick={() => {
+                    try { sessionStorage.removeItem("campaignActionStats"); } catch (_) {}
+                    setAnalyticsModal({ drafts: 0, confirmed: 0, recent: [] });
+                  }}
+                >
+                  Limpar histórico
+                </button>
+                <button
+                  type="button"
+                  className="campaign-analytics-btn-primary"
+                  onClick={() => { setAnalyticsModal(null); handleClose(); }}
+                >
+                  Fechar
+                </button>
+              </div>
             </div>
           </div>
         )}

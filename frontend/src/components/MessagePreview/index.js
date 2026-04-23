@@ -142,9 +142,76 @@ const useStyles = makeStyles((theme) => ({
   },
   highlight: {
     backgroundColor: "#fff9c4",
-    borderRadius: 2,
-    padding: "0 2px",
-    fontWeight: 500,
+    borderRadius: 3,
+    padding: "0 3px",
+    fontWeight: 600,
+    color: "#5d4037",
+    boxShadow: "inset 0 -1px 0 rgba(0,0,0,0.06)",
+  },
+  highlightRaw: {
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    fontSize: 12,
+    backgroundColor: "#ede9fe",
+    color: "#5b21b6",
+    border: "1px solid #ddd6fe",
+    borderRadius: 4,
+    padding: "0 4px",
+  },
+  toggleRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "6px 14px",
+    background: "#fafafa",
+    borderTop: `1px solid ${theme.palette.divider}`,
+    fontSize: 11.5,
+    color: theme.palette.text.secondary,
+  },
+  toggleBtn: {
+    background: "#10b981",
+    color: "#fff",
+    border: 0,
+    padding: "4px 10px",
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: 700,
+    cursor: "pointer",
+    letterSpacing: "0.03em",
+    textTransform: "uppercase",
+    transition: "background 0.15s ease",
+    "&:hover": { background: "#059669" },
+  },
+  toggleBtnRaw: {
+    background: "#475569",
+    "&:hover": { background: "#334155" },
+  },
+  legendList: {
+    padding: "8px 14px 12px",
+    background: "#fafafa",
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 6,
+    borderTop: `1px dashed ${theme.palette.divider}`,
+  },
+  legendItem: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    background: "#fff",
+    border: "1px solid #e5e7eb",
+    borderRadius: 999,
+    padding: "2px 8px 2px 4px",
+    fontSize: 11,
+    color: "#334155",
+    "& code": {
+      background: "#ecfdf5",
+      color: "#047857",
+      borderRadius: 999,
+      padding: "0 6px",
+      fontSize: 10.5,
+      fontWeight: 700,
+      border: "1px solid #a7f3d0",
+    },
   },
   mediaPlaceholder: {
     backgroundColor: "#f0f0f0",
@@ -165,26 +232,179 @@ const useStyles = makeStyles((theme) => ({
     borderRadius: 6,
     marginBottom: 6,
   },
+  warnBox: {
+    margin: "10px 14px 0",
+    padding: "8px 10px",
+    background: "#fff7ed",
+    border: "1px solid #fdba74",
+    borderRadius: 8,
+    fontSize: 12,
+    color: "#9a3412",
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+  },
+  warnTitle: {
+    fontWeight: 700,
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    color: "#c2410c",
+  },
+  warnItem: {
+    display: "flex",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 6,
+    paddingLeft: 4,
+  },
+  warnChip: {
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    background: "#fee2e2",
+    color: "#b91c1c",
+    border: "1px solid #fecaca",
+    borderRadius: 4,
+    padding: "0 6px",
+    fontSize: 11,
+    fontWeight: 600,
+  },
+  suggestChip: {
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    background: "#dcfce7",
+    color: "#15803d",
+    border: "1px solid #bbf7d0",
+    borderRadius: 4,
+    padding: "0 6px",
+    fontSize: 11,
+    fontWeight: 600,
+  },
+  highlightUnknown: {
+    backgroundColor: "#fee2e2",
+    color: "#b91c1c",
+    border: "1px dashed #fca5a5",
+    borderRadius: 3,
+    padding: "0 3px",
+    fontWeight: 600,
+  },
 }));
 
-const replaceCustomVars = (text) => {
-  if (!text) return text;
-  return text
-    .replace(/\{nome\}/gi, "João Silva")
-    .replace(/\{numero\}/gi, "5511999999999")
-    .replace(/\{email\}/gi, "joao@email.com")
-    .replace(/\{greeting\}/gi, "Bom dia")
-    .replace(/\{protocol\}/gi, "2024010001")
-    .replace(/\{([\w]+)\}/gi, (match, varName) => `[${varName}]`);
+// Distância de Levenshtein para sugestão de placeholders
+const levenshtein = (a, b) => {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const m = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) m[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      m[i][j] = Math.min(m[i - 1][j] + 1, m[i][j - 1] + 1, m[i - 1][j - 1] + cost);
+    }
+  }
+  return m[a.length][b.length];
 };
 
-const renderTextWithVars = (text, classes) => {
+const suggestPlaceholders = (unknown, knownKeys) => {
+  const u = unknown.toLowerCase();
+  return knownKeys
+    .map((k) => ({ k, d: levenshtein(u, k.toLowerCase()) }))
+    .filter((x) => x.d <= Math.max(2, Math.floor(u.length / 2)))
+    .sort((a, b) => a.d - b.d)
+    .slice(0, 3)
+    .map((x) => x.k);
+};
+
+// Calcula saudação baseada no horário atual
+const getSaudacao = () => {
+  const h = new Date().getHours();
+  if (h < 12) return "Bom dia";
+  if (h < 18) return "Boa tarde";
+  return "Boa noite";
+};
+
+// Lê variáveis customizadas salvas pelo editor (localStorage do CampaignModal)
+const loadCustomVars = () => {
+  try {
+    const raw = localStorage.getItem("campaignCustomVars");
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+};
+
+// Heurística para gerar valores de exemplo para variáveis customizadas
+const sampleForKey = (key, label) => {
+  const k = (key || "").replace(/[{}]/g, "").toLowerCase();
+  const l = (label || "").toLowerCase();
+  if (/cidade|city/.test(k) || /cidade|city/.test(l)) return "São Paulo";
+  if (/estado|state|uf/.test(k)) return "SP";
+  if (/cpf/.test(k)) return "123.456.789-00";
+  if (/cnpj/.test(k)) return "12.345.678/0001-99";
+  if (/telefone|phone|whatsapp/.test(k)) return "(11) 99999-9999";
+  if (/produto|product/.test(k)) return "Plano Premium";
+  if (/preco|valor|price|amount/.test(k)) return "R$ 199,90";
+  if (/data|date/.test(k)) return new Date().toLocaleDateString("pt-BR");
+  if (/hora|hour|time/.test(k)) return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  if (/empresa|company/.test(k)) return "Equipe Chat";
+  if (/atendente|user|operator/.test(k)) return "Maria";
+  if (/protocolo|protocol/.test(k)) return "2024010001";
+  return `Exemplo ${label || key}`;
+};
+
+const SAMPLE_VALUES = () => {
+  const base = {
+    nome: "João Silva",
+    numero: "(11) 99999-9999",
+    email: "joao@email.com",
+    saudacao: getSaudacao(),
+    data: new Date().toLocaleDateString("pt-BR"),
+    empresa: "Equipe Chat",
+    greeting: getSaudacao(),
+    protocol: "2024010001",
+  };
+  loadCustomVars().forEach((v) => {
+    const k = (v.key || "").replace(/[{}]/g, "");
+    if (k && !(k in base)) base[k] = sampleForKey(v.key, v.label);
+  });
+  return base;
+};
+
+const replaceCustomVars = (text, sampleValues) => {
+  if (!text) return text;
+  const samples = sampleValues || SAMPLE_VALUES();
+  return text.replace(/\{([\w]+)\}/gi, (match, varName) => {
+    const key = varName.toLowerCase();
+    if (samples[key] !== undefined) return samples[key];
+    return `[${varName}]`;
+  });
+};
+
+const renderTextWithVars = (text, classes, samples, useExamples) => {
   if (!text) return null;
   const parts = text.split(/(\{[\w]+\})/gi);
   return parts.map((part, i) => {
-    if (/^\{[\w]+\}$/i.test(part)) {
-      const replaced = replaceCustomVars(part);
-      return <span key={i} className={classes.highlight}>{replaced}</span>;
+    const m = part.match(/^\{([\w]+)\}$/i);
+    if (m) {
+      const key = m[1].toLowerCase();
+      const isKnown = samples[key] !== undefined;
+      if (!isKnown) {
+        return (
+          <span
+            key={i}
+            className={classes.highlightUnknown}
+            title="Placeholder desconhecido — não será substituído no envio"
+          >
+            {part}
+          </span>
+        );
+      }
+      if (!useExamples) {
+        return <span key={i} className={classes.highlightRaw}>{part}</span>;
+      }
+      const replaced = replaceCustomVars(part, samples);
+      return <span key={i} className={classes.highlight} title={part}>{replaced}</span>;
     }
     return <span key={i}>{part}</span>;
   });
@@ -192,6 +412,9 @@ const renderTextWithVars = (text, classes) => {
 
 const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
   const classes = useStyles();
+  const [useExamples, setUseExamples] = useState(true);
+
+  const samples = useMemo(() => SAMPLE_VALUES(), []);
 
   const activeMessages = useMemo(() => {
     if (!messages) return [];
@@ -201,6 +424,24 @@ const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
   }, [messages]);
 
   const currentMessage = activeMessages.length > 0 ? activeMessages[0].text : "";
+
+  // Detecta variáveis usadas na mensagem para a legenda
+  const usedVars = useMemo(() => {
+    if (!currentMessage) return [];
+    const found = new Set();
+    const re = /\{([\w]+)\}/gi;
+    let m;
+    while ((m = re.exec(currentMessage)) !== null) found.add(m[1].toLowerCase());
+    return Array.from(found);
+  }, [currentMessage]);
+
+  // Detecta placeholders desconhecidos e calcula sugestões via similaridade
+  const unknownVars = useMemo(() => {
+    const knownKeys = Object.keys(samples);
+    return usedVars
+      .filter((v) => samples[v] === undefined)
+      .map((v) => ({ key: v, suggestions: suggestPlaceholders(v, knownKeys) }));
+  }, [usedVars, samples]);
 
   const getAttachmentPreview = () => {
     if (attachment) {
@@ -240,10 +481,10 @@ const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
       {/* Header */}
       <Box className={classes.header}>
         <ChatBubbleOutlineIcon className={classes.headerIcon} />
-        <Box>
+        <Box style={{ flex: 1 }}>
           <Typography className={classes.headerTitle}>Preview da Mensagem</Typography>
           <Typography className={classes.headerSubtitle}>
-            Visualize como a mensagem aparecerá no WhatsApp
+            {useExamples ? "Renderizado com valores de exemplo" : "Mostrando o template bruto"}
           </Typography>
         </Box>
       </Box>
@@ -255,7 +496,7 @@ const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
             <PersonIcon style={{ color: "#fff", fontSize: 20 }} />
           </Box>
           <Box>
-            <Typography className={classes.contactName}>Contato</Typography>
+            <Typography className={classes.contactName}>{useExamples ? samples.nome : "Contato"}</Typography>
             <Typography className={classes.contactStatus}>online</Typography>
           </Box>
         </Box>
@@ -265,7 +506,7 @@ const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
             <Box className={classes.messageBubble}>
               {getAttachmentPreview()}
               <Typography className={classes.bodyText}>
-                {renderTextWithVars(currentMessage, classes)}
+                {renderTextWithVars(currentMessage, classes, samples, useExamples)}
               </Typography>
               <Typography className={classes.timeText}>
                 {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
@@ -287,7 +528,7 @@ const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
             className={classes.inputField}
             placeholder="Digite uma mensagem"
             readOnly
-            value={currentMessage ? replaceCustomVars(currentMessage).substring(0, 50) + (currentMessage.length > 50 ? "..." : "") : ""}
+            value={currentMessage ? (useExamples ? replaceCustomVars(currentMessage, samples) : currentMessage).substring(0, 50) + (currentMessage.length > 50 ? "..." : "") : ""}
           />
           <IconButton size="small" className={classes.sendButton}>
             <SendIcon style={{ fontSize: 18 }} />
@@ -295,9 +536,57 @@ const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
         </Box>
       </Box>
 
+      {/* Aviso de placeholders desconhecidos */}
+      {unknownVars.length > 0 && (
+        <Box className={classes.warnBox}>
+          <span className={classes.warnTitle}>
+            ⚠️ {unknownVars.length === 1 ? "Placeholder desconhecido" : `${unknownVars.length} placeholders desconhecidos`}
+          </span>
+          {unknownVars.map(({ key, suggestions }) => (
+            <span key={key} className={classes.warnItem}>
+              <span className={classes.warnChip}>{`{${key}}`}</span>
+              {suggestions.length > 0 ? (
+                <>
+                  <span>— você quis dizer:</span>
+                  {suggestions.map((s) => (
+                    <span key={s} className={classes.suggestChip}>{`{${s}}`}</span>
+                  ))}
+                </>
+              ) : (
+                <span>— não há substituição; será enviado literalmente.</span>
+              )}
+            </span>
+          ))}
+        </Box>
+      )}
+
+      {/* Toggle entre exemplos e bruto */}
+      <Box className={classes.toggleRow}>
+        <span>{useExamples ? "✨ Exibindo exemplos fictícios" : "🔤 Exibindo placeholders crus"}</span>
+        <button
+          type="button"
+          className={`${classes.toggleBtn} ${useExamples ? "" : classes.toggleBtnRaw}`}
+          onClick={() => setUseExamples((v) => !v)}
+        >
+          {useExamples ? "Ver bruto" : "Ver com exemplos"}
+        </button>
+      </Box>
+
+      {/* Legenda dinâmica */}
+      {usedVars.length > 0 && (
+        <Box className={classes.legendList}>
+          {usedVars.map((v) => (
+            <span key={v} className={classes.legendItem}>
+              <code>{`{${v}}`}</code>
+              <span>→ {samples[v] !== undefined ? samples[v] : `[${v}]`}</span>
+            </span>
+          ))}
+        </Box>
+      )}
+
       {/* Variables hint */}
       <Box className={classes.variablesHint}>
-        Variáveis disponíveis: <strong>{"{nome}"}</strong>, <strong>{"{numero}"}</strong>, <strong>{"{email}"}</strong>, <strong>{"{greeting}"}</strong>, <strong>{"{protocol}"}</strong>
+        Variáveis padrão: <strong>{"{nome}"}</strong>, <strong>{"{numero}"}</strong>, <strong>{"{email}"}</strong>, <strong>{"{saudacao}"}</strong>, <strong>{"{data}"}</strong>, <strong>{"{empresa}"}</strong> + suas variáveis personalizadas.
       </Box>
     </Box>
   );

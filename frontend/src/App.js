@@ -114,6 +114,14 @@ const App = () => {
 
           palette: {
             type: mode,
+            // Tema dark inspirado em GitHub Dark (referência do usuário)
+            // Fundo principal #0D1117, painéis #161B22, item ativo #14292C
+            ...(mode === "dark" && {
+              background: {
+                default: "#0D1117",
+                paper: "#161B22",
+              },
+            }),
             primary: {
               main: mode === "light" ? primaryColorLight : primaryColorDark, // Usa cores dinâmicas
               light: mode === "light"
@@ -131,13 +139,17 @@ const App = () => {
             dark: { main: mode === "light" ? "#333333" : "#F3F3F3" },
             light: { main: mode === "light" ? "#F3F3F3" : "#333333" },
             fontColor: mode === "light" ? primaryColorLight : primaryColorDark,
-            tabHeaderBackground: mode === "light" ? "#EEE" : "#666",
-            optionsBackground: mode === "light" ? "#fafafa" : "#333",
-            fancyBackground: mode === "light" ? "#fafafa" : "#333",
-            total: mode === "light" ? "#fff" : "#222",
+            tabHeaderBackground: mode === "light" ? "#EEE" : "#161B22",
+            optionsBackground: mode === "light" ? "#fafafa" : "#161B22",
+            fancyBackground: mode === "light" ? "#fafafa" : "#0D1117",
+            // Item de lista ativo (verde escuro do print)
+            activeItemBackground: mode === "light" ? "#e8f5f3" : "#14292C",
+            chatBackground: mode === "light" ? "#f0f2f5" : "#0D1117",
+            sidebarBackground: mode === "light" ? "#fff" : "#161B22",
+            total: mode === "light" ? "#fff" : "#161B22",
             messageIcons: mode === "light" ? "grey" : "#F3F3F3",
-            inputBackground: mode === "light" ? "#FFFFFF" : "#333",
-            barraSuperior: mode === "light" ? primaryColorLight : "#666", // Usa cor do tema
+            inputBackground: mode === "light" ? "#FFFFFF" : "#0E1319",
+            barraSuperior: mode === "light" ? primaryColorLight : "#0D1117",
           },
 
           typography: {
