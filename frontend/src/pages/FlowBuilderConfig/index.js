@@ -135,6 +135,7 @@ import FlowBuilderOpenAIModal from "../../components/FlowBuilderAddOpenAIModal";
 import FlowBuilderGeminiModal from "../../components/FlowBuilderGeminiModal";
 import { useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { CircularProgress } from "@material-ui/core";
+import FlowCanvasToolbar from "./FlowCanvasToolbar";
 
 
 
