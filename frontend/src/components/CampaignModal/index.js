@@ -597,6 +597,23 @@ const CampaignModal = ({
           onSave(data);
         }
       }
+      // Atualiza analytics da sessão
+      const STORAGE_KEY = "campaignActionStats";
+      let stats = { drafts: 0, confirmed: 0, recent: [] };
+      try {
+        const raw = sessionStorage.getItem(STORAGE_KEY);
+        if (raw) stats = JSON.parse(raw);
+      } catch (_) {}
+      const actionType = isUpdate ? "update" : "create";
+      stats.confirmed = (stats.confirmed || 0) + 1;
+      const entry = {
+        label: dataValues.name || "Campanha sem nome",
+        time: new Date().toISOString(),
+        type: actionType,
+      };
+      stats.recent = [entry, ...(stats.recent || [])].slice(0, 5);
+      try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stats)); } catch (_) {}
+
       // Animação de confirmação
       setShowSuccessAnim(true);
       toast.success(
@@ -607,7 +624,7 @@ const CampaignModal = ({
       );
       setTimeout(() => {
         setShowSuccessAnim(false);
-        handleClose();
+        setAnalyticsModal(stats);
       }, 1200);
     } catch (err) {
       console.log(err);
