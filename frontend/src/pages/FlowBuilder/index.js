@@ -14,17 +14,20 @@ import Card from "@material-ui/core/Card";
 import CardContent from "@material-ui/core/CardContent";
 
 import SearchIcon from "@material-ui/icons/Search";
+import { AddCircle, Build } from "@mui/icons-material";
 import {
-  AddCircle,
-  Build,
-  ContentCopy,
-  DevicesFold,
-  MoreVert,
-  Edit,
-  Delete,
-  PlayArrow,
-  Pause,
-} from "@mui/icons-material";
+  GitBranch,
+  Plus,
+  Search as LucideSearch,
+  Workflow,
+  Pencil,
+  Copy,
+  MoreVertical,
+  Trash2,
+  Play,
+  Pause as LucidePause,
+  Download,
+} from "lucide-react";
 
 import {
   Button,
