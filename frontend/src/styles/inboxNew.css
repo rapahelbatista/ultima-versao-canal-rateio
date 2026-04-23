@@ -1142,3 +1142,102 @@ body:has(.inbox-new) [class*="content"] {
 @keyframes inbox-tab-count-spin {
   to { transform: rotate(360deg); }
 }
+
+/* ============================================================
+   CHAT FIXES — remove yellow bg, hide cropped strips, modern icons
+   ============================================================ */
+
+/* 1) Force neutral background on MessagesList (kill WhatsApp wallpaper) */
+.inbox-new #messagesList,
+.inbox-new [id="messagesList"],
+.inbox-new div[class*="messagesList"],
+.inbox-new div[class*="messagesListWrapper"],
+.inbox-new div[class*="MessagesList"] {
+  background-image: none !important;
+  background-color: #f8fafc !important;
+  background: #f8fafc !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+}
+
+/* 2) Hide ticket separators "#Chamado N - Sem Fila" */
+.inbox-new div[class*="ticketNumber"],
+.inbox-new div[class*="ticketInfo"],
+.inbox-new div[class*="ticketHeader"],
+.inbox-new div[class*="messageMedia"][class*="divider"],
+.inbox-new div[class*="dailyTimestamp"][class*="ticket"],
+.inbox-new div[class*="dividerTicket"],
+.inbox-new .messagesList > div[class*="ticket"]:not([class*="message"]):not([class*="Wrapper"]) {
+  display: none !important;
+}
+
+/* 3) Hide tags bar above chat */
+.inbox-new div[class*="ContactTag"],
+.inbox-new div[class*="TagsContainer"],
+.inbox-new div[class*="tagsContainer"],
+.inbox-new div[class*="contactTagsContainer"] {
+  display: none !important;
+}
+
+/* 4) Modernize MessageInput footer icons — hide legacy ones */
+.inbox-new [aria-label*="sign" i],
+.inbox-new [class*="signSwitch"],
+.inbox-new [class*="SignSwitch"],
+.inbox-new [aria-label*="trigger-flow" i],
+.inbox-new [aria-label*="triggerFlow" i],
+.inbox-new [class*="triggerFlow"],
+.inbox-new [aria-label*="interactive" i],
+.inbox-new [class*="interactiveMessage"],
+.inbox-new [aria-label*="kanban" i] {
+  display: none !important;
+}
+
+/* Neutralize remaining FAB-style buttons in input */
+.inbox-new div[class*="newMessageBox"] button,
+.inbox-new div[class*="messageInputWrapper"] button,
+.inbox-new div[class*="MainWrapper"] button.MuiIconButton-root {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #64748b !important;
+  width: 36px !important;
+  height: 36px !important;
+  padding: 6px !important;
+}
+.inbox-new div[class*="newMessageBox"] button:hover,
+.inbox-new div[class*="messageInputWrapper"] button:hover {
+  background: rgba(100, 116, 139, 0.08) !important;
+  color: #334155 !important;
+}
+.inbox-new div[class*="newMessageBox"] button svg,
+.inbox-new div[class*="messageInputWrapper"] button svg {
+  width: 20px !important;
+  height: 20px !important;
+  color: inherit !important;
+  fill: currentColor !important;
+}
+
+/* Send button — keep accent */
+.inbox-new div[class*="newMessageBox"] button[class*="sendMessageIcons"],
+.inbox-new div[class*="newMessageBox"] button[aria-label*="send" i],
+.inbox-new button[class*="sendButton"] {
+  color: #2563eb !important;
+}
+.inbox-new div[class*="newMessageBox"] button[aria-label*="send" i]:hover {
+  background: rgba(37, 99, 235, 0.1) !important;
+}
+
+/* 5) Dark mode */
+body[data-theme="dark"] .inbox-new #messagesList,
+body[data-theme="dark"] .inbox-new div[class*="messagesList"],
+body[data-theme="dark"] .inbox-new div[class*="MessagesList"] {
+  background-color: #0b0b0d !important;
+  background: #0b0b0d !important;
+}
+body[data-theme="dark"] .inbox-new div[class*="newMessageBox"] button,
+body[data-theme="dark"] .inbox-new div[class*="messageInputWrapper"] button {
+  color: #94a3b8 !important;
+}
+body[data-theme="dark"] .inbox-new div[class*="newMessageBox"] button:hover {
+  background: rgba(148, 163, 184, 0.12) !important;
+  color: #e2e8f0 !important;
+}
