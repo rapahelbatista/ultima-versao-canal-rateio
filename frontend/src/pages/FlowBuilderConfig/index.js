@@ -1685,6 +1685,7 @@ export const FlowBuilderConfig = () => {
             }}
             onSave={saveFlow}
             onAddNode={(type) => clickActions(type)}
+            categories={nodeCategories}
           />
         </div>
       </div>
