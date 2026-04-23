@@ -143,14 +143,16 @@ const useStyles = makeStyles(theme => ({
   root: {
     display: "flex",
     flexDirection: "column",
-    height: "100vh",
+    height: "calc(100vh - 64px)",
+    minHeight: 500,
     overflow: "hidden",
     backgroundColor: theme.palette.background.default
   },
   header: {
     flexShrink: 0,
     backgroundColor: theme.palette.background.paper,
-    borderBottom: `1px solid ${theme.palette.divider}`
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    display: "none" // título já é mostrado pelo layout/breadcrumb
   },
   content: {
     flex: 1,
