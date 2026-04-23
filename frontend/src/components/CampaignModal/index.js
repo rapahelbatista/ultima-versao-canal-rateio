@@ -278,6 +278,8 @@ const CampaignModal = ({
   const [newVarKey, setNewVarKey] = useState("");
   const [newVarLabel, setNewVarLabel] = useState("");
   const [showVarManager, setShowVarManager] = useState(false);
+  // Autocomplete inline de variáveis
+  const [autocomplete, setAutocomplete] = useState(null); // { identifier, query, items, index, top, left, triggerStart }
 
   // Opções para dias da semana
   const daysOfWeekOptions = [
