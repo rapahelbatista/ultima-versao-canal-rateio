@@ -397,27 +397,36 @@ const InboxNew = () => {
     [dedupedOpen, dedupedPending, dedupeByTicketKey]
   );
 
+  // Sublistas por estado de leitura — derivadas da MESMA base deduplicada (dedupedAll)
+  // "Não lidas" = tickets com unreadMessages > 0
+  // "Lidas"     = tickets com unreadMessages == 0 (ou ausente)
+  const dedupedUnread = useMemo(
+    () => dedupedAll.filter((t) => Number(t.unreadMessages || 0) > 0),
+    [dedupedAll]
+  );
+  const dedupedRead = useMemo(
+    () => dedupedAll.filter((t) => Number(t.unreadMessages || 0) === 0),
+    [dedupedAll]
+  );
+
   // Lista exibida na aba ativa — usa exatamente as mesmas listas dos contadores
   const filteredTickets = useMemo(() => {
     let arr;
-    if (activeTab === "unread") arr = dedupedPending;
-    else if (activeTab === "read") arr = dedupedOpen;
+    if (activeTab === "unread") arr = dedupedUnread;
+    else if (activeTab === "read") arr = dedupedRead;
     else arr = dedupedAll;
 
     return [...arr].sort(
       (a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
     );
-  }, [activeTab, dedupedAll, dedupedOpen, dedupedPending]);
+  }, [activeTab, dedupedAll, dedupedUnread, dedupedRead]);
 
   // Totais por aba derivados das mesmas listas exibidas.
-  // Fallback: enquanto as listas locais ainda não chegaram (carregamento inicial),
-  // usa o `count` do backend para evitar mostrar "0" indevido.
   const openReady = Array.isArray(openPag.tickets) && openPag.tickets.length > 0;
   const pendingReady = Array.isArray(pendingPag.tickets) && pendingPag.tickets.length > 0;
   const noFiltersActive = filterOrigin === "all" && filterAgent === "all";
 
   // Marca quando a primeira sincronização (via socket/fetch) já trouxe dados ao menos uma vez.
-  // Antes disso, exibimos um indicador de carregamento nos contadores em vez de números.
   const [openSynced, setOpenSynced] = useState(false);
   const [pendingSynced, setPendingSynced] = useState(false);
   useEffect(() => {
@@ -431,29 +440,27 @@ const InboxNew = () => {
     }
   }, [pendingPag.tickets, pendingPag.loading, pendingSynced]);
 
-  // Loading dos contadores enquanto a primeira sincronização não terminou para a aba.
+  // Como unread/read derivam da união (open+pending), todos dependem das duas sincronizações.
   const countsLoading = useMemo(() => ({
     all: !openSynced || !pendingSynced,
-    unread: !pendingSynced,
-    read: !openSynced,
+    unread: !openSynced || !pendingSynced,
+    read: !openSynced || !pendingSynced,
   }), [openSynced, pendingSynced]);
 
   const counts = useMemo(() => {
-    const openCount = openReady
-      ? dedupedOpen.length
-      : (openPag.loading && noFiltersActive ? (openPag.count || 0) : dedupedOpen.length);
-    const pendingCount = pendingReady
-      ? dedupedPending.length
-      : (pendingPag.loading && noFiltersActive ? (pendingPag.count || 0) : dedupedPending.length);
     const allCount = (openReady || pendingReady)
       ? dedupedAll.length
       : ((openPag.loading || pendingPag.loading) && noFiltersActive
           ? (openPag.count || 0) + (pendingPag.count || 0)
           : dedupedAll.length);
 
-    return { all: allCount, unread: pendingCount, read: openCount };
+    return {
+      all: allCount,
+      unread: dedupedUnread.length,
+      read: dedupedRead.length,
+    };
   }, [
-    dedupedAll, dedupedOpen, dedupedPending,
+    dedupedAll, dedupedUnread, dedupedRead,
     openReady, pendingReady, noFiltersActive,
     openPag.loading, openPag.count, pendingPag.loading, pendingPag.count,
   ]);
