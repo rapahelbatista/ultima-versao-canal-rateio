@@ -267,7 +267,7 @@ const InboxNew = () => {
   const [quickReplies, setQuickReplies] = useState([]);
   const loadQuickReplies = useCallback(async () => {
     try {
-      const { data } = await api.get("/quickMessages", { params: { searchParam: "" } });
+      const { data } = await api.get("/quick-messages", { params: { searchParam: "" } });
       setQuickReplies(data?.records || data || []);
     } catch (e) {
       // silencioso
@@ -287,7 +287,7 @@ const InboxNew = () => {
     }
     try {
       setQrSaving(true);
-      await api.post("/quickMessages", {
+      await api.post("/quick-messages", {
         shortcode,
         message,
         geral: false,
@@ -1179,8 +1179,9 @@ const InboxNew = () => {
         open={Boolean(quickReplyAnchor)}
         anchorEl={quickReplyAnchor}
         onClose={() => setQuickReplyAnchor(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
+        marginThreshold={16}
         PaperProps={{ className: "inbox-pop" }}
       >
         <div className="inbox-pop-header"><QuickReplyIcon fontSize="small" /> <span>Respostas Rápidas</span></div>
