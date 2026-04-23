@@ -199,6 +199,59 @@ const InboxNew = () => {
     history.push(`/inbox/${t.uuid || t.id}`);
   };
 
+  // Feedback visual por linha
+  const [actionLoadingId, setActionLoadingId] = useState(null);
+
+  const updateTicket = async (ticket, payload, successMsg) => {
+    try {
+      setActionLoadingId(ticket.id);
+      await api.put(`/tickets/${ticket.id}`, payload);
+      toast.success(successMsg);
+      if (
+        payload.status === "closed" &&
+        String(ticket.uuid || ticket.id) === String(ticketId)
+      ) {
+        history.push("/inbox");
+      }
+    } catch (err) {
+      toastError(err);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleToggleRead = (e, ticket) => {
+    e.stopPropagation();
+    const isUnread =
+      (ticket.unreadMessages || 0) > 0 || ticket.status === "pending";
+    updateTicket(
+      ticket,
+      isUnread ? { status: "open" } : { status: "pending" },
+      isUnread ? "Marcado como lido" : "Marcado como não lido"
+    );
+  };
+
+  const handleArchive = (e, ticket) => {
+    e.stopPropagation();
+    updateTicket(ticket, { status: "closed" }, "Conversa arquivada");
+  };
+
+  const handleQuickReply = (e, ticket) => {
+    e.stopPropagation();
+    history.push(`/inbox/${ticket.uuid || ticket.id}`);
+    setTimeout(() => {
+      const input = document.querySelector(
+        ".inbox-chat textarea, .inbox-chat input[type='text']"
+      );
+      if (input) input.focus();
+    }, 300);
+  };
+
+  const currentTicket = useMemo(
+    () => filteredTickets.find((t) => String(t.uuid || t.id) === String(ticketId)),
+    [filteredTickets, ticketId]
+  );
+
   return (
     <div className="inbox-new">
       {/* ============== SIDEBAR ESQUERDA ============== */}
