@@ -350,12 +350,28 @@ const InboxNew = () => {
     );
   }, [openPag.tickets, pendingPag.tickets, tabConfig, filterOrigin, filterAgent]);
 
-  // Totais por aba (vindos do backend via count)
-  const counts = useMemo(() => ({
-    all: (openPag.count || 0) + (pendingPag.count || 0),
-    unread: pendingPag.count || 0,
-    read: openPag.count || 0,
-  }), [openPag.count, pendingPag.count]);
+  // Totais por aba — contagem REAL baseada nas listas deduplicadas
+  // (igual ao TicketsListCustom legado: ticketsList.length).
+  // Assim os contadores acompanham eventos socket de criação/remoção/leitura.
+  const counts = useMemo(() => {
+    const openList = openPag.tickets || [];
+    const pendingList = pendingPag.tickets || [];
+    // "Todos" = união sem duplicatas
+    const seen = new Set();
+    let allCount = 0;
+    [...openList, ...pendingList].forEach((t) => {
+      if (!seen.has(t.id)) {
+        seen.add(t.id);
+        allCount += 1;
+      }
+    });
+    return {
+      all: allCount,
+      unread: pendingList.length,
+      read: openList.length,
+    };
+  }, [openPag.tickets, pendingPag.tickets]);
+
 
   const unreadBadge = useMemo(
     () => (pendingPag.tickets || []).reduce((acc, t) => acc + (t.unreadMessages || 0), 0),
