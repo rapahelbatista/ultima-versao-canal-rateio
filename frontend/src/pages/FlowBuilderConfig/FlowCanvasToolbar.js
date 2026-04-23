@@ -267,6 +267,7 @@ const FlowCanvasToolbar = ({
   onSave,
   onAddNode,
   currentFlowId,
+  categories, // catálogo testado vindo do FlowBuilderConfig (nodeCategories)
 }) => {
   const history = useHistory();
 
@@ -303,19 +304,57 @@ const FlowCanvasToolbar = ({
     };
   }, [flowsOpen]);
 
+  // ====== Catálogo: usa "categories" testado quando existir ======
+  const useTestedCatalog = Array.isArray(categories) && categories.length > 0;
+
+  const dynamicFilters = useMemo(() => {
+    if (!useTestedCatalog) return FILTERS;
+    const palette = ["#16a34a", "#6366f1", "#f59e0b", "#ef4444", "#0ea5e9", "#8b5cf6"];
+    return [
+      { key: "all", label: "Todos", color: "#16a34a", solid: true },
+      ...categories.map((c, i) => ({
+        key: c.name,
+        label: c.name,
+        color: palette[i % palette.length],
+      })),
+    ];
+  }, [categories, useTestedCatalog]);
+
+  const flatNodesFromCategories = useMemo(() => {
+    if (!useTestedCatalog) return [];
+    const palette = ["#16a34a", "#6366f1", "#f59e0b", "#ef4444", "#0ea5e9", "#8b5cf6"];
+    const out = [];
+    categories.forEach((cat, i) => {
+      const color = palette[i % palette.length];
+      (cat.nodes || []).forEach((n) => {
+        out.push({
+          key: `${cat.name}-${n.type}`,
+          name: n.name,
+          desc: n.description || "",
+          cat: cat.name,
+          type: n.type,
+          color,
+          iconNode: n.icon, // ReactNode pronto vindo do catálogo testado
+        });
+      });
+    });
+    return out;
+  }, [categories, useTestedCatalog]);
+
   const filteredNodes = useMemo(() => {
-    return NODE_CATALOG.filter((n) => {
+    const source = useTestedCatalog ? flatNodesFromCategories : NODE_CATALOG;
+    return source.filter((n) => {
       if (nodeFilter !== "all" && n.cat !== nodeFilter) return false;
       if (nodeSearch.trim()) {
         const q = nodeSearch.toLowerCase();
         return (
           n.name.toLowerCase().includes(q) ||
-          n.desc.toLowerCase().includes(q)
+          (n.desc || "").toLowerCase().includes(q)
         );
       }
       return true;
     });
-  }, [nodeFilter, nodeSearch]);
+  }, [nodeFilter, nodeSearch, useTestedCatalog, flatNodesFromCategories]);
 
   const filteredFlows = useMemo(() => {
     if (!flowSearch.trim()) return flows;
@@ -511,7 +550,7 @@ const FlowCanvasToolbar = ({
                 marginTop: 12,
               }}
             >
-              {FILTERS.map((f) => {
+              {dynamicFilters.map((f) => {
                 const active = nodeFilter === f.key;
                 return (
                   <button
@@ -568,7 +607,25 @@ const FlowCanvasToolbar = ({
                   (e.currentTarget.style.background = "transparent")
                 }
               >
-                <NodeIcon icon={n.icon} color={n.color} />
+                {n.iconNode ? (
+                  <div
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: 8,
+                      background: `${n.color}1a`,
+                      color: n.color,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {n.iconNode}
+                  </div>
+                ) : (
+                  <NodeIcon icon={n.icon} color={n.color} />
+                )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{

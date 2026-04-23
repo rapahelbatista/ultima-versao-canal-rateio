@@ -143,14 +143,16 @@ const useStyles = makeStyles(theme => ({
   root: {
     display: "flex",
     flexDirection: "column",
-    height: "100vh",
+    height: "calc(100vh - 64px)",
+    minHeight: 500,
     overflow: "hidden",
     backgroundColor: theme.palette.background.default
   },
   header: {
     flexShrink: 0,
     backgroundColor: theme.palette.background.paper,
-    borderBottom: `1px solid ${theme.palette.divider}`
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    display: "none" // título já é mostrado pelo layout/breadcrumb
   },
   content: {
     flex: 1,
@@ -1674,7 +1676,7 @@ export const FlowBuilderConfig = () => {
             currentFlowId={id}
             onRenameFlow={async (newName) => {
               try {
-                await api.post("/flowbuilder/name", { id, name: newName });
+                await api.put("/flowbuilder", { flowId: id, name: newName });
                 setFlowName(newName);
                 toast.success("Nome do fluxo atualizado");
               } catch (err) {
@@ -1683,6 +1685,7 @@ export const FlowBuilderConfig = () => {
             }}
             onSave={saveFlow}
             onAddNode={(type) => clickActions(type)}
+            categories={nodeCategories}
           />
         </div>
       </div>
