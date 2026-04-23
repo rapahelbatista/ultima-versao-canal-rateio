@@ -217,6 +217,19 @@ const Ticket = () => {
     setDrawerOpen(false);
   }, []);
 
+  // Bridge: permite que botões externos (toolbar do InboxNew, etc.)
+  // disparem o mesmo toggle do drawer interno.
+  useEffect(() => {
+    const handler = (e) => {
+      const detail = e?.detail;
+      if (detail === "open") setDrawerOpen(true);
+      else if (detail === "close") setDrawerOpen(false);
+      else setDrawerOpen((v) => !v);
+    };
+    window.addEventListener("ticket:toggle-drawer", handler);
+    return () => window.removeEventListener("ticket:toggle-drawer", handler);
+  }, []);
+
   const handleQuickMessageSelect = (quickMessage) => {
     try {
       if (quickMessage.message) {
