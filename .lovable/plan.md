@@ -1,36 +1,44 @@
 
-## Ajustes no Chat do InboxNew
 
-Corrigir três problemas visíveis na tela atual:
-1. **Fundo amarelado** vindo do papel de parede do WhatsApp (`whatsBackground`) que vaza no chat.
-2. **Conteúdo cortado** (faixa cinza `#Chamado 2 - Sem Fila`, barra de tags amarela, mensagens iniciais escondidas).
-3. **Ícones do rodapé** (lápis vermelho de assinatura, kanban, balão) destoam do layout novo — precisam ficar em estilo Lucide minimalista.
+## Corrigir Layout da Caixa de Entrada (InboxNew)
 
-### O que será feito
+A regra atual `position: fixed; inset: 0; z-index: 50` na `.inbox-new` faz a tela cobrir o **menu lateral do app** e empurra todo o conteúdo, gerando o corte da esquerda, a sumida do header do chat e o painel direito cortado. Vamos restaurar o comportamento de "ocupar apenas a área de conteúdo" (igual à terceira foto de referência).
 
-**1. Eliminar o fundo amarelo (CSS — `frontend/src/styles/inboxNew.css`)**
-- Forçar `background-image: none !important` e `background-color: #f8fafc !important` em **todos** os seletores da `MessagesList` (incluindo `#messagesList`, `[id="messagesList"]`, `[class*="messagesList"]`, `[class*="messagesListWrapper"]`).
-- Sobrescrever o `style` inline aplicado pelo `makeStyles` usando seletores com maior especificidade (`.inbox-new div[class*="messagesList"]`).
-- Usar um fundo neutro claro (`#f8fafc`) no modo light e (`#0b0b0d`) no modo dark — coerente com o resto do painel.
+### O que será feito (CSS-only — `frontend/src/styles/inboxNew.css`)
 
-**2. Remover elementos que cortam o chat**
-- Esconder a faixa cinza **`#Chamado N - Sem Fila`** (renderizada pelo `MessagesList` como divider de tickets) dentro do `.inbox-new` — já temos essa info no header do chat e no painel lateral.
-- Esconder a barra de **Tags** acima do chat (já há regra, mas não está pegando — reforçar com `[class*="ContactTag"]`, `[class*="TagsContainer"]`, `.MuiPaper-root.MuiPaper-elevation1` que envolve o Autocomplete de tags).
-- Garantir que `MessagesList` ocupe 100% do espaço entre header e input (`flex: 1; min-height: 0`).
+**1. Remover o overlay fixo**
+- Tirar `position: fixed; inset: 0; z-index: 50` da `.inbox-new`.
+- Trocar por `position: relative; height: 100dvh; width: 100%; flex: 1 1 auto; min-height: 0` para que o componente respeite o slot do layout principal (à direita do menu lateral).
 
-**3. Modernizar ícones do rodapé do input**
-- Esconder os ícones legados que não fazem parte do novo layout:
-  - Lápis vermelho (assinatura) — `[aria-label*="sign"]`, `[class*="signSwitch"]`
-  - Kanban / trigger flow rosa — `[aria-label*="trigger-flow"]`
-  - Balão extra de mensagem interativa — `[aria-label*="interactive"]`
-- Manter apenas: **emoji**, **anexo (clip "+")**, **microfone** e **enviar** — todos com cor neutra `#64748b` e hover discreto, sem backgrounds coloridos.
-- Padronizar tamanho (36×36) e remover sombras dos FABs internos para casarem com a estética minimalista do header.
+**2. Parar de esconder/forçar o shell do app**
+- Remover as regras que escondem `header.MuiAppBar-root` e `[class*="appBar"]` — elas estavam quebrando a régua superior e desalinhando o conteúdo.
+- Remover as regras agressivas em `body:has(.inbox-new) main / [class*="content"] / [class*="MainContainer"]` que zeram padding/margin globais.
+- Manter apenas: `html, body, #root { overflow: hidden; height: 100dvh }` quando a inbox estiver ativa, para evitar **scroll duplo** sem mexer no shell.
 
-**4. Dark mode coerente**
-- Atualizar `body[data-theme="dark"]` para usar `#0b0b0d` como fundo da `messagesList` (em vez de qualquer cor amarelada herdada) e manter os balões com bom contraste.
+**3. Garantir que o painel ocupe 100% do slot**
+- `.inbox-new { display: flex; height: 100%; min-height: 0 }` dentro do container pai (que já é `flex: 1`).
+- Confirmar que `html:has(.inbox-new), body:has(.inbox-new) #root` ficam com `height: 100dvh` para o `100%` da `.inbox-new` ter referência.
+
+**4. Painel de informações à direita**
+- Manter `.inbox-info-panel` com `width: 320px; flex-shrink: 0` para não ser cortado em viewports estreitos (1257px do usuário comporta tranquilamente: 360 sidebar + chat fluido + 320 info).
+- Em `< 1280px`: reduzir `inbox-info-panel` para 280px.
+- Em `< 1100px`: esconder o `inbox-info-panel` por padrão (acessível via botão de info no actionbar).
+
+**5. Header do chat visível**
+- A actionbar flutuante (`.inbox-chat-actionbar` com `position: absolute; top: 14px; right: 18px`) estava sobrepondo o header do Ticket (que tem `min-height: 64px`). Aumentar o `padding-top` do header interno e empurrar a actionbar para `top: 16px; right: 20px` mantendo z-index 5.
+- Remover o `.inbox-chat-header` customizado vazio se não houver ticket selecionado (manter só o empty state).
+
+### Resultado esperado (igual à 3ª foto de referência)
+```
+[ Menu app ][ Lista tickets 360px ][ Chat fluido ][ Info 320px ]
+   ↑ visível        ↑ não cortado      ↑ centralizado   ↑ não cortado
+```
+- Sem scroll vertical na página
+- Sem corte na esquerda (menu do app aparece)
+- Sem corte na direita (painel Info inteiro)
+- Header do chat (avatar + nome + Aceitar) visível no topo
+- Input de mensagem fixo no rodapé
 
 ### Arquivos afetados
-- `frontend/src/styles/inboxNew.css` (todas as alterações são CSS — sem mudança de lógica)
+- `frontend/src/styles/inboxNew.css` (apenas CSS — sem mudança de lógica/JS)
 
-### Resultado esperado
-Chat com fundo cinza-claro uniforme (`#f8fafc`), sem faixa amarela, sem barra de tags duplicada, sem divisor "#Chamado X - Sem Fila", e rodapé do input com apenas 4 ícones modernos (emoji, anexo, microfone, enviar) em estilo Lucide.
