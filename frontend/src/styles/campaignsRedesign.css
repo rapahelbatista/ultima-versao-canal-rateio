@@ -1,0 +1,363 @@
+/* ==============================================================
+   CAMPAIGNS REDESIGN — "Linen Sequential Planner"
+   Estilo limpo/amigável, verde #10b981, inputs material, cards
+   arredondados, blocos de dica em azul, sem alterar lógica JSX.
+   ============================================================== */
+
+/* ---------- TOKENS ---------- */
+.campaigns-redesign,
+.campaign-modal-redesign {
+  --cr-brand: #10b981;
+  --cr-brand-soft: rgba(16, 185, 129, 0.08);
+  --cr-brand-ring: rgba(16, 185, 129, 0.2);
+  --cr-paper: #fcfcfb;
+  --cr-ink: #0f172a;
+  --cr-muted: #475569;
+  --cr-stroke: #e2e8f0;
+  --cr-info-bg: #eff6ff;
+  --cr-info-border: #dbeafe;
+  --cr-info-text: #1e40af;
+  --cr-radius-lg: 24px;
+  --cr-radius-md: 16px;
+  --cr-radius-sm: 12px;
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* =====================================================================
+   PÁGINA /campaigns — listagem
+   ===================================================================== */
+.campaigns-redesign {
+  background: var(--cr-paper) !important;
+}
+
+.campaigns-redesign .MainHeader,
+.campaigns-redesign [class*="MainHeader"] {
+  background: #ffffff !important;
+  border-bottom: 1px solid var(--cr-stroke) !important;
+  padding: 20px 24px !important;
+  border-radius: var(--cr-radius-md) var(--cr-radius-md) 0 0 !important;
+  margin-bottom: 16px !important;
+}
+
+.campaigns-redesign h1,
+.campaigns-redesign h2,
+.campaigns-redesign [class*="Title"] {
+  font-weight: 600 !important;
+  color: var(--cr-ink) !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Botão "Nova Campanha" e ações primárias */
+.campaigns-redesign .MuiButton-containedPrimary {
+  background: var(--cr-brand) !important;
+  color: #ffffff !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+  border-radius: var(--cr-radius-sm) !important;
+  padding: 8px 22px !important;
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.25) !important;
+  transition: all 0.2s ease !important;
+}
+.campaigns-redesign .MuiButton-containedPrimary:hover {
+  background: #0ea672 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(16, 185, 129, 0.35) !important;
+}
+
+.campaigns-redesign .MuiButton-outlined {
+  border-radius: var(--cr-radius-sm) !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+  border-color: var(--cr-stroke) !important;
+  color: var(--cr-muted) !important;
+}
+.campaigns-redesign .MuiButton-outlined:hover {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Busca / inputs no header */
+.campaigns-redesign .MuiOutlinedInput-root {
+  border-radius: var(--cr-radius-sm) !important;
+  background: #ffffff !important;
+}
+.campaigns-redesign .MuiOutlinedInput-notchedOutline {
+  border-color: var(--cr-stroke) !important;
+}
+.campaigns-redesign .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: #cbd5e1 !important;
+}
+.campaigns-redesign .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--cr-brand) !important;
+  border-width: 2px !important;
+}
+
+/* Tabela */
+.campaigns-redesign .MuiPaper-root {
+  border-radius: var(--cr-radius-md) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+  border: 1px solid var(--cr-stroke) !important;
+}
+.campaigns-redesign .MuiTableCell-head {
+  background: #f8fafc !important;
+  color: var(--cr-muted) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  border-bottom: 1px solid var(--cr-stroke) !important;
+}
+.campaigns-redesign .MuiTableCell-body {
+  color: var(--cr-ink) !important;
+  font-size: 14px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+.campaigns-redesign .MuiTableRow-root:hover {
+  background: #f8fafc !important;
+}
+
+/* Chips de status */
+.campaigns-redesign .MuiChip-root {
+  border-radius: 999px !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  height: 24px !important;
+}
+
+/* =====================================================================
+   MODAL — "Construa e configure sua campanha passo a passo"
+   ===================================================================== */
+.campaign-modal-redesign .MuiDialog-paper,
+.campaign-modal-redesign-paper {
+  border-radius: var(--cr-radius-lg) !important;
+  background: #ffffff !important;
+  overflow: hidden !important;
+  box-shadow: 0 30px 60px -15px rgba(15, 23, 42, 0.25) !important;
+}
+
+.campaign-modal-redesign .MuiBackdrop-root {
+  background: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* ---------- HEADER do modal (ícone + título + subtítulo) ---------- */
+.campaign-modal-redesign-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+  padding: 24px 28px !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid var(--cr-stroke) !important;
+}
+.campaign-modal-redesign-title .MuiTypography-root {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.campaign-modal-redesign-title-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--cr-brand);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25);
+  flex-shrink: 0;
+}
+.campaign-modal-redesign-title-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.campaign-modal-redesign-title-text h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--cr-ink);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.campaign-modal-redesign-title-text p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--cr-muted);
+  font-weight: 400;
+}
+
+/* ---------- TABS dentro do modal viram um stepper-like ---------- */
+.campaign-modal-redesign .MuiTabs-root {
+  background: #ffffff !important;
+  border-bottom: 1px solid var(--cr-stroke) !important;
+  padding: 8px 20px 0 !important;
+  min-height: 56px !important;
+}
+.campaign-modal-redesign .MuiTab-root {
+  text-transform: none !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  color: var(--cr-muted) !important;
+  min-height: 48px !important;
+  border-radius: 10px 10px 0 0 !important;
+  transition: color 0.2s !important;
+}
+.campaign-modal-redesign .MuiTab-root.Mui-selected {
+  color: var(--cr-brand) !important;
+}
+.campaign-modal-redesign .MuiTabs-indicator {
+  background: var(--cr-brand) !important;
+  height: 3px !important;
+  border-radius: 3px 3px 0 0 !important;
+}
+
+/* ---------- CONTEÚDO do modal ---------- */
+.campaign-modal-redesign .MuiDialogContent-root {
+  background: var(--cr-paper) !important;
+  padding: 28px !important;
+}
+.campaign-modal-redesign .MuiDialogContent-dividers {
+  border-top: none !important;
+  border-bottom: 1px solid var(--cr-stroke) !important;
+}
+
+/* Inputs material clean */
+.campaign-modal-redesign .MuiOutlinedInput-root {
+  border-radius: var(--cr-radius-sm) !important;
+  background: #ffffff !important;
+  font-size: 14px !important;
+}
+.campaign-modal-redesign .MuiOutlinedInput-notchedOutline {
+  border-color: var(--cr-stroke) !important;
+}
+.campaign-modal-redesign .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: #cbd5e1 !important;
+}
+.campaign-modal-redesign .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--cr-brand) !important;
+  border-width: 2px !important;
+}
+.campaign-modal-redesign .MuiInputLabel-root.Mui-focused {
+  color: var(--cr-brand) !important;
+}
+.campaign-modal-redesign .MuiInputLabel-outlined {
+  font-size: 14px !important;
+}
+
+/* Cards internos (recurrence, preview etc) ficam com cara linen */
+.campaign-modal-redesign .MuiCard-root {
+  border-radius: var(--cr-radius-md) !important;
+  border: 1px solid var(--cr-stroke) !important;
+  box-shadow: none !important;
+  background: #ffffff !important;
+}
+
+/* Ícones do tipo "info" e blocos auxiliares ganham cor azul claro */
+.campaign-modal-redesign .MuiFormHelperText-root {
+  font-size: 12px !important;
+  color: var(--cr-muted) !important;
+}
+
+/* Switch com cor brand */
+.campaign-modal-redesign .MuiSwitch-colorPrimary.Mui-checked {
+  color: var(--cr-brand) !important;
+}
+.campaign-modal-redesign .MuiSwitch-colorPrimary.Mui-checked + .MuiSwitch-track {
+  background-color: var(--cr-brand) !important;
+}
+
+/* Chips dentro do modal */
+.campaign-modal-redesign .MuiChip-root {
+  border-radius: 999px !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+}
+
+/* ---------- FOOTER (DialogActions) ---------- */
+.campaign-modal-redesign .MuiDialogActions-root {
+  background: #ffffff !important;
+  padding: 16px 28px !important;
+  border-top: 1px solid var(--cr-stroke) !important;
+  gap: 12px !important;
+}
+
+.campaign-modal-redesign .MuiButton-root {
+  text-transform: none !important;
+  font-weight: 600 !important;
+  border-radius: var(--cr-radius-sm) !important;
+  padding: 8px 22px !important;
+  font-size: 14px !important;
+  letter-spacing: 0 !important;
+  box-shadow: none !important;
+}
+
+.campaign-modal-redesign .MuiButton-containedPrimary,
+.campaign-modal-redesign .MuiButton-contained.MuiButton-containedPrimary {
+  background: var(--cr-brand) !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.25) !important;
+}
+.campaign-modal-redesign .MuiButton-containedPrimary:hover {
+  background: #0ea672 !important;
+  box-shadow: 0 8px 22px rgba(16, 185, 129, 0.35) !important;
+}
+
+.campaign-modal-redesign .MuiButton-textPrimary,
+.campaign-modal-redesign .MuiButton-outlined {
+  color: var(--cr-muted) !important;
+  border-color: var(--cr-stroke) !important;
+}
+.campaign-modal-redesign .MuiButton-outlined:hover {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Botão "Cancelar" sem borda */
+.campaign-modal-redesign .MuiDialogActions-root .MuiButton-text {
+  color: var(--cr-muted) !important;
+}
+.campaign-modal-redesign .MuiDialogActions-root .MuiButton-text:hover {
+  background: #f1f5f9 !important;
+}
+
+/* ---------- SCROLL ---------- */
+.campaign-modal-redesign .MuiDialogContent-root::-webkit-scrollbar {
+  width: 8px;
+}
+.campaign-modal-redesign .MuiDialogContent-root::-webkit-scrollbar-track {
+  background: transparent;
+}
+.campaign-modal-redesign .MuiDialogContent-root::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+.campaign-modal-redesign .MuiDialogContent-root::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ---------- RESPONSIVO ---------- */
+@media (max-width: 768px) {
+  .campaign-modal-redesign-title {
+    padding: 18px 20px !important;
+  }
+  .campaign-modal-redesign-title-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    font-size: 18px;
+  }
+  .campaign-modal-redesign-title-text h2 {
+    font-size: 16px;
+  }
+  .campaign-modal-redesign-title-text p {
+    font-size: 12px;
+  }
+  .campaign-modal-redesign .MuiDialogContent-root {
+    padding: 18px !important;
+  }
+  .campaign-modal-redesign .MuiDialogActions-root {
+    padding: 14px 18px !important;
+  }
+}
