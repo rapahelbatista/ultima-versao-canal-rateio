@@ -716,15 +716,18 @@ body:has(.inbox-new) #root {
   background: #ffffff !important;
   border-bottom: 1px solid #e5e7eb !important;
   min-height: 72px !important;
-  padding: 12px 132px 12px 18px !important;
+  padding: 12px 200px 12px 18px !important;
   box-shadow: none !important;
 }
 /* Esconde os botões legados do header interno do Ticket
-   (copy phone, template, flash, switch bot, 3-dot menu)
+   (copy phone, template, flash, switch bot, 3-dot menu, FloupSelector duplicado)
    Já temos a actionbar superior moderna com ícones Lucide. */
 .inbox-new [class*="ticketActionButtons"],
 .inbox-new [class*="TicketActionButtons"],
-.inbox-new [class*="actionButtons"] {
+.inbox-new [class*="actionButtons"],
+.inbox-new [class*="ticketHeader"] > .MuiButton-root,
+.inbox-new [class*="ticketHeader"] [class*="actionButtons"] .MuiButton-root,
+.inbox-new [class*="ticketHeader"] [class*="actionButtons"] button {
   display: none !important;
 }
 /* Avatar do header maior e estilizado */
