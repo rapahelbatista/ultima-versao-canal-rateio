@@ -98,12 +98,148 @@ const reducer = (state, action) => {
   }
 };
 
+// Definição das colunas opcionais (toggle)
+const OPTIONAL_COLUMNS = [
+  { key: "email", label: "E-mail", default: true },
+  { key: "tags", label: "Tags", default: false },
+  { key: "status", label: "Status", default: false },
+  { key: "lastMessage", label: "Última mensagem", default: false },
+  { key: "createdAt", label: "Criado em", default: false },
+  { key: "company", label: "Empresa", default: false },
+  { key: "country", label: "País / DDD", default: false },
+  { key: "owner", label: "Responsável", default: false },
+  { key: "source", label: "Origem", default: false },
+];
+
+const STORAGE_KEY = "contactListItems:visibleColumns";
+
+const loadVisibleColumns = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") return parsed;
+    }
+  } catch (_) {}
+  return OPTIONAL_COLUMNS.reduce((acc, c) => ({ ...acc, [c.key]: c.default }), {});
+};
+
+// Heurísticas para extrair dados que podem estar no contato ou em extraInfo
+const getExtra = (contact, names) => {
+  const list = contact?.extraInfo || contact?.contactExtraInfos || [];
+  const arr = Array.isArray(list) ? list : [];
+  for (const n of names) {
+    const found = arr.find(
+      (e) => (e?.name || "").toString().toLowerCase() === n.toLowerCase()
+    );
+    if (found && (found.value ?? "").toString().trim()) return found.value;
+  }
+  return "";
+};
+
+const formatDate = (value) => {
+  if (!value) return "-";
+  try {
+    return new Date(value).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  } catch (_) {
+    return "-";
+  }
+};
+
+const formatRelative = (value) => {
+  if (!value) return "-";
+  try {
+    const diffMs = Date.now() - new Date(value).getTime();
+    const mins = Math.round(diffMs / 60000);
+    if (mins < 1) return "agora";
+    if (mins < 60) return `${mins} min`;
+    const hrs = Math.round(mins / 60);
+    if (hrs < 24) return `${hrs}h`;
+    const days = Math.round(hrs / 24);
+    if (days < 30) return `${days}d`;
+    return formatDate(value);
+  } catch (_) {
+    return "-";
+  }
+};
+
+const getCountryFromNumber = (number) => {
+  if (!number) return "-";
+  const clean = number.toString().replace(/\D/g, "");
+  if (!clean) return "-";
+  const prefixes = {
+    55: "🇧🇷 Brasil",
+    1: "🇺🇸 EUA/CA",
+    351: "🇵🇹 Portugal",
+    34: "🇪🇸 Espanha",
+    44: "🇬🇧 Reino Unido",
+    49: "🇩🇪 Alemanha",
+    33: "🇫🇷 França",
+    39: "🇮🇹 Itália",
+    52: "🇲🇽 México",
+    54: "🇦🇷 Argentina",
+    56: "🇨🇱 Chile",
+    57: "🇨🇴 Colômbia",
+    91: "🇮🇳 Índia",
+  };
+  for (const [code, label] of Object.entries(prefixes).sort((a, b) => b[0].length - a[0].length)) {
+    if (clean.startsWith(code)) {
+      const ddd = clean.slice(code.length, code.length + 2);
+      return `${label} (${ddd})`;
+    }
+  }
+  return `+${clean.slice(0, 3)}`;
+};
+
+const getStatusChip = (contact) => {
+  if (contact?.isBlocked || contact?.blocked) {
+    return { label: "Bloqueado", color: "#fee2e2", text: "#b91c1c" };
+  }
+  if (contact?.optOut || contact?.unsubscribed) {
+    return { label: "Opt-out", color: "#fef3c7", text: "#92400e" };
+  }
+  if (contact?.isWhatsappValid === false) {
+    return { label: "Inválido", color: "#e5e7eb", text: "#374151" };
+  }
+  return { label: "Ativo", color: "#d1fae5", text: "#065f46" };
+};
+
 const useStyles = makeStyles((theme) => ({
   mainPaper: {
     flex: 1,
     padding: theme.spacing(1),
     overflowY: "scroll",
+    overflowX: "auto",
     ...theme.scrollbarStyles,
+  },
+  columnsBtn: {
+    marginLeft: theme.spacing(1),
+  },
+  tagChip: {
+    margin: 2,
+    height: 22,
+    fontSize: 11,
+  },
+  statusChip: {
+    height: 22,
+    fontSize: 11,
+    fontWeight: 600,
+    borderRadius: 11,
+    padding: "0 8px",
+    display: "inline-block",
+    lineHeight: "22px",
+  },
+  truncate: {
+    maxWidth: 220,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    display: "inline-block",
+    verticalAlign: "middle",
   },
 }));
 
