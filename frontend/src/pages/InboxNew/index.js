@@ -1055,6 +1055,7 @@ const InboxNew = () => {
         </div>
       </Popover>
     </div>
+    </QueueSelectedProvider>
   );
 };
 
