@@ -232,7 +232,87 @@ const useStyles = makeStyles((theme) => ({
     borderRadius: 6,
     marginBottom: 6,
   },
+  warnBox: {
+    margin: "10px 14px 0",
+    padding: "8px 10px",
+    background: "#fff7ed",
+    border: "1px solid #fdba74",
+    borderRadius: 8,
+    fontSize: 12,
+    color: "#9a3412",
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+  },
+  warnTitle: {
+    fontWeight: 700,
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    color: "#c2410c",
+  },
+  warnItem: {
+    display: "flex",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 6,
+    paddingLeft: 4,
+  },
+  warnChip: {
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    background: "#fee2e2",
+    color: "#b91c1c",
+    border: "1px solid #fecaca",
+    borderRadius: 4,
+    padding: "0 6px",
+    fontSize: 11,
+    fontWeight: 600,
+  },
+  suggestChip: {
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    background: "#dcfce7",
+    color: "#15803d",
+    border: "1px solid #bbf7d0",
+    borderRadius: 4,
+    padding: "0 6px",
+    fontSize: 11,
+    fontWeight: 600,
+  },
+  highlightUnknown: {
+    backgroundColor: "#fee2e2",
+    color: "#b91c1c",
+    border: "1px dashed #fca5a5",
+    borderRadius: 3,
+    padding: "0 3px",
+    fontWeight: 600,
+  },
 }));
+
+// Distância de Levenshtein para sugestão de placeholders
+const levenshtein = (a, b) => {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const m = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) m[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      m[i][j] = Math.min(m[i - 1][j] + 1, m[i][j - 1] + 1, m[i - 1][j - 1] + cost);
+    }
+  }
+  return m[a.length][b.length];
+};
+
+const suggestPlaceholders = (unknown, knownKeys) => {
+  const u = unknown.toLowerCase();
+  return knownKeys
+    .map((k) => ({ k, d: levenshtein(u, k.toLowerCase()) }))
+    .filter((x) => x.d <= Math.max(2, Math.floor(u.length / 2)))
+    .sort((a, b) => a.d - b.d)
+    .slice(0, 3)
+    .map((x) => x.k);
+};
 
 // Calcula saudação baseada no horário atual
 const getSaudacao = () => {
