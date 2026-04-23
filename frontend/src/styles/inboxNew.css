@@ -1,0 +1,395 @@
+/* ============================================================
+   Inbox New — Caixa de Entrada totalmente reconstruída
+   Layout idêntico ao mockup: header verde, abas em pílulas,
+   cards com avatar verde, balões verdes/brancos.
+   ============================================================ */
+
+.inbox-new {
+  display: flex;
+  height: calc(100vh - 64px);
+  width: 100%;
+  background: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #0f172a;
+  overflow: hidden;
+}
+
+/* ============== SIDEBAR ESQUERDA ============== */
+.inbox-sidebar {
+  width: 360px;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+/* Header verde "Caixa de Entrada" */
+.inbox-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 100%);
+  border-bottom: 1px solid #e5e7eb;
+}
+.inbox-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.inbox-header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #d1fae5;
+  color: #047857;
+}
+.inbox-header-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: #0f172a;
+}
+.inbox-header-action {
+  color: #10b981 !important;
+}
+
+/* Linha de busca */
+.inbox-search-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.inbox-icon-btn {
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  width: 32px;
+  height: 32px;
+}
+.inbox-icon-btn:hover {
+  background: #e2e8f0 !important;
+}
+.inbox-icon-filter {
+  background: #d1fae5 !important;
+  color: #047857 !important;
+}
+.inbox-icon-new {
+  background: #10b981 !important;
+  color: #fff !important;
+}
+.inbox-icon-new:hover {
+  background: #059669 !important;
+}
+
+.inbox-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f1f5f9;
+  padding: 6px 12px;
+  border-radius: 999px;
+  height: 32px;
+}
+.inbox-search-icon {
+  color: #94a3b8;
+}
+.inbox-search input {
+  font-size: 13px;
+}
+
+/* Abas em pílulas */
+.inbox-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.inbox-tab {
+  flex: none;
+  padding: 4px 14px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.inbox-tab:hover {
+  background: #f1f5f9;
+}
+.inbox-tab.active {
+  background: #d1fae5;
+  color: #047857;
+  border-color: #10b981;
+}
+
+/* Lista de tickets */
+.inbox-list {
+  flex: 1;
+  overflow-y: auto;
+}
+.inbox-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+}
+.inbox-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.inbox-empty strong {
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.inbox-item {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-left: 4px solid transparent;
+}
+.inbox-item:hover {
+  background: #ecfdf5;
+}
+.inbox-item.selected {
+  background: #ecfdf5;
+  border-left-color: #10b981;
+}
+
+.inbox-item-avatar .MuiAvatar-root {
+  width: 44px !important;
+  height: 44px !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+}
+
+.inbox-item-body {
+  flex: 1;
+  min-width: 0;
+}
+.inbox-item-row1 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+.inbox-item-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.inbox-item-date {
+  font-size: 11px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+.inbox-item-preview {
+  font-size: 12.5px;
+  color: #64748b;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.inbox-item-tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.inbox-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.tag-whatsapp {
+  background: #d1fae5;
+  color: #047857;
+}
+.tag-meta {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.tag-telegram {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+.tag-important {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.inbox-unread {
+  margin-left: auto;
+  background: #10b981;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+}
+
+/* ============== ÁREA DE CHAT ============== */
+.inbox-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+  min-width: 0;
+}
+
+.inbox-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  min-height: 64px;
+}
+.inbox-chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.inbox-chat-header-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.inbox-chat-header-info strong {
+  font-size: 15px;
+  color: #0f172a;
+}
+.inbox-chat-header-info span {
+  font-size: 12px;
+  color: #64748b;
+}
+.inbox-chat-header-actions {
+  display: flex;
+  gap: 4px;
+  color: #64748b;
+}
+.inbox-chat-header-actions .MuiIconButton-root {
+  color: #64748b;
+}
+.inbox-chat-header-actions .inbox-info-active {
+  color: #047857 !important;
+  background: #d1fae5 !important;
+}
+
+.inbox-chat-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Empty state */
+.inbox-empty-chat {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+}
+.inbox-empty-chat-card {
+  text-align: center;
+  padding: 40px;
+  max-width: 420px;
+}
+.inbox-empty-chat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: #d1fae5;
+  color: #10b981;
+  margin-bottom: 20px;
+}
+.inbox-empty-chat h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px;
+}
+.inbox-empty-chat p {
+  color: #64748b;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ============== BALÕES DO CHAT (sobrepõe Ticket interno) ============== */
+.inbox-new [class*="messageRight"],
+.inbox-new [class*="messageOut"] {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
+  border-radius: 18px 18px 4px 18px !important;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25) !important;
+}
+.inbox-new [class*="messageRight"] *,
+.inbox-new [class*="messageOut"] * {
+  color: #ffffff !important;
+}
+.inbox-new [class*="messageLeft"],
+.inbox-new [class*="messageIn"] {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-radius: 18px 18px 18px 4px !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Esconde header duplicado do componente Ticket interno (já temos o nosso) */
+.inbox-new [class*="ticketHeader"],
+.inbox-new [class*="TicketHeader"] {
+  display: none !important;
+}
+
+/* Responsivo */
+@media (max-width: 900px) {
+  .inbox-sidebar {
+    width: 100%;
+    display: flex;
+  }
+  .inbox-chat {
+    display: none;
+  }
+  .inbox-new:has(.inbox-chat-header) .inbox-sidebar {
+    display: none;
+  }
+  .inbox-new:has(.inbox-chat-header) .inbox-chat {
+    display: flex;
+  }
+}
