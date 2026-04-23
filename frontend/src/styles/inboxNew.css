@@ -1112,21 +1112,36 @@ body:has(.inbox-new) #root {
 .iip-tag-pop {
   width: 280px;
   max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 80px);
   border-radius: 10px !important;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18) !important;
   border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
 }
 .iip-tag-pop-inner {
   padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 .iip-tag-pop-list {
   display: flex;
   flex-direction: column;
   max-height: 220px;
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.iip-tag-pop-list::-webkit-scrollbar { width: 6px; }
+.iip-tag-pop-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
 }
 .iip-tag-pop-item {
   display: flex;
