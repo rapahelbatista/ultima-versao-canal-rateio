@@ -197,25 +197,9 @@ const InboxNew = () => {
     setInfoOpen(false);
   }, [ticketId]);
 
-  // Sincroniza com o drawer interno do Ticket: se o usuário clicar no
-  // header do Ticket (TicketInfo), o drawer abre. Observamos o DOM via
-  // MutationObserver na classe do mainWrapperShift para refletir o estado.
-  useEffect(() => {
-    const root = document.querySelector(".inbox-chat");
-    if (!root) return;
-    const sync = () => {
-      const shifted = root.querySelector('[class*="mainWrapperShift"]');
-      setInfoOpen(!!shifted);
-    };
-    sync();
-    const observer = new MutationObserver(sync);
-    observer.observe(root, { subtree: true, attributes: true, attributeFilter: ["class"] });
-    return () => observer.disconnect();
-  }, [ticketId]);
-
   const toggleInfoDrawer = (e) => {
     e?.stopPropagation();
-    window.dispatchEvent(new CustomEvent("ticket:toggle-drawer"));
+    setInfoOpen((v) => !v);
   };
 
 
