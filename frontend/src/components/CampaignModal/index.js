@@ -267,6 +267,17 @@ const CampaignModal = ({
   const [individualContacts, setIndividualContacts] = useState([]);
   const [showSuccessAnim, setShowSuccessAnim] = useState(false);
   const [analyticsModal, setAnalyticsModal] = useState(null); // { drafts, confirmed, recent: [{label, time, type}] }
+  const CUSTOM_VARS_KEY = "campaignCustomVars";
+  const [customPlaceholders, setCustomPlaceholders] = useState(() => {
+    try {
+      const raw = localStorage.getItem(CUSTOM_VARS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (_) {}
+    return [];
+  });
+  const [newVarKey, setNewVarKey] = useState("");
+  const [newVarLabel, setNewVarLabel] = useState("");
+  const [showVarManager, setShowVarManager] = useState(false);
 
   // Opções para dias da semana
   const daysOfWeekOptions = [
