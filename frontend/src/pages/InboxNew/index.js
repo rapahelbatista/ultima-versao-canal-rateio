@@ -743,11 +743,249 @@ const InboxNew = () => {
         )}
       </main>
 
-      {/* ============== MODAL NOVA CONVERSA ============== */}
+      {/* ============== MODAL NOVA CONVERSA (legado, ainda disponível) ============== */}
       <NewTicketModal
         modalOpen={newTicketOpen}
         onClose={() => setNewTicketOpen(false)}
       />
+
+      {/* ============== POPOVER: FILTROS (sidebar) ============== */}
+      <Popover
+        open={Boolean(filterAnchor)}
+        anchorEl={filterAnchor}
+        onClose={() => setFilterAnchor(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        PaperProps={{ className: "inbox-pop" }}
+      >
+        <div className="inbox-pop-header">
+          <FilterIcon fontSize="small" /> <span>Filtros</span>
+        </div>
+        <div className="inbox-pop-body">
+          <label className="inbox-pop-label">Origem</label>
+          <Select
+            value={tempOrigin}
+            onChange={(e) => setTempOrigin(e.target.value)}
+            fullWidth
+            variant="outlined"
+            margin="dense"
+          >
+            <MenuItem value="all">Todos</MenuItem>
+            <MenuItem value="whatsapp">WhatsApp</MenuItem>
+            <MenuItem value="telegram">Telegram</MenuItem>
+            <MenuItem value="meta">Meta</MenuItem>
+          </Select>
+
+          <label className="inbox-pop-label">Agente</label>
+          <Select
+            value={tempAgent}
+            onChange={(e) => setTempAgent(e.target.value)}
+            fullWidth
+            variant="outlined"
+            margin="dense"
+          >
+            <MenuItem value="all">Todos</MenuItem>
+            {agents.map((a) => (
+              <MenuItem key={a.id} value={String(a.id)}>{a.name}</MenuItem>
+            ))}
+          </Select>
+        </div>
+        <div className="inbox-pop-footer">
+          <Button
+            className="inbox-pop-btn-outline"
+            onClick={() => {
+              setFilterOrigin("all");
+              setFilterAgent("all");
+              setTempOrigin("all");
+              setTempAgent("all");
+              setFilterAnchor(null);
+            }}
+          >
+            Redefinir
+          </Button>
+          <Button
+            className="inbox-pop-btn-primary"
+            onClick={() => {
+              setFilterOrigin(tempOrigin);
+              setFilterAgent(tempAgent);
+              setFilterAnchor(null);
+            }}
+          >
+            Aplicar
+          </Button>
+        </div>
+      </Popover>
+
+      {/* ============== POPOVER: OPTIONS (Respostas Rápidas + Som) ============== */}
+      <Popover
+        open={Boolean(optionsAnchor)}
+        anchorEl={optionsAnchor}
+        onClose={() => setOptionsAnchor(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        PaperProps={{ className: "inbox-pop inbox-pop-options" }}
+      >
+        <div className="inbox-pop-header"><span>OPTIONS</span></div>
+        <div className="inbox-pop-options-row">
+          <Tooltip title="Som de Notificação">
+            <IconButton
+              className={`inbox-pop-circle ${notifSound ? "active" : ""}`}
+              onClick={() => {
+                setNotifSound((v) => !v);
+                toast.success(`Som de notificação ${!notifSound ? "ativado" : "desativado"}`);
+              }}
+            >
+              {notifSound ? <NotifIcon /> : <NotifOffIcon />}
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Respostas Rápidas">
+            <IconButton
+              className="inbox-pop-circle active"
+              onClick={(e) => {
+                loadQuickReplies();
+                setQuickReplyAnchor(e.currentTarget);
+                setOptionsAnchor(null);
+              }}
+            >
+              <QuickReplyIcon />
+            </IconButton>
+          </Tooltip>
+        </div>
+      </Popover>
+
+      {/* ============== POPOVER: RESPOSTAS RÁPIDAS ============== */}
+      <Popover
+        open={Boolean(quickReplyAnchor)}
+        anchorEl={quickReplyAnchor}
+        onClose={() => setQuickReplyAnchor(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        PaperProps={{ className: "inbox-pop" }}
+      >
+        <div className="inbox-pop-header"><QuickReplyIcon fontSize="small" /> <span>Respostas Rápidas</span></div>
+        <div className="inbox-pop-body" style={{ maxHeight: 320, overflow: "auto", minWidth: 280 }}>
+          {quickReplies.length === 0 && (
+            <div style={{ fontSize: 12, color: "#94a3b8", padding: "8px 4px" }}>
+              Nenhuma resposta rápida cadastrada.
+            </div>
+          )}
+          {quickReplies.map((q) => (
+            <div
+              key={q.id}
+              className="inbox-quick-item"
+              onClick={() => {
+                navigator.clipboard?.writeText(q.message || "");
+                toast.success(`"/${q.shortcode}" copiada`);
+                setQuickReplyAnchor(null);
+              }}
+            >
+              <strong>/{q.shortcode}</strong>
+              <span>{q.message}</span>
+            </div>
+          ))}
+        </div>
+      </Popover>
+
+      {/* ============== POPOVER: INICIAR NOVA CONVERSA ============== */}
+      <Popover
+        open={Boolean(newConvAnchor)}
+        anchorEl={newConvAnchor}
+        onClose={() => setNewConvAnchor(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        PaperProps={{ className: "inbox-pop" }}
+      >
+        <div className="inbox-pop-header"><AddIcon fontSize="small" /> <span>Iniciar Nova Conversa</span></div>
+        <div className="inbox-pop-body" style={{ minWidth: 300 }}>
+          <Select
+            value={ncWhatsappId}
+            onChange={(e) => setNcWhatsappId(e.target.value)}
+            displayEmpty
+            fullWidth
+            variant="outlined"
+            margin="dense"
+          >
+            <MenuItem value="" disabled>De</MenuItem>
+            {whatsapps.map((w) => (
+              <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>
+            ))}
+          </Select>
+          <TextField
+            placeholder="Para (número)"
+            value={ncNumber}
+            onChange={(e) => setNcNumber(e.target.value)}
+            fullWidth
+            variant="outlined"
+            margin="dense"
+          />
+          <TextField
+            placeholder="Mensagem"
+            value={ncMessage}
+            onChange={(e) => setNcMessage(e.target.value)}
+            fullWidth
+            variant="outlined"
+            margin="dense"
+            multiline
+            minRows={4}
+          />
+        </div>
+        <div className="inbox-pop-footer">
+          <Button
+            className="inbox-pop-btn-primary"
+            disabled={ncSending || !ncWhatsappId || !ncNumber || !ncMessage}
+            onClick={handleSendNewConversation}
+            startIcon={ncSending ? <CircularProgress size={14} /> : <SendIcon fontSize="small" />}
+            fullWidth
+          >
+            Enviar Mensagem
+          </Button>
+        </div>
+      </Popover>
+
+      {/* ============== POPOVER: FILTRAR MENSAGENS ============== */}
+      <Popover
+        open={Boolean(msgFilterAnchor)}
+        anchorEl={msgFilterAnchor}
+        onClose={() => setMsgFilterAnchor(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        PaperProps={{ className: "inbox-pop" }}
+      >
+        <div className="inbox-pop-header"><SearchIcon fontSize="small" /> <span>Filtrar Mensagens</span></div>
+        <div className="inbox-pop-body" style={{ minWidth: 280 }}>
+          <div className="inbox-pop-search">
+            <SearchIcon fontSize="small" />
+            <InputBase
+              placeholder="Buscar na conversa..."
+              value={tempMsgSearch}
+              onChange={(e) => setTempMsgSearch(e.target.value)}
+              fullWidth
+              autoFocus
+            />
+          </div>
+        </div>
+        <div className="inbox-pop-footer">
+          <Button
+            className="inbox-pop-btn-outline"
+            onClick={() => {
+              setTempMsgSearch("");
+              setMsgSearch("");
+              setMsgFilterAnchor(null);
+            }}
+          >
+            Redefinir
+          </Button>
+          <Button
+            className="inbox-pop-btn-primary"
+            onClick={() => {
+              setMsgSearch(tempMsgSearch);
+              setMsgFilterAnchor(null);
+            }}
+          >
+            Aplicar
+          </Button>
+        </div>
+      </Popover>
     </div>
   );
 };
