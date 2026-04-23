@@ -289,6 +289,10 @@
   background: #d1fae5 !important;
   color: #047857 !important;
 }
+.inbox-chat-action-info-active {
+  background: #d1fae5 !important;
+  color: #047857 !important;
+}
 
 .inbox-item-avatar .MuiAvatar-root {
   width: 44px !important;
