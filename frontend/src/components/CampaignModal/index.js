@@ -764,22 +764,43 @@ const CampaignModal = ({
                     });
                 }}
               />
-              <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                <Tabs
-                  value={messageTab}
-                  onChange={(e, val) => setMessageTab(val)}
-                  indicatorColor="primary"
-                  textColor="primary"
-                  variant="fullWidth"
-                >
-                  <Tab label="Campanha" />
-                  <Tab label="📋 Listas de Contatos" />
-                  <Tab label="⚙️ Configurações" />
-                </Tabs>
-              </Box>
+              <div className="campaign-wizard-stepper">
+                {[
+                  { label: "Campanha", icon: "📣" },
+                  { label: "Listas de Contatos", icon: "📋" },
+                  { label: "Configurações", icon: "⚙️" },
+                ].map((step, idx) => (
+                  <React.Fragment key={idx}>
+                    <button
+                      type="button"
+                      className={`campaign-wizard-step ${messageTab === idx ? "is-active" : ""} ${messageTab > idx ? "is-done" : ""}`}
+                      onClick={() => setMessageTab(idx)}
+                    >
+                      <span className="campaign-wizard-step-circle">
+                        {messageTab > idx ? "✓" : idx + 1}
+                      </span>
+                      <span className="campaign-wizard-step-label">
+                        <span className="campaign-wizard-step-icon">{step.icon}</span>
+                        {step.label}
+                      </span>
+                    </button>
+                    {idx < 2 && (
+                      <span className={`campaign-wizard-bar ${messageTab > idx ? "is-done" : ""}`}>
+                        <span className="campaign-wizard-bar-fill" />
+                      </span>
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+              <div className="campaign-wizard-progress">
+                <div
+                  className="campaign-wizard-progress-fill"
+                  style={{ width: `${((messageTab + 1) / 3) * 100}%` }}
+                />
+              </div>
 
               {/* ABA 0: Configurações da Campanha */}
-              <div hidden={messageTab !== 0}>
+              <div hidden={messageTab !== 0} className={messageTab === 0 ? "campaign-wizard-pane is-active" : "campaign-wizard-pane"}>
               <DialogContent dividers>
                 <Grid spacing={2} container>
                   <Grid xs={12} md={4} item>
@@ -1485,7 +1506,7 @@ const CampaignModal = ({
               </div>
 
               {/* ABA 1: Listas de Contatos */}
-              <div hidden={messageTab !== 1}>
+              <div hidden={messageTab !== 1} className={messageTab === 1 ? "campaign-wizard-pane is-active" : "campaign-wizard-pane"}>
                 <DialogContent dividers>
                   <CampaignContactSelector
                     contactListId={values.contactListId}
@@ -1512,7 +1533,7 @@ const CampaignModal = ({
               </div>
 
               {/* ABA 2: Configurações de Disparo */}
-              <div hidden={messageTab !== 2}>
+              <div hidden={messageTab !== 2} className={messageTab === 2 ? "campaign-wizard-pane is-active" : "campaign-wizard-pane"}>
                 <DialogContent dividers>
                     <Grid spacing={2} container>
                       <Grid xs={12} item>
@@ -1682,7 +1703,26 @@ const CampaignModal = ({
                     {i18n.t("campaigns.dialog.buttons.cancel")}
                   </Button>
                 )}
-                
+              <DialogActions>
+                {campaign.status === "CANCELADA" && (
+                  <Button
+                    color="primary"
+                    onClick={() => restartCampaign()}
+                    variant="outlined"
+                  >
+                    {i18n.t("campaigns.dialog.buttons.restart")}
+                  </Button>
+                )}
+                {campaign.status === "EM_ANDAMENTO" && (
+                  <Button
+                    color="primary"
+                    onClick={() => cancelCampaign()}
+                    variant="outlined"
+                  >
+                    {i18n.t("campaigns.dialog.buttons.cancel")}
+                  </Button>
+                )}
+
                 <Button
                   onClick={handleClose}
                   color="primary"
@@ -1691,7 +1731,30 @@ const CampaignModal = ({
                 >
                   {i18n.t("campaigns.dialog.buttons.close")}
                 </Button>
-                {(messageTab === 0 || messageTab === 1) && (campaignEditable || campaign.status === "CANCELADA") && (
+
+                {messageTab > 0 && (
+                  <Button
+                    onClick={() => setMessageTab((t) => Math.max(0, t - 1))}
+                    color="primary"
+                    variant="outlined"
+                    disabled={isSubmitting}
+                  >
+                    ← Voltar
+                  </Button>
+                )}
+
+                {messageTab < 2 && (
+                  <Button
+                    onClick={() => setMessageTab((t) => Math.min(2, t + 1))}
+                    color="primary"
+                    variant="contained"
+                    disabled={isSubmitting}
+                  >
+                    Próximo →
+                  </Button>
+                )}
+
+                {messageTab === 2 && (campaignEditable || campaign.status === "CANCELADA") && (
                   <Button
                     type="submit"
                     color="primary"
