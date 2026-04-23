@@ -627,38 +627,91 @@ const CampaignModal = ({
     }
   };
 
-  const renderMessageField = (identifier) => {
+  const messagePlaceholders = [
+    { key: "{nome}", label: "Nome" },
+    { key: "{numero}", label: "Número" },
+    { key: "{email}", label: "E-mail" },
+    { key: "{saudacao}", label: "Saudação" },
+    { key: "{data}", label: "Data" },
+    { key: "{empresa}", label: "Empresa" },
+  ];
+
+  const insertPlaceholder = (identifier, value, setFieldValue, placeholder) => {
+    const el = document.getElementById(identifier);
+    const current = value || "";
+    if (el && typeof el.selectionStart === "number") {
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const next = current.slice(0, start) + placeholder + current.slice(end);
+      setFieldValue(identifier, next);
+      // Reposicionar cursor após inserção
+      requestAnimationFrame(() => {
+        el.focus();
+        const pos = start + placeholder.length;
+        try { el.setSelectionRange(pos, pos); } catch (_) {}
+      });
+    } else {
+      setFieldValue(identifier, current + placeholder);
+    }
+  };
+
+  const renderPlaceholderChips = (identifier, value, setFieldValue) => (
+    <div className="campaign-placeholder-chips">
+      <span className="campaign-placeholder-chips-label">Inserir variável:</span>
+      {messagePlaceholders.map((p) => (
+        <button
+          type="button"
+          key={p.key}
+          className="campaign-placeholder-chip"
+          onClick={() => insertPlaceholder(identifier, value, setFieldValue, p.key)}
+          disabled={!campaignEditable && campaign.status !== "CANCELADA"}
+          title={`Inserir ${p.key}`}
+        >
+          <code>{p.key}</code>
+          <span>{p.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+
+  const renderMessageField = (identifier, values, setFieldValue) => {
     return (
-      <Field
-        as={TextField}
-        id={identifier}
-        name={identifier}
-        fullWidth
-        rows={5}
-        label={i18n.t(`campaigns.dialog.form.${identifier}`)}
-        placeholder={i18n.t("campaigns.dialog.form.messagePlaceholder")}
-        multiline={true}
-        variant="outlined"
-        helperText="Utilize variáveis como {nome}, {numero}, {email} ou defina variáveis personalizadas."
-        disabled={!campaignEditable && campaign.status !== "CANCELADA"}
-      />
+      <div className="campaign-message-editor">
+        {values && setFieldValue && renderPlaceholderChips(identifier, values[identifier], setFieldValue)}
+        <Field
+          as={TextField}
+          id={identifier}
+          name={identifier}
+          fullWidth
+          rows={5}
+          label={i18n.t(`campaigns.dialog.form.${identifier}`)}
+          placeholder={i18n.t("campaigns.dialog.form.messagePlaceholder")}
+          multiline={true}
+          variant="outlined"
+          helperText="Clique nas variáveis acima ou digite {nome}, {numero}, {email}…"
+          disabled={!campaignEditable && campaign.status !== "CANCELADA"}
+        />
+      </div>
     );
   };
 
-  const renderConfirmationMessageField = (identifier) => {
+  const renderConfirmationMessageField = (identifier, values, setFieldValue) => {
     return (
-      <Field
-        as={TextField}
-        id={identifier}
-        name={identifier}
-        fullWidth
-        rows={5}
-        label={i18n.t(`campaigns.dialog.form.${identifier}`)}
-        placeholder={i18n.t("campaigns.dialog.form.messagePlaceholder")}
-        multiline={true}
-        variant="outlined"
-        disabled={!campaignEditable && campaign.status !== "CANCELADA"}
-      />
+      <div className="campaign-message-editor">
+        {values && setFieldValue && renderPlaceholderChips(identifier, values[identifier], setFieldValue)}
+        <Field
+          as={TextField}
+          id={identifier}
+          name={identifier}
+          fullWidth
+          rows={5}
+          label={i18n.t(`campaigns.dialog.form.${identifier}`)}
+          placeholder={i18n.t("campaigns.dialog.form.messagePlaceholder")}
+          multiline={true}
+          variant="outlined"
+          disabled={!campaignEditable && campaign.status !== "CANCELADA"}
+        />
+      </div>
     );
   };
 
@@ -1334,14 +1387,14 @@ const CampaignModal = ({
                         ) : values.confirmation ? (
                           <Grid spacing={2} container>
                             <Grid xs={12} item>
-                              <>{renderMessageField("message1")}</>
+                              <>{renderMessageField("message1", values, setFieldValue)}</>
                             </Grid>
                             <Grid xs={12} item>
-                              <>{renderConfirmationMessageField("confirmationMessage1")}</>
+                              <>{renderConfirmationMessageField("confirmationMessage1", values, setFieldValue)}</>
                             </Grid>
                           </Grid>
                         ) : (
-                          <>{renderMessageField("message1")}</>
+                          <>{renderMessageField("message1", values, setFieldValue)}</>
                         )}
 
                         {/* Botão de anexar mídia + mídia anexada - ocultos para API Oficial */}
