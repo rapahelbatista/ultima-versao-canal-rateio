@@ -76,7 +76,7 @@ const NAV_GROUPS = [
     label: "Automação e Bots",
     items: [
       { to: "/flowbuilders", label: "Fluxos de Automação", icon: Workflow },
-      { to: "/chatbot-wa", label: "Chatbot de WA", icon: Bot },
+      
     ],
   },
   {
