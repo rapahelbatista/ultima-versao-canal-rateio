@@ -435,6 +435,14 @@ const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
     return Array.from(found);
   }, [currentMessage]);
 
+  // Detecta placeholders desconhecidos e calcula sugestões via similaridade
+  const unknownVars = useMemo(() => {
+    const knownKeys = Object.keys(samples);
+    return usedVars
+      .filter((v) => samples[v] === undefined)
+      .map((v) => ({ key: v, suggestions: suggestPlaceholders(v, knownKeys) }));
+  }, [usedVars, samples]);
+
   const getAttachmentPreview = () => {
     if (attachment) {
       const fileType = attachment.type || "";
