@@ -562,9 +562,27 @@ const ContactListItems = () => {
                     <TableCell align="center">
                       {i18n.t("contactListItems.table.number")}
                     </TableCell>
-                    <TableCell align="center">
-                      {i18n.t("contactListItems.table.email")}
-                    </TableCell>
+                    {visibleColumns.email && (
+                      <TableCell align="center">
+                        {i18n.t("contactListItems.table.email")}
+                      </TableCell>
+                    )}
+                    {visibleColumns.tags && <TableCell align="center">Tags</TableCell>}
+                    {visibleColumns.status && <TableCell align="center">Status</TableCell>}
+                    {visibleColumns.lastMessage && (
+                      <TableCell align="center">Última mensagem</TableCell>
+                    )}
+                    {visibleColumns.createdAt && (
+                      <TableCell align="center">Criado em</TableCell>
+                    )}
+                    {visibleColumns.company && <TableCell align="center">Empresa</TableCell>}
+                    {visibleColumns.country && (
+                      <TableCell align="center">País / DDD</TableCell>
+                    )}
+                    {visibleColumns.owner && (
+                      <TableCell align="center">Responsável</TableCell>
+                    )}
+                    {visibleColumns.source && <TableCell align="center">Origem</TableCell>}
                     <TableCell align="center">
                       {i18n.t("contactListItems.table.actions")}
                     </TableCell>
@@ -572,52 +590,171 @@ const ContactListItems = () => {
                 </TableHead>
                 <TableBody>
                   <>
-                    {contacts.map((contact) => (
-                      <TableRow key={contact.id}>
-                        <TableCell align="center" style={{ width: "0%" }}>
-                          <IconButton>
-                            {contact.isWhatsappValid ? (
-                              <CheckCircleIcon
-                                titleAccess="Whatsapp Válido"
-                                htmlColor="green"
-                              />
-                            ) : (
-                              <BlockIcon
-                                titleAccess="Whatsapp Inválido"
-                                htmlColor="grey"
-                              />
-                            )}
-                          </IconButton>
-                        </TableCell>
-                        <TableCell>{contact.name}</TableCell>
-                        <TableCell align="center">{contact.number}</TableCell>
-                        <TableCell align="center">{contact.email}</TableCell>
-                        <TableCell align="center">
-                          <IconButton
-                            size="small"
-                            onClick={() => hadleEditContact(contact.id)}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                          <Can
-                            role={user.profile}
-                            perform="contacts-page:deleteContact"
-                            yes={() => (
-                              <IconButton
-                                size="small"
-                                onClick={() => {
-                                  setConfirmOpen(true);
-                                  setDeletingContact(contact);
-                                }}
+                    {contacts.map((contact) => {
+                      const status = getStatusChip(contact);
+                      const tagsRaw =
+                        contact.tags ||
+                        contact.contactTags ||
+                        getExtra(contact, ["tags", "tag"]) ||
+                        [];
+                      const tagsList = Array.isArray(tagsRaw)
+                        ? tagsRaw
+                        : tagsRaw
+                            .toString()
+                            .split(",")
+                            .map((t) => t.trim())
+                            .filter(Boolean);
+                      const company =
+                        contact.company ||
+                        contact.companyName ||
+                        getExtra(contact, ["empresa", "company", "organização", "organizacao"]);
+                      const owner =
+                        contact.user?.name ||
+                        contact.owner ||
+                        contact.responsavel ||
+                        getExtra(contact, ["responsavel", "responsável", "owner", "atendente"]);
+                      const source =
+                        contact.source ||
+                        contact.origin ||
+                        contact.createdSource ||
+                        getExtra(contact, ["origem", "source", "fonte"]) ||
+                        "Manual";
+                      const lastMsg =
+                        contact.lastMessage ||
+                        contact.lastMessageAt ||
+                        contact.lastInteraction ||
+                        contact.updatedAt;
+                      return (
+                        <TableRow key={contact.id} hover>
+                          <TableCell align="center" style={{ width: "0%" }}>
+                            <IconButton>
+                              {contact.isWhatsappValid ? (
+                                <CheckCircleIcon
+                                  titleAccess="Whatsapp Válido"
+                                  htmlColor="green"
+                                />
+                              ) : (
+                                <BlockIcon
+                                  titleAccess="Whatsapp Inválido"
+                                  htmlColor="grey"
+                                />
+                              )}
+                            </IconButton>
+                          </TableCell>
+                          <TableCell>{contact.name}</TableCell>
+                          <TableCell align="center">{contact.number}</TableCell>
+                          {visibleColumns.email && (
+                            <TableCell align="center">{contact.email || "-"}</TableCell>
+                          )}
+                          {visibleColumns.tags && (
+                            <TableCell align="center">
+                              {tagsList.length > 0 ? (
+                                tagsList.slice(0, 4).map((tag, i) => (
+                                  <Chip
+                                    key={i}
+                                    label={typeof tag === "string" ? tag : tag.name || tag.label || ""}
+                                    size="small"
+                                    className={classes.tagChip}
+                                  />
+                                ))
+                              ) : (
+                                <span style={{ color: "#9ca3af" }}>-</span>
+                              )}
+                              {tagsList.length > 4 && (
+                                <Chip
+                                  label={`+${tagsList.length - 4}`}
+                                  size="small"
+                                  className={classes.tagChip}
+                                />
+                              )}
+                            </TableCell>
+                          )}
+                          {visibleColumns.status && (
+                            <TableCell align="center">
+                              <span
+                                className={classes.statusChip}
+                                style={{ background: status.color, color: status.text }}
                               >
-                                <DeleteOutlineIcon />
-                              </IconButton>
-                            )}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {loading && <TableRowSkeleton columns={4} />}
+                                {status.label}
+                              </span>
+                            </TableCell>
+                          )}
+                          {visibleColumns.lastMessage && (
+                            <TableCell align="center">
+                              <Tooltip
+                                title={
+                                  typeof lastMsg === "string" && lastMsg.length > 30
+                                    ? lastMsg
+                                    : ""
+                                }
+                              >
+                                <span className={classes.truncate}>
+                                  {typeof lastMsg === "string" && lastMsg.length > 0 && !lastMsg.includes("T")
+                                    ? lastMsg
+                                    : formatRelative(lastMsg)}
+                                </span>
+                              </Tooltip>
+                            </TableCell>
+                          )}
+                          {visibleColumns.createdAt && (
+                            <TableCell align="center">{formatDate(contact.createdAt)}</TableCell>
+                          )}
+                          {visibleColumns.company && (
+                            <TableCell align="center">
+                              {company ? (
+                                <span className={classes.truncate}>{company}</span>
+                              ) : (
+                                <span style={{ color: "#9ca3af" }}>-</span>
+                              )}
+                            </TableCell>
+                          )}
+                          {visibleColumns.country && (
+                            <TableCell align="center">
+                              {getCountryFromNumber(contact.number)}
+                            </TableCell>
+                          )}
+                          {visibleColumns.owner && (
+                            <TableCell align="center">
+                              {owner || <span style={{ color: "#9ca3af" }}>-</span>}
+                            </TableCell>
+                          )}
+                          {visibleColumns.source && (
+                            <TableCell align="center">
+                              <Chip
+                                label={source}
+                                size="small"
+                                className={classes.tagChip}
+                                style={{ background: "#eef2ff", color: "#4338ca" }}
+                              />
+                            </TableCell>
+                          )}
+                          <TableCell align="center">
+                            <IconButton
+                              size="small"
+                              onClick={() => hadleEditContact(contact.id)}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                            <Can
+                              role={user.profile}
+                              perform="contacts-page:deleteContact"
+                              yes={() => (
+                                <IconButton
+                                  size="small"
+                                  onClick={() => {
+                                    setConfirmOpen(true);
+                                    setDeletingContact(contact);
+                                  }}
+                                >
+                                  <DeleteOutlineIcon />
+                                </IconButton>
+                              )}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {loading && <TableRowSkeleton columns={totalColumnCount} />}
                   </>
                 </TableBody>
               </Table>
