@@ -273,6 +273,57 @@ const InboxNew = () => {
     }
   }, []);
 
+  // Criação de nova resposta rápida
+  const [qrShortcode, setQrShortcode] = useState("");
+  const [qrMessage, setQrMessage] = useState("");
+  const [qrSaving, setQrSaving] = useState(false);
+  const handleCreateQuickReply = useCallback(async () => {
+    const shortcode = qrShortcode.trim().replace(/^\//, "").slice(0, 50);
+    const message = qrMessage.trim().slice(0, 1000);
+    if (!shortcode || !message) {
+      toast.error("Atalho e mensagem são obrigatórios");
+      return;
+    }
+    try {
+      setQrSaving(true);
+      await api.post("/quickMessages", {
+        shortcode,
+        message,
+        geral: false,
+      });
+      toast.success("Resposta rápida criada!");
+      setQrShortcode("");
+      setQrMessage("");
+      await loadQuickReplies();
+    } catch (e) {
+      toast.error(e?.response?.data?.error || "Erro ao criar resposta rápida");
+    } finally {
+      setQrSaving(false);
+    }
+  }, [qrShortcode, qrMessage, loadQuickReplies]);
+
+  // Enviar resposta rápida no ticket aberto
+  const handleSendQuickReply = useCallback(async (q) => {
+    if (!ticketId) {
+      toast.error("Abra um atendimento para enviar");
+      return;
+    }
+    try {
+      await api.post(`/messages/${ticketId}`, {
+        read: 1,
+        fromMe: true,
+        mediaUrl: "",
+        body: q.message || "",
+        quotedMsg: null,
+      });
+      toast.success("Mensagem enviada!");
+      setQuickReplyAnchor(null);
+    } catch (e) {
+      toast.error(e?.response?.data?.error || "Erro ao enviar mensagem");
+    }
+  }, [ticketId]);
+
+
   // ---- Form de nova conversa ----
   const [ncWhatsappId, setNcWhatsappId] = useState("");
   const [ncNumber, setNcNumber] = useState("");
