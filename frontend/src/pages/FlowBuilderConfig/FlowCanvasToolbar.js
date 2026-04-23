@@ -550,7 +550,7 @@ const FlowCanvasToolbar = ({
                 marginTop: 12,
               }}
             >
-              {FILTERS.map((f) => {
+              {dynamicFilters.map((f) => {
                 const active = nodeFilter === f.key;
                 return (
                   <button
@@ -607,7 +607,25 @@ const FlowCanvasToolbar = ({
                   (e.currentTarget.style.background = "transparent")
                 }
               >
-                <NodeIcon icon={n.icon} color={n.color} />
+                {n.iconNode ? (
+                  <div
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: 8,
+                      background: `${n.color}1a`,
+                      color: n.color,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {n.iconNode}
+                  </div>
+                ) : (
+                  <NodeIcon icon={n.icon} color={n.color} />
+                )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
