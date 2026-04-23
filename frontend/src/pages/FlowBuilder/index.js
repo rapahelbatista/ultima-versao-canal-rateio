@@ -915,7 +915,7 @@ const FlowBuilder = () => {
             onClick={handleOpenContactModal}
             aria-label="Criar fluxo"
           >
-            <AddCircle />
+            <Plus size={24} />
           </Fab>
         </HideOnScroll>
       )}
