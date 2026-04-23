@@ -441,15 +441,54 @@ const InboxNew = () => {
       {/* ============== ÁREA DE CHAT ============== */}
       <main className="inbox-chat">
         {ticketId ? (
-          <Suspense
-            fallback={
-              <div className="inbox-loader" style={{ height: "100%" }}>
-                <CircularProgress />
+          <>
+            {/* Toolbar flutuante com ações do chat */}
+            {currentTicket && (
+              <div className="inbox-chat-actionbar">
+                <Tooltip title="Marcar como não lido">
+                  <IconButton
+                    size="small"
+                    className="inbox-chat-action"
+                    disabled={actionLoadingId === currentTicket.id}
+                    onClick={(e) => handleToggleRead(e, currentTicket)}
+                  >
+                    <MarkUnreadIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Responder">
+                  <IconButton
+                    size="small"
+                    className="inbox-chat-action inbox-chat-action-primary"
+                    onClick={(e) => handleQuickReply(e, currentTicket)}
+                  >
+                    <ReplyIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Resolver / Arquivar">
+                  <IconButton
+                    size="small"
+                    className="inbox-chat-action inbox-chat-action-archive"
+                    disabled={actionLoadingId === currentTicket.id}
+                    onClick={(e) => handleArchive(e, currentTicket)}
+                  >
+                    <DoneIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                {actionLoadingId === currentTicket.id && (
+                  <CircularProgress size={16} style={{ marginLeft: 4 }} />
+                )}
               </div>
-            }
-          >
-            <Ticket />
-          </Suspense>
+            )}
+            <Suspense
+              fallback={
+                <div className="inbox-loader" style={{ height: "100%" }}>
+                  <CircularProgress />
+                </div>
+              }
+            >
+              <Ticket />
+            </Suspense>
+          </>
         ) : (
           <div className="inbox-empty-chat">
             <div className="inbox-empty-chat-card">
