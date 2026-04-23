@@ -265,6 +265,7 @@ const CampaignModal = ({
   const [contactGroupModalOpen, setContactGroupModalOpen] = useState(false);
   const [templateVarValues, setTemplateVarValues] = useState({});
   const [individualContacts, setIndividualContacts] = useState([]);
+  const [showSuccessAnim, setShowSuccessAnim] = useState(false);
 
   // Opções para dias da semana
   const daysOfWeekOptions = [
@@ -576,6 +577,7 @@ const CampaignModal = ({
         dataValues.contactListId = newList.id;
       }
 
+      const isUpdate = !!campaignId;
       if (campaignId) {
         await api.put(`/campaigns/${campaignId}`, dataValues);
         if (attachment != null) {
@@ -583,7 +585,6 @@ const CampaignModal = ({
           formData.append("file", attachment);
           await api.post(`/campaigns/${campaignId}/media-upload`, formData);
         }
-        handleClose();
       } else {
         const { data } = await api.post("/campaigns", dataValues);
         if (attachment != null) {
@@ -594,9 +595,19 @@ const CampaignModal = ({
         if (onSave) {
           onSave(data);
         }
-        handleClose();
       }
-      toast.success(i18n.t("campaigns.toasts.success"));
+      // Animação de confirmação
+      setShowSuccessAnim(true);
+      toast.success(
+        isUpdate
+          ? "✅ Campanha atualizada com sucesso!"
+          : "🚀 Campanha criada com sucesso!",
+        { autoClose: 2500 }
+      );
+      setTimeout(() => {
+        setShowSuccessAnim(false);
+        handleClose();
+      }, 1200);
     } catch (err) {
       console.log(err);
       toastError(err);
@@ -1703,6 +1714,18 @@ const CampaignModal = ({
             </Form>
           )}
         </Formik>
+        {showSuccessAnim && (
+          <div className="campaign-success-overlay">
+            <div className="campaign-success-card">
+              <svg className="campaign-success-check" viewBox="0 0 52 52">
+                <circle className="campaign-success-circle" cx="26" cy="26" r="25" fill="none" />
+                <path className="campaign-success-path" fill="none" d="M14 27l7 7 16-16" />
+              </svg>
+              <h3>Tudo certo!</h3>
+              <p>Sua campanha foi salva com sucesso.</p>
+            </div>
+          </div>
+        )}
       </Dialog>
     </div>
   );
