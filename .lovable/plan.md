@@ -1,44 +1,40 @@
 
 
-## Corrigir Layout da Caixa de Entrada (InboxNew)
+## Corrigir layout estourado da Caixa de Entrada (InboxNew)
 
-A regra atual `position: fixed; inset: 0; z-index: 50` na `.inbox-new` faz a tela cobrir o **menu lateral do app** e empurra todo o conteúdo, gerando o corte da esquerda, a sumida do header do chat e o painel direito cortado. Vamos restaurar o comportamento de "ocupar apenas a área de conteúdo" (igual à terceira foto de referência).
+A tela está quebrada porque **dois conjuntos de regras responsivas estão brigando** dentro do mesmo CSS:
 
-### O que será feito (CSS-only — `frontend/src/styles/inboxNew.css`)
+1. Regra antiga `@media (max-width: 900px)` (linhas 941–955) com `.inbox-new:has(.inbox-chat-header) .inbox-sidebar { display: none }` — esconde a lista de tickets sempre que existe header de chat, mesmo no desktop quando o frame da preview tem largura intermediária. Por isso a sidebar sumiu e sobrou só "Tags / sdsd / xcxcxc" no canto.
+2. Regras `@container inbox (max-width: 1100px)` e `@media (max-width: 1100px)` (linhas 1295–1361) transformam o **InboxInfoPanel em overlay absoluto** (`position: absolute; right: 0`). Como o frame da preview tem ≈1100px de largura útil, o painel direito vira uma faixinha amarela cortada na borda direita.
+3. Os fallback `@media` repetem as mesmas regras dos `@container`, criando dupla aplicação e overflow.
 
-**1. Remover o overlay fixo**
-- Tirar `position: fixed; inset: 0; z-index: 50` da `.inbox-new`.
-- Trocar por `position: relative; height: 100dvh; width: 100%; flex: 1 1 auto; min-height: 0` para que o componente respeite o slot do layout principal (à direita do menu lateral).
+### O que vamos fazer
 
-**2. Parar de esconder/forçar o shell do app**
-- Remover as regras que escondem `header.MuiAppBar-root` e `[class*="appBar"]` — elas estavam quebrando a régua superior e desalinhando o conteúdo.
-- Remover as regras agressivas em `body:has(.inbox-new) main / [class*="content"] / [class*="MainContainer"]` que zeram padding/margin globais.
-- Manter apenas: `html, body, #root { overflow: hidden; height: 100dvh }` quando a inbox estiver ativa, para evitar **scroll duplo** sem mexer no shell.
+**Arquivo único:** `frontend/src/styles/inboxNew.css`
 
-**3. Garantir que o painel ocupe 100% do slot**
-- `.inbox-new { display: flex; height: 100%; min-height: 0 }` dentro do container pai (que já é `flex: 1`).
-- Confirmar que `html:has(.inbox-new), body:has(.inbox-new) #root` ficam com `height: 100dvh` para o `100%` da `.inbox-new` ter referência.
+1. **Remover bloco antigo conflitante** (linhas 940–955): apaga o `@media (max-width: 900px)` que esconde a sidebar via `:has(.inbox-chat-header)`. A lógica de "sidebar some quando há ticket ativo" passa a ser feita pela classe `.has-active-ticket` (já existente) só no breakpoint mobile real (≤768px).
 
-**4. Painel de informações à direita**
-- Manter `.inbox-info-panel` com `width: 320px; flex-shrink: 0` para não ser cortado em viewports estreitos (1257px do usuário comporta tranquilamente: 360 sidebar + chat fluido + 320 info).
-- Em `< 1280px`: reduzir `inbox-info-panel` para 280px.
-- Em `< 1100px`: esconder o `inbox-info-panel` por padrão (acessível via botão de info no actionbar).
+2. **Mover breakpoints para baixo** e usar apenas `@media` (remover os `@container inbox` e `container-type: inline-size` da `.inbox-new`). Container queries baseadas em `inline-size` estão disparando porque o frame da preview é estreito, mas o usuário enxerga isso como desktop. Voltamos a usar `@media` baseado em viewport real, que é o comportamento esperado.
 
-**5. Header do chat visível**
-- A actionbar flutuante (`.inbox-chat-actionbar` com `position: absolute; top: 14px; right: 18px`) estava sobrepondo o header do Ticket (que tem `min-height: 64px`). Aumentar o `padding-top` do header interno e empurrar a actionbar para `top: 16px; right: 20px` mantendo z-index 5.
-- Remover o `.inbox-chat-header` customizado vazio se não houver ticket selecionado (manter só o empty state).
+3. **Ajustar breakpoints para valores realistas:**
+   - **≥1280px:** 3 colunas — sidebar 360 + chat fluido + info 320 (sem alteração)
+   - **1024–1279px:** info-panel encolhe para 260px (lado a lado, **sem virar overlay**)
+   - **900–1023px:** info-panel encolhe para 240px ou some por padrão (toggleável); sidebar reduz para 300px
+   - **≤899px (tablet/mobile real):** info-panel vira overlay sobre o chat
+   - **≤768px:** sidebar 100%, chat 100%, info 100% (como já está)
 
-### Resultado esperado (igual à 3ª foto de referência)
-```
-[ Menu app ][ Lista tickets 360px ][ Chat fluido ][ Info 320px ]
-   ↑ visível        ↑ não cortado      ↑ centralizado   ↑ não cortado
-```
-- Sem scroll vertical na página
-- Sem corte na esquerda (menu do app aparece)
-- Sem corte na direita (painel Info inteiro)
-- Header do chat (avatar + nome + Aceitar) visível no topo
-- Input de mensagem fixo no rodapé
+4. **Travar overflow horizontal global** no `.inbox-new` com `overflow-x: hidden` e garantir que nenhum filho com `position: absolute` vaze pra fora (`right: 0` + `max-width: 100%`).
+
+5. **Garantir que `.inbox-info-panel` quando absolute** fique dentro do `.inbox-new` (que já é `position: relative`) e nunca ultrapasse a borda direita — adicionar `right: 0; max-width: 100%`.
+
+### Resultado esperado
+
+- Sidebar (lista de tickets) **sempre visível** no desktop, qualquer que seja a largura ≥900px.
+- Info-panel direito **sempre lado-a-lado** até 1024px; **só vira overlay** em telas pequenas reais (<900px).
+- Sem corte na direita (faixa amarela), sem fragmentos de tags soltos no canto superior.
+- Layout volta a ser o "3 colunas" mostrado na 3ª foto de referência aprovada anteriormente.
 
 ### Arquivos afetados
-- `frontend/src/styles/inboxNew.css` (apenas CSS — sem mudança de lógica/JS)
+
+- `frontend/src/styles/inboxNew.css` (apenas CSS)
 
