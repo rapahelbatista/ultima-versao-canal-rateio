@@ -1126,3 +1126,19 @@ body:has(.inbox-new) [class*="content"] {
     box-shadow: -4px 0 16px rgba(0,0,0,0.08);
   }
 }
+
+/* Loading indicator for tab counters during first sync */
+.inbox-tab-count-loading {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  opacity: 0.6;
+  animation: inbox-tab-count-spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+@keyframes inbox-tab-count-spin {
+  to { transform: rotate(360deg); }
+}
