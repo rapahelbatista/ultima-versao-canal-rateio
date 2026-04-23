@@ -538,7 +538,10 @@ const CampaignModal = ({
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => {
-      // Ignora se o foco está em um modal filho (ConfirmationModal, etc.) — eles têm seus próprios listeners
+      // Se o autocomplete de variáveis está aberto, deixa ele tratar Esc/Enter
+      if (autocomplete && (e.key === "Enter" || e.key === "Escape" || e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Tab")) {
+        return;
+      }
       if (e.key === "Escape") {
         // Se houver popover de analytics, fecha apenas ele
         if (analyticsModal) {
@@ -565,7 +568,7 @@ const CampaignModal = ({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, analyticsModal]);
+  }, [open, analyticsModal, autocomplete]);
 
   const handleAttachmentFile = (e) => {
     const file = head(e.target.files);
