@@ -532,6 +532,7 @@ const Campaigns = () => {
         </>
       )}
     </MainContainer>
+    </div>
   );
 };
 
