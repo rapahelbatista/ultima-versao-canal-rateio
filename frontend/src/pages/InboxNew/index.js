@@ -42,6 +42,7 @@ import NewTicketModal from "../../components/NewTicketModal";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import "../../styles/inboxNew.css";
+import { QueueSelectedProvider } from "../../context/QueuesSelected/QueuesSelectedContext";
 
 const Ticket = React.lazy(() => import("../../components/Ticket"));
 
@@ -518,6 +519,7 @@ const InboxNew = () => {
   }, [msgSearch, ticketId]);
 
   return (
+    <QueueSelectedProvider>
     <div className="inbox-new">
       {/* ============== SIDEBAR ESQUERDA ============== */}
       <aside className="inbox-sidebar">
@@ -1053,6 +1055,7 @@ const InboxNew = () => {
         </div>
       </Popover>
     </div>
+    </QueueSelectedProvider>
   );
 };
 
