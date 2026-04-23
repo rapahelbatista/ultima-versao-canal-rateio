@@ -1283,13 +1283,60 @@ const InboxNew = () => {
               <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>
             ))}
           </Select>
-          <TextField
-            placeholder="Para (número)"
-            value={ncNumber}
-            onChange={(e) => setNcNumber(e.target.value)}
+          <Autocomplete
+            value={ncContact}
+            onChange={(_e, val) => {
+              setNcContact(val);
+              if (val && val.number) setNcNumber(val.number);
+              else if (typeof val === "string") setNcNumber(val);
+            }}
+            onInputChange={(_e, val, reason) => {
+              if (reason === "input") {
+                setNcContactSearch(val);
+                // Se o usuário digitar um número manualmente, mantém em ncNumber
+                if (/^[\d\s+()-]+$/.test(val)) setNcNumber(val);
+              }
+            }}
+            options={ncContacts}
+            loading={ncContactsLoading}
+            getOptionLabel={(opt) => {
+              if (!opt) return "";
+              if (typeof opt === "string") return opt;
+              const name = opt.name || "";
+              const num = opt.number ? ` (${opt.number})` : "";
+              return `${name}${num}`.trim();
+            }}
+            getOptionSelected={(opt, val) => opt?.id === val?.id}
+            freeSolo
             fullWidth
-            variant="outlined"
-            margin="dense"
+            noOptionsText="Nenhum contato encontrado"
+            loadingText="Carregando contatos..."
+            renderOption={(opt) => (
+              <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
+                <strong style={{ fontSize: 13 }}>{opt.name || opt.number}</strong>
+                {opt.number && opt.name && (
+                  <span style={{ fontSize: 11, color: "#64748b" }}>{opt.number}</span>
+                )}
+              </div>
+            )}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                placeholder="Para (contato ou número)"
+                variant="outlined"
+                margin="dense"
+                fullWidth
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {ncContactsLoading ? <CircularProgress size={16} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
           />
           <TextField
             placeholder="Mensagem"
