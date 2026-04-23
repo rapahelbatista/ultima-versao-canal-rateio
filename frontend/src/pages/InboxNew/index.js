@@ -336,10 +336,15 @@ const InboxNew = () => {
             const isImportant = (t.tags || []).some((tg) =>
               (tg.name || "").toLowerCase().includes("import")
             );
+            const isUnread =
+              (t.unreadMessages || 0) > 0 || t.status === "pending";
+            const isBusy = actionLoadingId === t.id;
             return (
               <div
                 key={t.id}
-                className={`inbox-item ${isSelected ? "selected" : ""}`}
+                className={`inbox-item ${isSelected ? "selected" : ""} ${
+                  isBusy ? "is-busy" : ""
+                }`}
                 onClick={() => handleSelectTicket(t)}
               >
                 <div className="inbox-item-avatar">
@@ -369,6 +374,49 @@ const InboxNew = () => {
                       <span className="inbox-unread">{t.unreadMessages}</span>
                     )}
                   </div>
+                </div>
+
+                {/* Ações rápidas no card (aparecem no hover) */}
+                <div className="inbox-item-actions">
+                  <Tooltip
+                    title={isUnread ? "Marcar como lido" : "Marcar como não lido"}
+                  >
+                    <IconButton
+                      size="small"
+                      className="inbox-card-action"
+                      disabled={isBusy}
+                      onClick={(e) => handleToggleRead(e, t)}
+                    >
+                      {isUnread ? (
+                        <MarkReadIcon fontSize="small" />
+                      ) : (
+                        <MarkUnreadIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Responder">
+                    <IconButton
+                      size="small"
+                      className="inbox-card-action inbox-card-reply"
+                      disabled={isBusy}
+                      onClick={(e) => handleQuickReply(e, t)}
+                    >
+                      <ReplyIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Arquivar">
+                    <IconButton
+                      size="small"
+                      className="inbox-card-action inbox-card-archive"
+                      disabled={isBusy}
+                      onClick={(e) => handleArchive(e, t)}
+                    >
+                      <ArchiveIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  {isBusy && (
+                    <CircularProgress size={14} className="inbox-card-spinner" />
+                  )}
                 </div>
               </div>
             );
