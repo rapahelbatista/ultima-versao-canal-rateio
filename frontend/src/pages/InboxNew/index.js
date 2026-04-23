@@ -20,6 +20,7 @@ import {
   DraftsOutlined as MarkReadIcon,
   Reply as ReplyIcon,
   CheckCircleOutline as DoneIcon,
+  InfoOutlined as InfoIcon,
 } from "@material-ui/icons";
 import { format, isToday, isYesterday } from "date-fns";
 import { toast } from "react-toastify";
@@ -112,6 +113,34 @@ const InboxNew = () => {
   const { ticketId } = useParams();
   const history = useHistory();
   const { user } = useContext(AuthContext);
+  const [infoOpen, setInfoOpen] = useState(false);
+
+  // Reset do estado de info ao trocar de ticket
+  useEffect(() => {
+    setInfoOpen(false);
+  }, [ticketId]);
+
+  // Sincroniza com o drawer interno do Ticket: se o usuário clicar no
+  // header do Ticket (TicketInfo), o drawer abre. Observamos o DOM via
+  // MutationObserver na classe do mainWrapperShift para refletir o estado.
+  useEffect(() => {
+    const root = document.querySelector(".inbox-chat");
+    if (!root) return;
+    const sync = () => {
+      const shifted = root.querySelector('[class*="mainWrapperShift"]');
+      setInfoOpen(!!shifted);
+    };
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(root, { subtree: true, attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, [ticketId]);
+
+  const toggleInfoDrawer = (e) => {
+    e?.stopPropagation();
+    window.dispatchEvent(new CustomEvent("ticket:toggle-drawer"));
+  };
+
 
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
@@ -472,6 +501,17 @@ const InboxNew = () => {
                     onClick={(e) => handleArchive(e, currentTicket)}
                   >
                     <DoneIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title={infoOpen ? "Fechar info do chat" : "Info do chat"}>
+                  <IconButton
+                    size="small"
+                    className={`inbox-chat-action ${
+                      infoOpen ? "inbox-chat-action-info-active" : ""
+                    }`}
+                    onClick={toggleInfoDrawer}
+                  >
+                    <InfoIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
                 {actionLoadingId === currentTicket.id && (
