@@ -213,7 +213,21 @@ const InboxInfoPanel = ({ ticket, contact, onClose }) => {
         </Section>
 
         {/* ETIQUETAS */}
-        <Section icon={<TagIcon fontSize="small" />} title="ETIQUETAS" right={<a className="iip-manage">Manage</a>}>
+        <Section
+          icon={<TagIcon fontSize="small" />}
+          title="ETIQUETAS"
+          right={
+            <a
+              className="iip-manage"
+              onClick={(e) => {
+                e.stopPropagation();
+                history.push("/tags");
+              }}
+            >
+              Manage
+            </a>
+          }
+        >
           <div className="iip-tags">
             {contactTags.length > 0 ? (
               contactTags.map((tag) => (
@@ -221,7 +235,7 @@ const InboxInfoPanel = ({ ticket, contact, onClose }) => {
                   key={tag.id}
                   size="small"
                   label={tag.name}
-                  onDelete={() => {}}
+                  onDelete={() => handleRemoveTag(tag.id)}
                   className="iip-tag"
                   style={{ background: tag.color ? `${tag.color}22` : "#fee2e2", color: tag.color || "#b91c1c" }}
                 />
@@ -229,8 +243,64 @@ const InboxInfoPanel = ({ ticket, contact, onClose }) => {
             ) : (
               <span className="iip-empty">Sem etiquetas</span>
             )}
-            <Chip size="small" label="+ new tag" className="iip-tag iip-tag-new" />
+            <Chip
+              size="small"
+              label="+ new tag"
+              className="iip-tag iip-tag-new"
+              onClick={(e) => setTagAnchor(e.currentTarget)}
+            />
           </div>
+          <Popover
+            open={Boolean(tagAnchor)}
+            anchorEl={tagAnchor}
+            onClose={() => { setTagAnchor(null); setTagSearch(""); }}
+            anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+            transformOrigin={{ vertical: "top", horizontal: "left" }}
+            marginThreshold={16}
+            PaperProps={{ className: "iip-tag-pop" }}
+          >
+            <div className="iip-tag-pop-inner">
+              <TextField
+                autoFocus
+                fullWidth
+                size="small"
+                variant="outlined"
+                placeholder="Buscar etiqueta..."
+                value={tagSearch}
+                onChange={(e) => setTagSearch(e.target.value)}
+              />
+              <div className="iip-tag-pop-list">
+                {tags
+                  .filter((t) =>
+                    !contactTags.some((c) => c.id === t.id) &&
+                    (t.name || "").toLowerCase().includes(tagSearch.toLowerCase())
+                  )
+                  .map((t) => (
+                    <div
+                      key={t.id}
+                      className="iip-tag-pop-item"
+                      onClick={() => {
+                        handleAddTag(t);
+                        setTagAnchor(null);
+                        setTagSearch("");
+                      }}
+                    >
+                      <span
+                        className="iip-tag-dot"
+                        style={{ background: t.color || "#10b981" }}
+                      />
+                      <span>{t.name}</span>
+                    </div>
+                  ))}
+                {tags.filter((t) => !contactTags.some((c) => c.id === t.id)).length === 0 && (
+                  <div className="iip-tag-pop-empty">
+                    Nenhuma etiqueta disponível.
+                    <a onClick={() => history.push("/tags")}> Criar nova</a>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Popover>
         </Section>
 
         {/* AGENTE */}
