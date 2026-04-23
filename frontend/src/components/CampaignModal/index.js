@@ -266,6 +266,7 @@ const CampaignModal = ({
   const [templateVarValues, setTemplateVarValues] = useState({});
   const [individualContacts, setIndividualContacts] = useState([]);
   const [showSuccessAnim, setShowSuccessAnim] = useState(false);
+  const [analyticsModal, setAnalyticsModal] = useState(null); // { drafts, confirmed, recent: [{label, time, type}] }
 
   // Opções para dias da semana
   const daysOfWeekOptions = [
