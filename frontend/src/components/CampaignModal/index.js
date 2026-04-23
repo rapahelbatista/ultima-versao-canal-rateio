@@ -577,6 +577,7 @@ const CampaignModal = ({
         dataValues.contactListId = newList.id;
       }
 
+      const isUpdate = !!campaignId;
       if (campaignId) {
         await api.put(`/campaigns/${campaignId}`, dataValues);
         if (attachment != null) {
@@ -584,7 +585,6 @@ const CampaignModal = ({
           formData.append("file", attachment);
           await api.post(`/campaigns/${campaignId}/media-upload`, formData);
         }
-        handleClose();
       } else {
         const { data } = await api.post("/campaigns", dataValues);
         if (attachment != null) {
@@ -595,9 +595,19 @@ const CampaignModal = ({
         if (onSave) {
           onSave(data);
         }
-        handleClose();
       }
-      toast.success(i18n.t("campaigns.toasts.success"));
+      // Animação de confirmação
+      setShowSuccessAnim(true);
+      toast.success(
+        isUpdate
+          ? "✅ Campanha atualizada com sucesso!"
+          : "🚀 Campanha criada com sucesso!",
+        { autoClose: 2500 }
+      );
+      setTimeout(() => {
+        setShowSuccessAnim(false);
+        handleClose();
+      }, 1200);
     } catch (err) {
       console.log(err);
       toastError(err);
