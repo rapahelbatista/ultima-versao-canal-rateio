@@ -1714,6 +1714,18 @@ const CampaignModal = ({
             </Form>
           )}
         </Formik>
+        {showSuccessAnim && (
+          <div className="campaign-success-overlay">
+            <div className="campaign-success-card">
+              <svg className="campaign-success-check" viewBox="0 0 52 52">
+                <circle className="campaign-success-circle" cx="26" cy="26" r="25" fill="none" />
+                <path className="campaign-success-path" fill="none" d="M14 27l7 7 16-16" />
+              </svg>
+              <h3>Tudo certo!</h3>
+              <p>Sua campanha foi salva com sucesso.</p>
+            </div>
+          </div>
+        )}
       </Dialog>
     </div>
   );
