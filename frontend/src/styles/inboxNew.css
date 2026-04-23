@@ -314,7 +314,7 @@ body:has(.inbox-new) #root {
   position: absolute;
   top: 14px;
   right: 18px;
-  z-index: 5;
+  z-index: 50;
   display: flex;
   gap: 4px;
   align-items: center;
@@ -716,15 +716,18 @@ body:has(.inbox-new) #root {
   background: #ffffff !important;
   border-bottom: 1px solid #e5e7eb !important;
   min-height: 72px !important;
-  padding: 12px 132px 12px 18px !important;
+  padding: 12px 200px 12px 18px !important;
   box-shadow: none !important;
 }
 /* Esconde os botões legados do header interno do Ticket
-   (copy phone, template, flash, switch bot, 3-dot menu)
+   (copy phone, template, flash, switch bot, 3-dot menu, FloupSelector duplicado)
    Já temos a actionbar superior moderna com ícones Lucide. */
 .inbox-new [class*="ticketActionButtons"],
 .inbox-new [class*="TicketActionButtons"],
-.inbox-new [class*="actionButtons"] {
+.inbox-new [class*="actionButtons"],
+.inbox-new [class*="ticketHeader"] > .MuiButton-root,
+.inbox-new [class*="ticketHeader"] [class*="actionButtons"] .MuiButton-root,
+.inbox-new [class*="ticketHeader"] [class*="actionButtons"] button {
   display: none !important;
 }
 /* Avatar do header maior e estilizado */
@@ -880,8 +883,42 @@ body:has(.inbox-new) #root {
 
 /* Esconde a barra de Tags duplicada acima do chat (já temos no painel lateral Info) */
 .inbox-new [class*="TagsContainer"],
-.inbox-new .MuiPaper-root:has(> .MuiAutocomplete-root) {
+.inbox-new [class*="contactTagsContainer"],
+.inbox-new .MuiPaper-root:has(> .MuiAutocomplete-root),
+.inbox-new .MuiPaper-root:has(.MuiAutocomplete-root[role]),
+.inbox-new main.inbox-chat .MuiPaper-root:has(input[placeholder="Tags" i]),
+.inbox-new [class*="ticketRoot"] > .MuiPaper-root:has(.MuiAutocomplete-root),
+.inbox-new main.inbox-chat > .MuiPaper-elevation1:not([class*="MessageInput"]):not([class*="ticketHeader"]):not([class*="messagesList"]) {
   display: none !important;
+}
+
+/* Ícones e fonte do MessageInput proporcionais ao novo layout */
+.inbox-new [class*="newMessageBox"] .MuiIconButton-root,
+.inbox-new [class*="messageInputWrapper"] .MuiIconButton-root {
+  padding: 6px !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+}
+.inbox-new [class*="newMessageBox"] .MuiIconButton-root .MuiSvgIcon-root,
+.inbox-new [class*="newMessageBox"] svg:not([class*="invertedFabMenu"] svg),
+.inbox-new [class*="messageInputWrapper"] .MuiSvgIcon-root {
+  width: 20px !important;
+  height: 20px !important;
+  font-size: 20px !important;
+}
+.inbox-new [class*="messageInputWrapper"] textarea,
+.inbox-new [class*="messageInputWrapper"] .MuiInputBase-input,
+.inbox-new [class*="newMessageBox"] textarea,
+.inbox-new [class*="newMessageBox"] .MuiInputBase-input {
+  font-size: 13.5px !important;
+  line-height: 1.4 !important;
+  padding: 8px 14px !important;
+}
+.inbox-new [class*="newMessageBox"] [class*="invertedFabMenu"] svg {
+  width: 18px !important;
+  height: 18px !important;
 }
 
 /* Esconde o aviso "Ticket Aguardando: Apenas mensagens internas..." */
