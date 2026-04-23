@@ -503,6 +503,17 @@ const InboxNew = () => {
                     <DoneIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
+                <Tooltip title={infoOpen ? "Fechar info do chat" : "Info do chat"}>
+                  <IconButton
+                    size="small"
+                    className={`inbox-chat-action ${
+                      infoOpen ? "inbox-chat-action-info-active" : ""
+                    }`}
+                    onClick={toggleInfoDrawer}
+                  >
+                    <InfoIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
                 {actionLoadingId === currentTicket.id && (
                   <CircularProgress size={16} style={{ marginLeft: 4 }} />
                 )}
