@@ -285,6 +285,7 @@ const Campaigns = () => {
   }
 
   return (
+    <div className="campaigns-redesign">
     <MainContainer>
       <ConfirmationModal
         title={deletingCampaign && `${i18n.t("campaigns.confirmationModal.deleteTitle")} ${deletingCampaign.name}?`}
