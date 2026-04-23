@@ -480,8 +480,8 @@ const InboxNew = () => {
   ]);
 
   const unreadBadge = useMemo(
-    () => (pendingPag.tickets || []).reduce((acc, t) => acc + (t.unreadMessages || 0), 0),
-    [pendingPag.tickets]
+    () => dedupedUnread.reduce((acc, t) => acc + Number(t.unreadMessages || 0), 0),
+    [dedupedUnread]
   );
 
   const loading =
