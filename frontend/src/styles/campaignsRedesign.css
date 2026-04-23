@@ -878,3 +878,122 @@
   transition: all 0.18s ease;
 }
 .campaign-analytics-btn-primary:hover { background: #059669; transform: translateY(-1px); }
+
+/* ============================
+   Custom variable manager
+   ============================ */
+.campaign-placeholder-chip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.campaign-placeholder-chip-wrap.is-custom .campaign-placeholder-chip code {
+  background: #ede9fe;
+  color: #6d28d9;
+  border-color: #ddd6fe;
+}
+
+.campaign-placeholder-chip-remove {
+  margin-left: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 0;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: all 0.18s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.campaign-placeholder-chip-wrap:hover .campaign-placeholder-chip-remove {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.campaign-placeholder-chip-remove:hover {
+  background: #fecaca;
+}
+
+.campaign-placeholder-chip-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #ffffff;
+  border: 1px dashed #94a3b8;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.campaign-placeholder-chip-add:hover {
+  border-color: #10b981;
+  color: #047857;
+  background: #ecfdf5;
+}
+
+.campaign-var-manager {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  animation: campaignPaneIn 0.25s ease-out;
+}
+
+.campaign-var-manager-input {
+  flex: 1 1 140px;
+  min-width: 0;
+  padding: 7px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  color: #0f172a;
+  background: #f8fafc;
+  outline: none;
+  transition: all 0.18s ease;
+}
+
+.campaign-var-manager-input:focus {
+  border-color: #10b981;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+}
+
+.campaign-var-manager-add {
+  background: #10b981;
+  color: #ffffff;
+  border: 0;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.campaign-var-manager-add:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
