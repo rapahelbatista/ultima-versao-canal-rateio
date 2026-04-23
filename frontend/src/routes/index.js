@@ -62,6 +62,7 @@ import WhatsAppWarmer from "../pages/WhatsAppWarmer";
 import MetaApiKeys from "../pages/MetaApiKeys";
 import MetaTemplateBuilder from "../pages/MetaTemplateBuilder";
 import ApiDocs from "../pages/ApiDocs";
+import InboxNew from "../pages/InboxNew";
 
 const RoutesContent = () => {
   const [showCampaigns, setShowCampaigns] = useState(false);
@@ -141,7 +142,7 @@ const RoutesContent = () => {
                 <Route
                   exact
                   path="/inbox/:ticketId?"
-                  component={TicketResponsiveContainer}
+                  component={InboxNew}
                   isPrivate
                 />
                 <Route
