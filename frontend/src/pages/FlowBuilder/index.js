@@ -14,17 +14,20 @@ import Card from "@material-ui/core/Card";
 import CardContent from "@material-ui/core/CardContent";
 
 import SearchIcon from "@material-ui/icons/Search";
+import { Build } from "@mui/icons-material";
 import {
-  AddCircle,
-  Build,
-  ContentCopy,
-  DevicesFold,
-  MoreVert,
-  Edit,
-  Delete,
-  PlayArrow,
-  Pause,
-} from "@mui/icons-material";
+  GitBranch,
+  Plus,
+  Search as LucideSearch,
+  Workflow,
+  Pencil,
+  Copy,
+  MoreVertical,
+  Trash2,
+  Play,
+  Pause as LucidePause,
+  Download,
+} from "lucide-react";
 
 import {
   Button,
@@ -61,7 +64,7 @@ import { Can } from "../../components/Can";
 import ForbiddenPage from "../../components/ForbiddenPage";
 import NewTicketModal from "../../components/NewTicketModal";
 import { SocketContext } from "../../context/Socket/SocketContext";
-import { GitBranch } from "lucide-react";
+
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_CONTACTS") {
@@ -190,65 +193,42 @@ const useStyles = makeStyles((theme) => ({
   },
   flowCard: {
     backgroundColor: theme.palette.background.paper,
-    borderRadius: 16,
-    marginBottom: theme.spacing(2),
+    borderRadius: 12,
+    marginBottom: theme.spacing(1),
     border: `1px solid ${theme.palette.divider}`,
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    transition: 'all 0.2s ease',
     cursor: 'pointer',
     '&:hover': {
-      transform: 'translateY(-2px)',
-      boxShadow: theme.shadows[4],
+      boxShadow: theme.shadows[2],
       borderColor: theme.palette.primary.light,
-    },
-    [theme.breakpoints.down('sm')]: {
-      marginBottom: theme.spacing(1.5),
-      borderRadius: 12,
     },
   },
   flowCardContent: {
-    padding: theme.spacing(3),
+    padding: theme.spacing(1.25, 2) + ' !important',
     '&:last-child': {
-      paddingBottom: theme.spacing(3),
-    },
-    [theme.breakpoints.down('sm')]: {
-      padding: theme.spacing(2),
-      '&:last-child': {
-        paddingBottom: theme.spacing(2),
-      },
+      paddingBottom: theme.spacing(1.25) + ' !important',
     },
   },
   flowIcon: {
-    width: 48,
-    height: 48,
+    width: 36,
+    height: 36,
     backgroundColor: theme.palette.primary.main,
-    borderRadius: 12,
+    borderRadius: 8,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: theme.spacing(2),
-    [theme.breakpoints.down('sm')]: {
-      width: 40,
-      height: 40,
-      marginRight: theme.spacing(1.5),
-    },
+    flexShrink: 0,
   },
   flowName: {
-    fontSize: '1.125rem',
+    fontSize: '0.95rem',
     fontWeight: 600,
     color: theme.palette.text.primary,
-    lineHeight: 1.4,
-    [theme.breakpoints.down('sm')]: {
-      fontSize: '1rem',
-    },
+    lineHeight: 1.2,
   },
   flowActions: {
     display: 'flex',
     alignItems: 'center',
-    gap: theme.spacing(1),
-    marginTop: theme.spacing(2),
-    [theme.breakpoints.down('sm')]: {
-      marginTop: theme.spacing(1.5),
-    },
+    gap: theme.spacing(0.5),
   },
   statusChip: {
     fontWeight: 500,
@@ -265,31 +245,24 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   actionButton: {
-    minWidth: 40,
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+    minWidth: 32,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     color: theme.palette.text.secondary,
     '&:hover': {
       backgroundColor: theme.palette.action.hover,
       color: theme.palette.primary.main,
     },
-    [theme.breakpoints.down('sm')]: {
-      minWidth: 36,
-      width: 36,
-      height: 36,
-    },
   },
   menuButton: {
-    minWidth: 40,
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+    minWidth: 32,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     color: theme.palette.text.secondary,
-    border: `1px solid ${theme.palette.divider}`,
     '&:hover': {
       backgroundColor: theme.palette.action.hover,
-      borderColor: theme.palette.text.secondary,
     },
   },
   emptyState: {
@@ -436,55 +409,59 @@ function FlowCard({ flow, onEdit, onDuplicate, onDelete, onNavigate, onToggleAct
   return (
     <Card className={classes.flowCard} onClick={handleCardClick}>
       <CardContent className={classes.flowCardContent}>
-        <Stack direction="row" alignItems="flex-start" spacing={2}>
+        <Stack direction="row" alignItems="center" spacing={1.5}>
           <div className={classes.flowIcon}>
-            <DevicesFold style={{ color: theme.palette.primary.contrastText, fontSize: isMobile ? 20 : 24 }} />
+            <Workflow size={18} color={theme.palette.primary.contrastText} strokeWidth={2.2} />
           </div>
-          
-          <Box flex={1}>
-            <Typography className={classes.flowName}>
+
+          <Box flex={1} minWidth={0}>
+            <Typography className={classes.flowName} noWrap>
               {flow.name}
             </Typography>
-            
-            <div className={classes.flowActions}>
+            <Box mt={0.5}>
               <Chip
                 size="small"
                 label={flow.active ? "Ativo" : "Inativo"}
                 className={`${classes.statusChip} ${flow.active ? 'active' : 'inactive'}`}
-                icon={flow.active ? <PlayArrow /> : <Pause />}
-                onClick={() => onToggleActive && onToggleActive(flow.id, flow.active)}
-                style={{ cursor: 'pointer' }}
+                icon={flow.active
+                  ? <Play size={12} style={{ marginLeft: 6 }} />
+                  : <LucidePause size={12} style={{ marginLeft: 6 }} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleActive && onToggleActive(flow.id, flow.active);
+                }}
+                style={{ cursor: 'pointer', height: 22, fontSize: 11 }}
               />
-              
-              <Box flex={1} />
-              
-              <IconButton
-                className={classes.actionButton}
-                onClick={handleEditClick}
-                size="small"
-              >
-                <Edit fontSize="small" />
-              </IconButton>
-              
-              <IconButton
-                className={classes.actionButton}
-                onClick={handleDuplicateClick}
-                size="small"
-              >
-                <ContentCopy fontSize="small" />
-              </IconButton>
-              
-              <IconButton
-                className={classes.menuButton}
-                onClick={handleMenuOpen}
-                size="small"
-              >
-                <MoreVert fontSize="small" />
-              </IconButton>
-            </div>
+            </Box>
           </Box>
+
+          <div className={classes.flowActions}>
+            <IconButton
+              className={classes.actionButton}
+              onClick={handleEditClick}
+              size="small"
+            >
+              <Pencil size={16} />
+            </IconButton>
+
+            <IconButton
+              className={classes.actionButton}
+              onClick={handleDuplicateClick}
+              size="small"
+            >
+              <Copy size={16} />
+            </IconButton>
+
+            <IconButton
+              className={classes.menuButton}
+              onClick={handleMenuOpen}
+              size="small"
+            >
+              <MoreVertical size={16} />
+            </IconButton>
+          </div>
         </Stack>
-        
+
         <Menu
           className={classes.menu}
           anchorEl={anchorEl}
@@ -495,7 +472,7 @@ function FlowCard({ flow, onEdit, onDuplicate, onDelete, onNavigate, onToggleAct
             event.stopPropagation();
             handleAction(() => onExport(flow.id, flow.name));
           }}>
-            <ContentCopy fontSize="small" style={{ marginRight: 12, color: theme.palette.text.secondary }} />
+            <Download size={16} style={{ marginRight: 12, color: theme.palette.text.secondary }} />
             Exportar (.zip)
           </MenuItem>
           <Divider />
@@ -503,7 +480,7 @@ function FlowCard({ flow, onEdit, onDuplicate, onDelete, onNavigate, onToggleAct
             event.stopPropagation();
             handleAction(() => onNavigate(flow.id));
           }}>
-            <Build fontSize="small" style={{ marginRight: 12, color: theme.palette.text.secondary }} />
+            <Workflow size={16} style={{ marginRight: 12, color: theme.palette.text.secondary }} />
             Abrir fluxo
           </MenuItem>
           <Divider />
@@ -511,7 +488,7 @@ function FlowCard({ flow, onEdit, onDuplicate, onDelete, onNavigate, onToggleAct
             event.stopPropagation();
             handleAction(() => onEdit());
           }}>
-            <Edit fontSize="small" style={{ marginRight: 12, color: theme.palette.text.secondary }} />
+            <Pencil size={16} style={{ marginRight: 12, color: theme.palette.text.secondary }} />
             Editar fluxo
           </MenuItem>
           <Divider />
@@ -519,7 +496,7 @@ function FlowCard({ flow, onEdit, onDuplicate, onDelete, onNavigate, onToggleAct
             event.stopPropagation();
             handleAction(() => onDelete());
           }}>
-            <Delete fontSize="small" style={{ marginRight: 12, color: theme.palette.error.main }} />
+            <Trash2 size={16} style={{ marginRight: 12, color: theme.palette.error.main }} />
             Excluir fluxo
           </MenuItem>
         </Menu>
@@ -831,7 +808,7 @@ const FlowBuilder = () => {
             </Button>
             <Button
               onClick={handleOpenContactModal}
-              startIcon={<AddCircle />}
+              startIcon={<Plus size={18} />}
               style={{
                 textTransform: "none",
                 borderRadius: 10,
@@ -874,7 +851,7 @@ const FlowBuilder = () => {
             </div>
           ) : filteredWebhooks.length === 0 ? (
             <div className={classes.emptyState}>
-              <DevicesFold className={classes.emptyIcon} />
+              <Workflow className={classes.emptyIcon} size={64} strokeWidth={1.5} />
               <Typography className={classes.emptyTitle}>
                 {searchParam
                   ? "Nenhum fluxo encontrado"
@@ -890,7 +867,7 @@ const FlowBuilder = () => {
                 <Button
                   className={classes.addButton}
                   onClick={handleOpenContactModal}
-                  startIcon={<AddCircle />}
+                  startIcon={<Plus size={18} />}
                   style={{ marginTop: 24 }}
                 >
                   Criar Primeiro Fluxo
@@ -898,7 +875,7 @@ const FlowBuilder = () => {
               )}
             </div>
           ) : (
-            <Stack spacing={2}>
+            <Stack spacing={1}>
               {filteredWebhooks.map((flow) => (
                 <FlowCard
                   key={flow.id}
@@ -938,7 +915,7 @@ const FlowBuilder = () => {
             onClick={handleOpenContactModal}
             aria-label="Criar fluxo"
           >
-            <AddCircle />
+            <Plus size={24} />
           </Fab>
         </HideOnScroll>
       )}
