@@ -368,6 +368,9 @@ body:has(.inbox-new) #root {
   box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18) !important;
   border: 1px solid #e5e7eb;
   margin-top: 6px;
+  max-height: calc(100dvh - 80px) !important;
+  display: flex;
+  flex-direction: column;
 }
 .inbox-pop-header {
   display: flex;
@@ -379,12 +382,28 @@ body:has(.inbox-new) #root {
   font-size: 13px;
   font-weight: 700;
   border-bottom: 1px solid #d1fae5;
+  flex-shrink: 0;
 }
 .inbox-pop-body {
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(100dvh - 200px);
+  overscroll-behavior: contain;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.inbox-pop-body::-webkit-scrollbar { width: 6px; }
+.inbox-pop-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+/* Footer (botões) sempre visível */
+.inbox-pop .inbox-pop-footer {
+  flex-shrink: 0;
 }
 .inbox-pop-label {
   font-size: 11px;
