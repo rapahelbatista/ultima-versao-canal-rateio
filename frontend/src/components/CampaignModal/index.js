@@ -265,6 +265,7 @@ const CampaignModal = ({
   const [contactGroupModalOpen, setContactGroupModalOpen] = useState(false);
   const [templateVarValues, setTemplateVarValues] = useState({});
   const [individualContacts, setIndividualContacts] = useState([]);
+  const [showSuccessAnim, setShowSuccessAnim] = useState(false);
 
   // Opções para dias da semana
   const daysOfWeekOptions = [
