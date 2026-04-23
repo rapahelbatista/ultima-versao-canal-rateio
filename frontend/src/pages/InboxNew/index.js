@@ -15,12 +15,20 @@ import {
   FilterList as FilterIcon,
   CheckBox as CheckBoxIcon,
   MoreVert as MoreVertIcon,
+  Archive as ArchiveIcon,
+  MarkunreadOutlined as MarkUnreadIcon,
+  DraftsOutlined as MarkReadIcon,
+  Reply as ReplyIcon,
+  CheckCircleOutline as DoneIcon,
 } from "@material-ui/icons";
 import { format, isToday, isYesterday } from "date-fns";
+import { toast } from "react-toastify";
 
 import useTickets from "../../hooks/useTickets";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import NewTicketModal from "../../components/NewTicketModal";
+import api from "../../services/api";
+import toastError from "../../errors/toastError";
 import "../../styles/inboxNew.css";
 
 const Ticket = React.lazy(() => import("../../components/Ticket"));
