@@ -839,3 +839,257 @@ body:has(.inbox-new) [class*="content"] {
     display: flex;
   }
 }
+
+/* ============== HIDE LEGACY CONTACT DRAWER inside InboxNew ==============
+   The old <ContactDrawer /> rendered inside <Ticket /> shows the second-image
+   layout. We hide it because we render our own custom InboxInfoPanel. */
+.inbox-new [class*="MuiDrawer-root"],
+.inbox-new [class*="drawerPaper"] {
+  display: none !important;
+}
+.inbox-new [class*="mainWrapperShift"] {
+  margin-right: 0 !important;
+}
+
+/* ============== INBOX INFO PANEL (custom — first-image style) ============== */
+.inbox-info-panel {
+  width: 320px;
+  min-width: 320px;
+  max-width: 320px;
+  height: 100%;
+  background: #ffffff;
+  border-left: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.iip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.iip-header strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.iip-contact-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px 14px 16px;
+  background: linear-gradient(180deg, #fef2f2 0%, #ffffff 100%);
+  border-bottom: 1px solid #f1f5f9;
+}
+.iip-avatar {
+  width: 56px !important;
+  height: 56px !important;
+  font-size: 20px !important;
+  background: #ef4444 !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  margin-bottom: 8px;
+}
+.iip-contact-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+}
+.iip-contact-phone {
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 2px;
+}
+
+.iip-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 12px;
+}
+.iip-scroll::-webkit-scrollbar { width: 6px; }
+.iip-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+.iip-section {
+  border-bottom: 1px solid #f1f5f9;
+}
+.iip-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+}
+.iip-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: 0.3px;
+}
+.iip-section-title svg {
+  color: #10b981;
+}
+.iip-section-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+}
+.iip-section-body {
+  padding: 4px 14px 12px;
+}
+
+.iip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 12.5px;
+}
+.iip-row-label { color: #64748b; }
+.iip-row-value { color: #0f172a; font-weight: 600; }
+
+.iip-btn-outline {
+  margin-top: 10px !important;
+  border-radius: 999px !important;
+  border-color: #10b981 !important;
+  color: #047857 !important;
+  text-transform: none !important;
+  font-weight: 600 !important;
+}
+
+.iip-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.iip-tag {
+  height: 22px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+}
+.iip-tag-new {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  cursor: pointer;
+}
+.iip-manage {
+  font-size: 11px;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.iip-empty {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.iip-agents-list {
+  margin-top: 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.iip-agent-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.iip-agent-item:hover { background: #f1f5f9; }
+.iip-agent-current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: #ecfdf5;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.iip-count {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.iip-note {
+  background: #ecfdf5;
+  border: 1px solid #d1fae5;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+.iip-note-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.iip-note-head strong { color: #0f172a; font-weight: 700; }
+.iip-note-body { font-size: 12.5px; color: #334155; }
+.iip-note-input { margin-top: 6px; }
+
+.iip-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 12.5px;
+  border-bottom: 1px dashed #f1f5f9;
+}
+.iip-file-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #0f172a;
+}
+
+.iip-activity-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 12.5px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.iip-activity-num {
+  color: #10b981;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.iip-btn-delete {
+  margin: 14px !important;
+  width: calc(100% - 28px) !important;
+  color: #ef4444 !important;
+  text-transform: none !important;
+  font-weight: 700 !important;
+  justify-content: flex-start !important;
+}
+
+@media (max-width: 1100px) {
+  .inbox-info-panel {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 20;
+    box-shadow: -4px 0 16px rgba(0,0,0,0.08);
+  }
+}
