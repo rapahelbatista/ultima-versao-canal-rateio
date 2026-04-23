@@ -1267,6 +1267,76 @@ body:has(.inbox-new) #root {
   justify-content: flex-start !important;
 }
 
+/* ============================================================
+   RESPONSIVE BREAKPOINTS — InboxNew
+   - >=1281px : 3 colunas fixas (sidebar 360 + chat fluido + info 320)
+   - 1101-1280: info-panel encolhe para 280
+   - 769-1100 : info-panel vira overlay sobre o chat
+   - <=768px  : sidebar e info ocupam 100% da largura (mobile)
+   ============================================================ */
+
+/* Container queries: o próprio .inbox-new dita o layout dos filhos */
+.inbox-new {
+  container-type: inline-size;
+  container-name: inbox;
+}
+
+/* Tablet landscape: encolhe info panel */
+@container inbox (max-width: 1280px) {
+  .inbox-info-panel {
+    flex: 0 0 280px !important;
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+  }
+}
+
+/* Tablet portrait: info-panel vira overlay */
+@container inbox (max-width: 1100px) {
+  .inbox-info-panel {
+    position: absolute !important;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 20;
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.08);
+    flex: 0 0 320px !important;
+    width: 320px !important;
+    min-width: 320px !important;
+    max-width: min(320px, 100%) !important;
+  }
+}
+
+/* Mobile: sidebar e info-panel ocupam 100% (overlay full-screen do chat) */
+@container inbox (max-width: 768px) {
+  .inbox-sidebar {
+    flex: 0 0 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  /* Quando há ticket ativo, esconde a sidebar e mostra só o chat */
+  .inbox-new.has-active-ticket .inbox-sidebar {
+    display: none;
+  }
+  .inbox-chat {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .inbox-info-panel {
+    flex: 0 0 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 30;
+  }
+}
+
+/* Fallback para navegadores sem suporte a container queries */
 @media (max-width: 1280px) {
   .inbox-info-panel {
     flex-basis: 280px;
@@ -1275,7 +1345,6 @@ body:has(.inbox-new) #root {
     max-width: 280px;
   }
 }
-
 @media (max-width: 1100px) {
   .inbox-info-panel {
     position: absolute;
@@ -1283,11 +1352,37 @@ body:has(.inbox-new) #root {
     top: 0;
     bottom: 0;
     z-index: 20;
-    box-shadow: -4px 0 16px rgba(0,0,0,0.08);
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.08);
     flex-basis: 320px;
     width: 320px;
     min-width: 320px;
-    max-width: 320px;
+    max-width: min(320px, 100%);
+  }
+}
+@media (max-width: 768px) {
+  .inbox-sidebar {
+    flex: 0 0 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .inbox-new.has-active-ticket .inbox-sidebar {
+    display: none;
+  }
+  .inbox-chat {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .inbox-info-panel {
+    flex: 0 0 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 30;
   }
 }
 
