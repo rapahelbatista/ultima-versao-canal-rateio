@@ -225,8 +225,9 @@ const onCompanyAppMessageNotificationsPopover = (data) => {
 
     const isGroupTicket = data.ticket?.isGroup || data.ticket?.status === "group";
 
+    // Grupos: respeita preferência do usuário (showGroupNotification).
+    // Removido o bloqueio por groupAsTicket que escondia tudo silenciosamente.
     if (isGroupTicket && !showGroupNotification) return;
-    if (isGroupTicket && data.ticket?.whatsapp?.groupAsTicket !== "enabled" && isWhatsappChannel) return;
 
     // Verificar se o ticket é do usuário ou sem atribuição
     if (data.ticket?.userId && data.ticket.userId !== user?.id) return;
@@ -241,11 +242,11 @@ const onCompanyAppMessageNotificationsPopover = (data) => {
         }
     }
 
-    // Filtrar por status
-    if (!isGroupTicket && ["pending", "lgpd", "nps"].includes(data.ticket?.status)) {
-        if (data.ticket?.status === "pending" && !showNotificationPending) return;
-        if (data.ticket?.status !== "pending") return;
-    }
+    // Filtrar por status: pending só notifica se a opção estiver habilitada;
+    // demais status (open, group) sempre passam.
+    if (data.ticket?.status === "pending" && !showNotificationPending) return;
+    if (["lgpd", "nps"].includes(data.ticket?.status)) return;
+
 
     {
         const shouldBlurMessages = data.ticket.status === "pending" && user.allowSeeMessagesInPendingTickets === "disabled";
