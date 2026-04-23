@@ -45,6 +45,70 @@ import "../../styles/inboxNew.css";
 
 const Ticket = React.lazy(() => import("../../components/Ticket"));
 
+/* ---------- ErrorBoundary para isolar crashes do Ticket ---------- */
+class TicketErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    // Log para inspeção
+    // eslint-disable-next-line no-console
+    console.error("[InboxNew] Erro ao renderizar Ticket:", error, info);
+  }
+  componentDidUpdate(prevProps) {
+    if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
+      this.setState({ hasError: false, error: null });
+    }
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div
+          style={{
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexDirection: "column",
+            gap: 12,
+            padding: 24,
+            color: "#475569",
+            textAlign: "center",
+            fontFamily: "Inter, system-ui, sans-serif",
+          }}
+        >
+          <h3 style={{ margin: 0, color: "#0f172a" }}>
+            Não foi possível abrir esta conversa
+          </h3>
+          <p style={{ margin: 0, fontSize: 13 }}>
+            {String(this.state.error?.message || this.state.error || "Erro desconhecido")}
+          </p>
+          <button
+            onClick={() => this.setState({ hasError: false, error: null })}
+            style={{
+              marginTop: 8,
+              padding: "8px 16px",
+              borderRadius: 8,
+              border: "1px solid #cbd5e1",
+              background: "#fff",
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            Tentar novamente
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 /* ---------- helpers ---------- */
 const formatDate = (date) => {
   if (!date) return "";
@@ -720,15 +784,17 @@ const InboxNew = () => {
                 )}
               </div>
             )}
-            <Suspense
-              fallback={
-                <div className="inbox-loader" style={{ height: "100%" }}>
-                  <CircularProgress />
-                </div>
-              }
-            >
-              <Ticket />
-            </Suspense>
+            <TicketErrorBoundary resetKey={ticketId}>
+              <Suspense
+                fallback={
+                  <div className="inbox-loader" style={{ height: "100%" }}>
+                    <CircularProgress />
+                  </div>
+                }
+              >
+                <Ticket />
+              </Suspense>
+            </TicketErrorBoundary>
           </>
         ) : (
           <div className="inbox-empty-chat">
