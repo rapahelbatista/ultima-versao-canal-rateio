@@ -265,6 +265,23 @@ const ContactListItems = () => {
   const [contactList, setContactList] = useState({});
   const fileUploadRef = useRef(null);
 
+  // Toggle de colunas opcionais (persistido em localStorage)
+  const [visibleColumns, setVisibleColumns] = useState(loadVisibleColumns);
+  const [columnsMenuAnchor, setColumnsMenuAnchor] = useState(null);
+
+  const toggleColumn = (key) => {
+    setVisibleColumns((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch (_) {}
+      return next;
+    });
+  };
+
+  const visibleOptionalCount = OPTIONAL_COLUMNS.filter((c) => visibleColumns[c.key]).length;
+  const totalColumnCount = 4 + visibleOptionalCount; // # + Nome + Número + Ações + opcionais visíveis
+
   const { findById: findContactList } = useContactLists();
 
   useEffect(() => {
