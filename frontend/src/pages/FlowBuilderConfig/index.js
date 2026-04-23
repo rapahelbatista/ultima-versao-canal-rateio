@@ -1674,7 +1674,7 @@ export const FlowBuilderConfig = () => {
             currentFlowId={id}
             onRenameFlow={async (newName) => {
               try {
-                await api.post("/flowbuilder/name", { id, name: newName });
+                await api.put("/flowbuilder", { flowId: id, name: newName });
                 setFlowName(newName);
                 toast.success("Nome do fluxo atualizado");
               } catch (err) {
