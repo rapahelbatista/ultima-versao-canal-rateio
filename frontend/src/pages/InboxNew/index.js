@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useMemo, Suspense } from "react";
+import React, { useState, useEffect, useContext, useMemo, useRef, useCallback, Suspense } from "react";
 import { useParams, useHistory } from "react-router-dom";
 import {
   Avatar,
@@ -57,6 +57,49 @@ const TABS = [
   { id: "read", label: "Lidas", statuses: ["open"] },
 ];
 
+/* ============================================================
+   Hook auxiliar: paginação acumulativa por status
+   - mantém um array crescente de tickets
+   - reseta quando search/queueIds/status mudam
+   ============================================================ */
+const usePaginatedTickets = ({ status, search, queueIds, showAll, enabled }) => {
+  const [pageNumber, setPageNumber] = useState(1);
+  const [accumulated, setAccumulated] = useState([]);
+
+  // Reset ao trocar filtros
+  useEffect(() => {
+    setPageNumber(1);
+    setAccumulated([]);
+  }, [status, search, queueIds, showAll]);
+
+  const { tickets, loading, hasMore, count } = useTickets({
+    pageNumber,
+    status: enabled ? status : undefined,
+    showAll,
+    queueIds,
+    searchParam: search,
+  });
+
+  // Acumula resultados conforme as páginas chegam
+  useEffect(() => {
+    if (!enabled) return;
+    if (!Array.isArray(tickets)) return;
+    setAccumulated((prev) => {
+      if (pageNumber === 1) return tickets;
+      const map = new Map(prev.map((t) => [t.id, t]));
+      tickets.forEach((t) => map.set(t.id, t));
+      return Array.from(map.values());
+    });
+  }, [tickets, pageNumber, enabled]);
+
+  const loadMore = useCallback(() => {
+    if (loading || !hasMore) return;
+    setPageNumber((p) => p + 1);
+  }, [loading, hasMore]);
+
+  return { tickets: accumulated, loading, hasMore, count, loadMore, pageNumber };
+};
+
 const InboxNew = () => {
   const { ticketId } = useParams();
   const history = useHistory();
@@ -64,49 +107,84 @@ const InboxNew = () => {
 
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
-  const [pageNumber] = useState(1);
   const [newTicketOpen, setNewTicketOpen] = useState(false);
 
   const tabConfig = TABS.find((t) => t.id === activeTab) || TABS[0];
 
   const queueIds = useMemo(
-    () => (user?.queues?.length ? user.queues.map((q) => q.id) : []),
+    () => JSON.stringify(user?.queues?.length ? user.queues.map((q) => q.id) : []),
     [user]
   );
+  const showAll = user?.profile === "admin" ? "true" : undefined;
 
-  // Buscar tickets para cada status e mesclar (cobre "Todos")
-  const { tickets: openTickets, loading: l1 } = useTickets({
-    pageNumber,
+  // Paginação independente para "open" e "pending"
+  const openPag = usePaginatedTickets({
     status: "open",
-    showAll: user?.profile === "admin" ? "true" : undefined,
-    queueIds: JSON.stringify(queueIds),
-    searchParam: search,
+    search,
+    queueIds,
+    showAll,
+    enabled: tabConfig.statuses.includes("open"),
   });
 
-  const { tickets: pendingTickets, loading: l2 } = useTickets({
-    pageNumber,
+  const pendingPag = usePaginatedTickets({
     status: "pending",
-    showAll: user?.profile === "admin" ? "true" : undefined,
-    queueIds: JSON.stringify(queueIds),
-    searchParam: search,
+    search,
+    queueIds,
+    showAll,
+    enabled: tabConfig.statuses.includes("pending"),
   });
 
-  const loading = l1 || l2;
-
+  // Lista combinada (dedup + ordenada por updatedAt desc)
   const filteredTickets = useMemo(() => {
     let list = [];
-    if (tabConfig.statuses.includes("open")) list = list.concat(openTickets || []);
-    if (tabConfig.statuses.includes("pending")) list = list.concat(pendingTickets || []);
+    if (tabConfig.statuses.includes("open")) list = list.concat(openPag.tickets || []);
+    if (tabConfig.statuses.includes("pending")) list = list.concat(pendingPag.tickets || []);
     const map = new Map();
     list.forEach((t) => map.set(t.id, t));
     return Array.from(map.values()).sort(
       (a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
     );
-  }, [openTickets, pendingTickets, tabConfig]);
+  }, [openPag.tickets, pendingPag.tickets, tabConfig]);
 
-  const unreadCount = useMemo(
-    () => (pendingTickets || []).reduce((acc, t) => acc + (t.unreadMessages || 0), 0),
-    [pendingTickets]
+  // Totais por aba (vindos do backend via count)
+  const counts = useMemo(() => ({
+    all: (openPag.count || 0) + (pendingPag.count || 0),
+    unread: pendingPag.count || 0,
+    read: openPag.count || 0,
+  }), [openPag.count, pendingPag.count]);
+
+  const unreadBadge = useMemo(
+    () => (pendingPag.tickets || []).reduce((acc, t) => acc + (t.unreadMessages || 0), 0),
+    [pendingPag.tickets]
+  );
+
+  const loading =
+    (tabConfig.statuses.includes("open") && openPag.loading) ||
+    (tabConfig.statuses.includes("pending") && pendingPag.loading);
+
+  const hasMore =
+    (tabConfig.statuses.includes("open") && openPag.hasMore) ||
+    (tabConfig.statuses.includes("pending") && pendingPag.hasMore);
+
+  // Carregar mais (scroll infinito)
+  const handleLoadMore = useCallback(() => {
+    if (loading) return;
+    if (tabConfig.statuses.includes("open") && openPag.hasMore) openPag.loadMore();
+    if (tabConfig.statuses.includes("pending") && pendingPag.hasMore) pendingPag.loadMore();
+  }, [loading, tabConfig, openPag, pendingPag]);
+
+  // Scroll listener
+  const listRef = useRef(null);
+  const handleScroll = useCallback(
+    (e) => {
+      const el = e.currentTarget;
+      if (!el) return;
+      // dispara quando faltam < 120px do fim
+      if (el.scrollHeight - el.scrollTop - el.clientHeight < 120) {
+        handleLoadMore();
+      }
+    },
+    [handleLoadMore]
   );
 
   const handleSelectTicket = (t) => {
@@ -146,7 +224,7 @@ const InboxNew = () => {
               fullWidth
             />
           </div>
-          <Badge badgeContent={unreadCount || 0} color="primary" overlap="rectangular">
+          <Badge badgeContent={unreadBadge || 0} color="primary" overlap="rectangular">
             <IconButton size="small" className="inbox-icon-btn inbox-icon-filter">
               <FilterIcon fontSize="small" />
             </IconButton>
@@ -162,7 +240,7 @@ const InboxNew = () => {
           </Tooltip>
         </div>
 
-        {/* Abas pílula */}
+        {/* Abas pílula com contadores */}
         <div className="inbox-tabs">
           {TABS.map((t) => (
             <button
@@ -171,12 +249,13 @@ const InboxNew = () => {
               onClick={() => setActiveTab(t.id)}
             >
               {t.label}
+              <span className="inbox-tab-count">{counts[t.id] ?? 0}</span>
             </button>
           ))}
         </div>
 
-        {/* Lista de tickets */}
-        <div className="inbox-list">
+        {/* Lista de tickets com scroll infinito */}
+        <div className="inbox-list" ref={listRef} onScroll={handleScroll}>
           {loading && filteredTickets.length === 0 && (
             <div className="inbox-loader">
               <CircularProgress size={24} />
@@ -233,17 +312,24 @@ const InboxNew = () => {
               </div>
             );
           })}
+
+          {/* Loader de "carregando mais" */}
+          {loading && filteredTickets.length > 0 && (
+            <div className="inbox-loader" style={{ padding: 14 }}>
+              <CircularProgress size={20} />
+            </div>
+          )}
+
+          {/* Indicador fim da lista */}
+          {!loading && !hasMore && filteredTickets.length > 0 && (
+            <div className="inbox-end">
+              {filteredTickets.length} de {counts[activeTab] || filteredTickets.length} conversas
+            </div>
+          )}
         </div>
       </aside>
 
-      {/* ============== ÁREA DE CHAT ==============
-          O componente <Ticket /> é a fonte única de verdade:
-          - Lê o ticketId da URL (useParams)
-          - Faz fetch dos dados via /tickets/u/:id
-          - Mantém socket sincronizado (atualizações em tempo real)
-          - Renderiza TicketHeader (com botão (i) que abre/fecha
-            o ContactDrawer interno) + MessagesList + MessageInput
-          ================================================ */}
+      {/* ============== ÁREA DE CHAT ============== */}
       <main className="inbox-chat">
         {ticketId ? (
           <Suspense

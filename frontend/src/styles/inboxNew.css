@@ -131,6 +131,34 @@
   color: #047857;
   border-color: #10b981;
 }
+.inbox-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid #e5e7eb;
+}
+.inbox-tab.active .inbox-tab-count {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+}
+
+.inbox-end {
+  text-align: center;
+  padding: 14px;
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+}
 
 /* Lista de tickets */
 .inbox-list {
