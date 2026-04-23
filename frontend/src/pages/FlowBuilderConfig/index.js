@@ -1654,6 +1654,9 @@ export const FlowBuilderConfig = () => {
             onConnect={onConnect}
             nodeTypes={nodeTypes}
             fitView
+            fitViewOptions={{ padding: 0.3, maxZoom: 0.85, minZoom: 0.3 }}
+            minZoom={0.2}
+            maxZoom={1.5}
             connectionLineStyle={connectionLineStyle}
             style={{
               backgroundColor: "#F8F9FA"

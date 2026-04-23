@@ -424,7 +424,8 @@ function FlowCard({ flow, onEdit, onDuplicate, onDelete, onNavigate, onToggleAct
 
   const handleEditClick = (event) => {
     event.stopPropagation();
-    onEdit();
+    // Navega direto para o editor do FlowBuilder (já tem opção de salvar/renomear lá dentro)
+    onNavigate(flow.id);
   };
 
   const handleDuplicateClick = (event) => {
