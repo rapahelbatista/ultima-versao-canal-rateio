@@ -1824,6 +1824,81 @@ const CampaignModal = ({
             </div>
           </div>
         )}
+        {analyticsModal && (
+          <div className="campaign-analytics-overlay" onClick={() => { setAnalyticsModal(null); handleClose(); }}>
+            <div className="campaign-analytics-card" onClick={(e) => e.stopPropagation()}>
+              <div className="campaign-analytics-header">
+                <span className="campaign-analytics-icon">📊</span>
+                <div>
+                  <h3>Resumo da sessão</h3>
+                  <p>Suas ações nesta janela</p>
+                </div>
+                <button
+                  type="button"
+                  className="campaign-analytics-close"
+                  onClick={() => { setAnalyticsModal(null); handleClose(); }}
+                  aria-label="Fechar"
+                >×</button>
+              </div>
+
+              <div className="campaign-analytics-stats">
+                <div className="campaign-analytics-stat is-draft">
+                  <span className="campaign-analytics-stat-value">{analyticsModal.drafts || 0}</span>
+                  <span className="campaign-analytics-stat-label">Rascunhos</span>
+                </div>
+                <div className="campaign-analytics-stat is-confirmed">
+                  <span className="campaign-analytics-stat-value">{analyticsModal.confirmed || 0}</span>
+                  <span className="campaign-analytics-stat-label">Confirmadas</span>
+                </div>
+              </div>
+
+              <div className="campaign-analytics-recent">
+                <span className="campaign-analytics-recent-title">Últimas ações</span>
+                {(!analyticsModal.recent || analyticsModal.recent.length === 0) ? (
+                  <p className="campaign-analytics-empty">Nenhuma ação registrada.</p>
+                ) : (
+                  <ul>
+                    {analyticsModal.recent.map((r, idx) => {
+                      const t = new Date(r.time);
+                      const time = t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                      const meta = r.type === "draft" ? { icon: "📝", label: "Rascunho", cls: "draft" }
+                        : r.type === "update" ? { icon: "✏️", label: "Atualizada", cls: "update" }
+                        : { icon: "🚀", label: "Criada", cls: "create" };
+                      return (
+                        <li key={idx} className={`campaign-analytics-item is-${meta.cls}`}>
+                          <span className="campaign-analytics-item-icon">{meta.icon}</span>
+                          <span className="campaign-analytics-item-label">{r.label}</span>
+                          <span className="campaign-analytics-item-tag">{meta.label}</span>
+                          <span className="campaign-analytics-item-time">{time}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              <div className="campaign-analytics-actions">
+                <button
+                  type="button"
+                  className="campaign-analytics-btn-ghost"
+                  onClick={() => {
+                    try { sessionStorage.removeItem("campaignActionStats"); } catch (_) {}
+                    setAnalyticsModal({ drafts: 0, confirmed: 0, recent: [] });
+                  }}
+                >
+                  Limpar histórico
+                </button>
+                <button
+                  type="button"
+                  className="campaign-analytics-btn-primary"
+                  onClick={() => { setAnalyticsModal(null); handleClose(); }}
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </Dialog>
     </div>
   );
