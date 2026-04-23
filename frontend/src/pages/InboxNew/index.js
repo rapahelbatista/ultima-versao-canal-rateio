@@ -330,6 +330,50 @@ const InboxNew = () => {
   const [ncNumber, setNcNumber] = useState("");
   const [ncMessage, setNcMessage] = useState("");
   const [ncSending, setNcSending] = useState(false);
+  const [ncContact, setNcContact] = useState(null);
+  const [ncContacts, setNcContacts] = useState([]);
+  const [ncContactsLoading, setNcContactsLoading] = useState(false);
+  const [ncContactSearch, setNcContactSearch] = useState("");
+
+  // Carrega contatos (todos) sempre que o popover abrir; refaz a busca conforme o usuário digita
+  useEffect(() => {
+    if (!newConvAnchor) return;
+    let cancelled = false;
+    const fetchAll = async () => {
+      try {
+        setNcContactsLoading(true);
+        const all = [];
+        let pageNumber = 1;
+        let hasMore = true;
+        // Se houver termo de busca, basta a primeira página filtrada
+        if (ncContactSearch.trim()) {
+          const { data } = await api.get("/contacts/", {
+            params: { searchParam: ncContactSearch.trim(), pageNumber: 1 },
+          });
+          if (!cancelled) setNcContacts(data?.contacts || []);
+          return;
+        }
+        // Sem busca → carrega todas as páginas (limite de segurança 20 páginas)
+        while (hasMore && pageNumber <= 20) {
+          const { data } = await api.get("/contacts/", {
+            params: { searchParam: "", pageNumber },
+          });
+          const batch = data?.contacts || [];
+          all.push(...batch);
+          hasMore = !!data?.hasMore && batch.length > 0;
+          pageNumber += 1;
+        }
+        if (!cancelled) setNcContacts(all);
+      } catch (e) {
+        if (!cancelled) setNcContacts([]);
+      } finally {
+        if (!cancelled) setNcContactsLoading(false);
+      }
+    };
+    const t = setTimeout(fetchAll, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [newConvAnchor, ncContactSearch]);
+
   const handleSendNewConversation = async () => {
     if (!ncWhatsappId || !ncNumber.trim() || !ncMessage.trim()) {
       toast.error("Preencha todos os campos");
