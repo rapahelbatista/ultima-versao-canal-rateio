@@ -135,6 +135,7 @@ import FlowBuilderOpenAIModal from "../../components/FlowBuilderAddOpenAIModal";
 import FlowBuilderGeminiModal from "../../components/FlowBuilderGeminiModal";
 import { useParams } from "react-router-dom/cjs/react-router-dom.min";
 import { CircularProgress } from "@material-ui/core";
+import FlowCanvasToolbar from "./FlowCanvasToolbar";
 
 
 
@@ -700,6 +701,7 @@ export const FlowBuilderConfig = () => {
   const [pageNumber, setPageNumber] = useState(1);
   const [dataNode, setDataNode] = useState(null);
   const [hasMore, setHasMore] = useState(false);
+  const [flowName, setFlowName] = useState("Untitled");
 
   // Estados dos modais (mantidos)
   const [modalAddText, setModalAddText] = useState(null);
@@ -1105,6 +1107,7 @@ export const FlowBuilderConfig = () => {
       const fetchContacts = async () => {
         try {
           const { data } = await api.get(`/flowbuilder/flow/${id}`);
+          if (data?.flow?.name) setFlowName(data.flow.name);
           if (data.flow.flow !== null) {
             const preparedNodes = data.flow.flow.nodes.map((node) => {
               if (node.type === "httpRequest") {
@@ -1634,26 +1637,6 @@ export const FlowBuilderConfig = () => {
 
       {/* Content */}
       <div className={classes.content}>
-        {/* Sidebar Desktop */}
-        {!isMobile && (
-          <div className={classes.sidebar}>
-            <div className={classes.sidebarHeader}>
-              {sidebarOpen && (
-                <Typography variant="subtitle1" fontWeight="bold">
-                  Adicionar Nós
-                </Typography>
-              )}
-              <IconButton
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                size="small"
-              >
-                {sidebarOpen ? <ChevronLeft /> : <ChevronRight />}
-              </IconButton>
-            </div>
-            <SidebarContent />
-          </div>
-        )}
-
         {/* Flow Container */}
         <div className={classes.flowContainer}>
           <ReactFlow
@@ -1671,8 +1654,6 @@ export const FlowBuilderConfig = () => {
             fitView
             connectionLineStyle={connectionLineStyle}
             style={{
-              //backgroundImage: `url(${imgBackground})`,
-              //backgroundSize: "cover"
               backgroundColor: "#F8F9FA"
             }}
             edgeTypes={edgeTypes}
@@ -1687,24 +1668,27 @@ export const FlowBuilderConfig = () => {
             <Background variant="dots" gap={12} size={-1} />
           </ReactFlow>
 
+          {/* Nova Toolbar (pill) + Drawers Flows / Menu de Nós */}
+          <FlowCanvasToolbar
+            flowName={flowName}
+            currentFlowId={id}
+            onRenameFlow={async (newName) => {
+              try {
+                await api.post("/flowbuilder/name", { id, name: newName });
+                setFlowName(newName);
+                toast.success("Nome do fluxo atualizado");
+              } catch (err) {
+                toastError(err);
+              }
+            }}
+            onSave={saveFlow}
+            onAddNode={(type) => clickActions(type)}
+          />
         </div>
       </div>
 
       {/* Mobile Controls */}
       {isMobile && <MobileControls />}
-
-      {/* Botão Salvar - agora posicionado acima dos quickActions */}
-      <Fab
-        color="primary"
-        className={classes.fab}
-        onClick={saveFlow}
-        title="Salvar Fluxo"
-      >
-        <SaveIcon />
-      </Fab>
-
-      {/* Quick Actions Desktop - agora abaixo do botão salvar */}
-      {!isMobile && <QuickActions onActionClick={clickActions} />}
 
       {/* Bottom Sheet Mobile */}
       {isMobile && <BottomSheetContent />}
