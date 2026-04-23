@@ -521,6 +521,39 @@ const CampaignModal = ({
     setTemplateVarValues({});
   };
 
+  // Atalhos de teclado: Esc fecha, Ctrl/Cmd+Enter envia formulário
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => {
+      // Ignora se o foco está em um modal filho (ConfirmationModal, etc.) — eles têm seus próprios listeners
+      if (e.key === "Escape") {
+        // Se houver popover de analytics, fecha apenas ele
+        if (analyticsModal) {
+          e.preventDefault();
+          setAnalyticsModal(null);
+          handleClose();
+          return;
+        }
+        e.preventDefault();
+        handleClose();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        // Localiza o form do CampaignModal e dispara submit
+        const form = document.querySelector('.campaign-modal-redesign form');
+        if (form) {
+          if (typeof form.requestSubmit === "function") {
+            form.requestSubmit();
+          } else {
+            form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+          }
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, analyticsModal]);
+
   const handleAttachmentFile = (e) => {
     const file = head(e.target.files);
     if (file) {
