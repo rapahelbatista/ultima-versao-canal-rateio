@@ -875,7 +875,7 @@ const FlowBuilder = () => {
               )}
             </div>
           ) : (
-            <Stack spacing={2}>
+            <Stack spacing={1}>
               {filteredWebhooks.map((flow) => (
                 <FlowCard
                   key={flow.id}
