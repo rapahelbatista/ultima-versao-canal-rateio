@@ -385,7 +385,21 @@ const renderTextWithVars = (text, classes, samples, useExamples) => {
   if (!text) return null;
   const parts = text.split(/(\{[\w]+\})/gi);
   return parts.map((part, i) => {
-    if (/^\{[\w]+\}$/i.test(part)) {
+    const m = part.match(/^\{([\w]+)\}$/i);
+    if (m) {
+      const key = m[1].toLowerCase();
+      const isKnown = samples[key] !== undefined;
+      if (!isKnown) {
+        return (
+          <span
+            key={i}
+            className={classes.highlightUnknown}
+            title="Placeholder desconhecido — não será substituído no envio"
+          >
+            {part}
+          </span>
+        );
+      }
       if (!useExamples) {
         return <span key={i} className={classes.highlightRaw}>{part}</span>;
       }
