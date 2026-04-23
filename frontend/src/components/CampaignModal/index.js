@@ -1387,14 +1387,14 @@ const CampaignModal = ({
                         ) : values.confirmation ? (
                           <Grid spacing={2} container>
                             <Grid xs={12} item>
-                              <>{renderMessageField("message1")}</>
+                              <>{renderMessageField("message1", values, setFieldValue)}</>
                             </Grid>
                             <Grid xs={12} item>
-                              <>{renderConfirmationMessageField("confirmationMessage1")}</>
+                              <>{renderConfirmationMessageField("confirmationMessage1", values, setFieldValue)}</>
                             </Grid>
                           </Grid>
                         ) : (
-                          <>{renderMessageField("message1")}</>
+                          <>{renderMessageField("message1", values, setFieldValue)}</>
                         )}
 
                         {/* Botão de anexar mídia + mídia anexada - ocultos para API Oficial */}
