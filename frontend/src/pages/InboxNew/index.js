@@ -671,7 +671,13 @@ const InboxNew = () => {
               onClick={() => setActiveTab(t.id)}
             >
               {t.label}
-              <span className="inbox-tab-count">{counts[t.id] ?? 0}</span>
+              <span className="inbox-tab-count">
+                {countsLoading[t.id] ? (
+                  <span className="inbox-tab-count-loading" aria-label="Carregando" />
+                ) : (
+                  counts[t.id] ?? 0
+                )}
+              </span>
             </button>
           ))}
         </div>
