@@ -48,20 +48,34 @@ const Tooltip = ({ label, children }) => {
         <div
           style={{
             position: "absolute",
-            top: "calc(100% + 8px)",
+            top: "calc(100% + 10px)",
             left: "50%",
             transform: "translateX(-50%)",
             background: "#0f172a",
             color: "#fff",
             fontSize: 12,
-            padding: "5px 10px",
-            borderRadius: 6,
+            fontWeight: 600,
+            padding: "6px 12px",
+            borderRadius: 8,
             whiteSpace: "nowrap",
             pointerEvents: "none",
             zIndex: 1600,
             fontFamily: "Inter, system-ui, sans-serif",
+            boxShadow: "0 6px 16px rgba(15,23,42,0.25)",
           }}
         >
+          <span
+            style={{
+              position: "absolute",
+              top: -4,
+              left: "50%",
+              transform: "translateX(-50%) rotate(45deg)",
+              width: 8,
+              height: 8,
+              background: "#0f172a",
+              borderRadius: 1,
+            }}
+          />
           {label}
         </div>
       )}
