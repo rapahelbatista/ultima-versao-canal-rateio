@@ -31,6 +31,42 @@ body:has(.inbox-new) #root {
 .inbox-new,
 .inbox-new * {
   box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Hardening: zera margens/paddings herdados do template que causam overflow */
+.inbox-new,
+.inbox-new > div,
+.inbox-new > section,
+.inbox-new > main,
+.inbox-new > aside,
+.inbox-sidebar,
+.inbox-chat,
+.inbox-info-panel {
+  margin: 0 !important;
+}
+
+/* Garante que mídia nunca estoure a largura da coluna */
+.inbox-new img,
+.inbox-new video,
+.inbox-new canvas,
+.inbox-new svg,
+.inbox-new iframe {
+  max-width: 100%;
+}
+
+/* Quebra de palavras longas (URLs, números) para evitar scroll horizontal */
+.inbox-new .inbox-chat,
+.inbox-new .inbox-sidebar,
+.inbox-new .inbox-info-panel {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Trava overflow horizontal em qualquer descendente direto */
+.inbox-new > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* ============== SIDEBAR ESQUERDA ============== */
