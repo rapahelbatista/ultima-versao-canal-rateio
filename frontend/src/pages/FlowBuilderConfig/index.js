@@ -1107,6 +1107,7 @@ export const FlowBuilderConfig = () => {
       const fetchContacts = async () => {
         try {
           const { data } = await api.get(`/flowbuilder/flow/${id}`);
+          if (data?.flow?.name) setFlowName(data.flow.name);
           if (data.flow.flow !== null) {
             const preparedNodes = data.flow.flow.nodes.map((node) => {
               if (node.type === "httpRequest") {
