@@ -149,6 +149,25 @@ const InboxInfoPanel = ({ ticket, contact, onClose }) => {
     }
   };
 
+  const syncContactTags = async (nextTags) => {
+    if (!contact?.id) return;
+    try {
+      await api.post(`/tags/sync`, { contactId: contact.id, tags: nextTags });
+      setContactTags(nextTags);
+    } catch (e) {
+      toastError(e);
+    }
+  };
+
+  const handleAddTag = (tag) => {
+    if (contactTags.some((t) => t.id === tag.id)) return;
+    syncContactTags([...contactTags, tag]);
+  };
+
+  const handleRemoveTag = (tagId) => {
+    syncContactTags(contactTags.filter((t) => t.id !== tagId));
+  };
+
   return (
     <aside className="inbox-info-panel">
       {/* Header */}
