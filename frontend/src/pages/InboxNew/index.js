@@ -20,6 +20,7 @@ import {
   DraftsOutlined as MarkReadIcon,
   Reply as ReplyIcon,
   CheckCircleOutline as DoneIcon,
+  InfoOutlined as InfoIcon,
 } from "@material-ui/icons";
 import { format, isToday, isYesterday } from "date-fns";
 import { toast } from "react-toastify";
