@@ -800,7 +800,7 @@ const CampaignModal = ({
               </div>
 
               {/* ABA 0: Configurações da Campanha */}
-              <div hidden={messageTab !== 0}>
+              <div hidden={messageTab !== 0} className={messageTab === 0 ? "campaign-wizard-pane is-active" : "campaign-wizard-pane"}>
               <DialogContent dividers>
                 <Grid spacing={2} container>
                   <Grid xs={12} md={4} item>
@@ -1506,7 +1506,7 @@ const CampaignModal = ({
               </div>
 
               {/* ABA 1: Listas de Contatos */}
-              <div hidden={messageTab !== 1}>
+              <div hidden={messageTab !== 1} className={messageTab === 1 ? "campaign-wizard-pane is-active" : "campaign-wizard-pane"}>
                 <DialogContent dividers>
                   <CampaignContactSelector
                     contactListId={values.contactListId}
@@ -1533,7 +1533,7 @@ const CampaignModal = ({
               </div>
 
               {/* ABA 2: Configurações de Disparo */}
-              <div hidden={messageTab !== 2}>
+              <div hidden={messageTab !== 2} className={messageTab === 2 ? "campaign-wizard-pane is-active" : "campaign-wizard-pane"}>
                 <DialogContent dividers>
                     <Grid spacing={2} container>
                       <Grid xs={12} item>
