@@ -817,6 +817,10 @@ body:has(.inbox-new) #root {
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
 }
 
 /* Esconde a barra de Tags duplicada acima do chat (já temos no painel lateral Info) */
@@ -903,11 +907,14 @@ body:has(.inbox-new) #root {
   display: none !important;
 }
 .inbox-new [class*="mainWrapperShift"] {
+  width: 100% !important;
+  max-width: 100% !important;
   margin-right: 0 !important;
 }
 
 /* ============== INBOX INFO PANEL (custom — first-image style) ============== */
 .inbox-info-panel {
+  flex: 0 0 320px;
   width: 320px;
   min-width: 320px;
   max-width: 320px;
