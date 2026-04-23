@@ -458,7 +458,7 @@ const InboxNew = () => {
         userId: user?.id,
       });
       toast.success("Ticket aceito");
-      setTab("read");
+      setActiveTab("read");
       history.push(`/inbox/${ticket.uuid || ticket.id}`);
     } catch (err) {
       toastError(err);
