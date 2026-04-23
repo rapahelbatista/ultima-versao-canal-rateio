@@ -764,19 +764,40 @@ const CampaignModal = ({
                     });
                 }}
               />
-              <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                <Tabs
-                  value={messageTab}
-                  onChange={(e, val) => setMessageTab(val)}
-                  indicatorColor="primary"
-                  textColor="primary"
-                  variant="fullWidth"
-                >
-                  <Tab label="Campanha" />
-                  <Tab label="📋 Listas de Contatos" />
-                  <Tab label="⚙️ Configurações" />
-                </Tabs>
-              </Box>
+              <div className="campaign-wizard-stepper">
+                {[
+                  { label: "Campanha", icon: "📣" },
+                  { label: "Listas de Contatos", icon: "📋" },
+                  { label: "Configurações", icon: "⚙️" },
+                ].map((step, idx) => (
+                  <React.Fragment key={idx}>
+                    <button
+                      type="button"
+                      className={`campaign-wizard-step ${messageTab === idx ? "is-active" : ""} ${messageTab > idx ? "is-done" : ""}`}
+                      onClick={() => setMessageTab(idx)}
+                    >
+                      <span className="campaign-wizard-step-circle">
+                        {messageTab > idx ? "✓" : idx + 1}
+                      </span>
+                      <span className="campaign-wizard-step-label">
+                        <span className="campaign-wizard-step-icon">{step.icon}</span>
+                        {step.label}
+                      </span>
+                    </button>
+                    {idx < 2 && (
+                      <span className={`campaign-wizard-bar ${messageTab > idx ? "is-done" : ""}`}>
+                        <span className="campaign-wizard-bar-fill" />
+                      </span>
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+              <div className="campaign-wizard-progress">
+                <div
+                  className="campaign-wizard-progress-fill"
+                  style={{ width: `${((messageTab + 1) / 3) * 100}%` }}
+                />
+              </div>
 
               {/* ABA 0: Configurações da Campanha */}
               <div hidden={messageTab !== 0}>
