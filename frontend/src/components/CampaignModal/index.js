@@ -267,6 +267,17 @@ const CampaignModal = ({
   const [individualContacts, setIndividualContacts] = useState([]);
   const [showSuccessAnim, setShowSuccessAnim] = useState(false);
   const [analyticsModal, setAnalyticsModal] = useState(null); // { drafts, confirmed, recent: [{label, time, type}] }
+  const CUSTOM_VARS_KEY = "campaignCustomVars";
+  const [customPlaceholders, setCustomPlaceholders] = useState(() => {
+    try {
+      const raw = localStorage.getItem(CUSTOM_VARS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (_) {}
+    return [];
+  });
+  const [newVarKey, setNewVarKey] = useState("");
+  const [newVarLabel, setNewVarLabel] = useState("");
+  const [showVarManager, setShowVarManager] = useState(false);
 
   // Opções para dias da semana
   const daysOfWeekOptions = [
@@ -687,6 +698,39 @@ const CampaignModal = ({
     { key: "{empresa}", label: "Empresa" },
   ];
 
+  const persistCustomVars = (next) => {
+    setCustomPlaceholders(next);
+    try { localStorage.setItem(CUSTOM_VARS_KEY, JSON.stringify(next)); } catch (_) {}
+  };
+
+  const addCustomVar = () => {
+    const rawKey = newVarKey.trim().replace(/[{}\s]/g, "");
+    const label = newVarLabel.trim() || rawKey;
+    if (!rawKey) {
+      toast.error("Informe o nome da variável (ex.: cidade)");
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(rawKey)) {
+      toast.error("Use apenas letras, números e _");
+      return;
+    }
+    const key = `{${rawKey}}`;
+    const reserved = messagePlaceholders.some((p) => p.key === key);
+    const exists = customPlaceholders.some((p) => p.key === key);
+    if (reserved || exists) {
+      toast.error("Essa variável já existe");
+      return;
+    }
+    persistCustomVars([...customPlaceholders, { key, label }]);
+    setNewVarKey("");
+    setNewVarLabel("");
+    toast.success(`Variável ${key} adicionada`);
+  };
+
+  const removeCustomVar = (key) => {
+    persistCustomVars(customPlaceholders.filter((p) => p.key !== key));
+  };
+
   const insertPlaceholder = (identifier, value, setFieldValue, placeholder) => {
     const el = document.getElementById(identifier);
     const current = value || "";
@@ -706,24 +750,73 @@ const CampaignModal = ({
     }
   };
 
-  const renderPlaceholderChips = (identifier, value, setFieldValue) => (
-    <div className="campaign-placeholder-chips">
-      <span className="campaign-placeholder-chips-label">Inserir variável:</span>
-      {messagePlaceholders.map((p) => (
+  const renderPlaceholderChips = (identifier, value, setFieldValue) => {
+    const allChips = [...messagePlaceholders, ...customPlaceholders];
+    return (
+      <div className="campaign-placeholder-chips">
+        <span className="campaign-placeholder-chips-label">Inserir variável:</span>
+        {allChips.map((p) => {
+          const isCustom = customPlaceholders.some((c) => c.key === p.key);
+          return (
+            <span key={p.key} className={`campaign-placeholder-chip-wrap ${isCustom ? "is-custom" : ""}`}>
+              <button
+                type="button"
+                className="campaign-placeholder-chip"
+                onClick={() => insertPlaceholder(identifier, value, setFieldValue, p.key)}
+                disabled={!campaignEditable && campaign.status !== "CANCELADA"}
+                title={`Inserir ${p.key}`}
+              >
+                <code>{p.key}</code>
+                <span>{p.label}</span>
+              </button>
+              {isCustom && (
+                <button
+                  type="button"
+                  className="campaign-placeholder-chip-remove"
+                  onClick={() => removeCustomVar(p.key)}
+                  title="Remover variável personalizada"
+                  aria-label={`Remover ${p.key}`}
+                >×</button>
+              )}
+            </span>
+          );
+        })}
         <button
           type="button"
-          key={p.key}
-          className="campaign-placeholder-chip"
-          onClick={() => insertPlaceholder(identifier, value, setFieldValue, p.key)}
-          disabled={!campaignEditable && campaign.status !== "CANCELADA"}
-          title={`Inserir ${p.key}`}
+          className="campaign-placeholder-chip-add"
+          onClick={() => setShowVarManager((s) => !s)}
+          title="Adicionar variável personalizada"
         >
-          <code>{p.key}</code>
-          <span>{p.label}</span>
+          {showVarManager ? "− Fechar" : "+ Nova variável"}
         </button>
-      ))}
-    </div>
-  );
+        {showVarManager && (
+          <div className="campaign-var-manager">
+            <input
+              type="text"
+              className="campaign-var-manager-input"
+              placeholder="chave (ex.: cidade)"
+              value={newVarKey}
+              onChange={(e) => setNewVarKey(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomVar(); } }}
+            />
+            <input
+              type="text"
+              className="campaign-var-manager-input"
+              placeholder="rótulo (opcional)"
+              value={newVarLabel}
+              onChange={(e) => setNewVarLabel(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomVar(); } }}
+            />
+            <button
+              type="button"
+              className="campaign-var-manager-add"
+              onClick={addCustomVar}
+            >Adicionar</button>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderMessageField = (identifier, values, setFieldValue) => {
     return (
