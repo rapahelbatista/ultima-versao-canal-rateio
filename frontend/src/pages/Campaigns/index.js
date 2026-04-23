@@ -40,6 +40,7 @@ import { useDate } from "../../hooks/useDate";
 import ForbiddenPage from "../../components/ForbiddenPage";
 import usePlans from "../../hooks/usePlans";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import "../../styles/campaignsRedesign.css";
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_CAMPAIGNS") {
@@ -285,6 +286,7 @@ const Campaigns = () => {
   }
 
   return (
+    <div className="campaigns-redesign">
     <MainContainer>
       <ConfirmationModal
         title={deletingCampaign && `${i18n.t("campaigns.confirmationModal.deleteTitle")} ${deletingCampaign.name}?`}
@@ -531,6 +533,7 @@ const Campaigns = () => {
         </>
       )}
     </MainContainer>
+    </div>
   );
 };
 
