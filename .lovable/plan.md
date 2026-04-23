@@ -1,40 +1,76 @@
 
 
-## Corrigir layout estourado da Caixa de Entrada (InboxNew)
+## Ajustes finais do layout InboxNew
 
-A tela está quebrada porque **dois conjuntos de regras responsivas estão brigando** dentro do mesmo CSS:
+Quatro problemas visuais a corrigir, todos no `frontend/src/styles/inboxNew.css` + um pequeno ajuste no popover do Follow UP:
 
-1. Regra antiga `@media (max-width: 900px)` (linhas 941–955) com `.inbox-new:has(.inbox-chat-header) .inbox-sidebar { display: none }` — esconde a lista de tickets sempre que existe header de chat, mesmo no desktop quando o frame da preview tem largura intermediária. Por isso a sidebar sumiu e sobrou só "Tags / sdsd / xcxcxc" no canto.
-2. Regras `@container inbox (max-width: 1100px)` e `@media (max-width: 1100px)` (linhas 1295–1361) transformam o **InboxInfoPanel em overlay absoluto** (`position: absolute; right: 0`). Como o frame da preview tem ≈1100px de largura útil, o painel direito vira uma faixinha amarela cortada na borda direita.
-3. Os fallback `@media` repetem as mesmas regras dos `@container`, criando dupla aplicação e overflow.
+### 1. Botão Follow UP "atrás" do actionbar (img 3)
 
-### O que vamos fazer
+O botão Follow UP fica visível atrás da actionbar branca pois é renderizado dentro de `TicketActionButtonsCustom` (que está oculto por CSS), mas o `<FloupSelector />` em si não tem o mesmo seletor `actionButtons`.
 
-**Arquivo único:** `frontend/src/styles/inboxNew.css`
+**Fix:** ampliar a regra de ocultação para incluir o wrapper do FloupSelector (Button com classe `MuiButton-root` dentro de `[class*="actionButtons"]`) e garantir `z-index` superior na `.inbox-chat-actionbar`. Aumentar `padding-right` do `[class*="ticketHeader"]` de 132px para 180px para abrir espaço ao actionbar e sumir o botão fantasma atrás.
 
-1. **Remover bloco antigo conflitante** (linhas 940–955): apaga o `@media (max-width: 900px)` que esconde a sidebar via `:has(.inbox-chat-header)`. A lógica de "sidebar some quando há ticket ativo" passa a ser feita pela classe `.has-active-ticket` (já existente) só no breakpoint mobile real (≤768px).
+### 2. Barra de Tags duplicada renderizando (img 2)
 
-2. **Mover breakpoints para baixo** e usar apenas `@media` (remover os `@container inbox` e `container-type: inline-size` da `.inbox-new`). Container queries baseadas em `inline-size` estão disparando porque o frame da preview é estreito, mas o usuário enxerga isso como desktop. Voltamos a usar `@media` baseado em viewport real, que é o comportamento esperado.
+O `<TagsContainer />` renderiza dentro de `<Paper>` sem classe identificável, então `[class*="TagsContainer"]` não pega. O `:has(> .MuiAutocomplete-root)` é frágil.
 
-3. **Ajustar breakpoints para valores realistas:**
-   - **≥1280px:** 3 colunas — sidebar 360 + chat fluido + info 320 (sem alteração)
-   - **1024–1279px:** info-panel encolhe para 260px (lado a lado, **sem virar overlay**)
-   - **900–1023px:** info-panel encolhe para 240px ou some por padrão (toggleável); sidebar reduz para 300px
-   - **≤899px (tablet/mobile real):** info-panel vira overlay sobre o chat
-   - **≤768px:** sidebar 100%, chat 100%, info 100% (como já está)
+**Fix:** seletor mais robusto:
+```css
+.inbox-new .MuiPaper-root:has(.MuiAutocomplete-root[role]),
+.inbox-new main.inbox-chat .MuiPaper-root:has(input[placeholder="Tags"]),
+.inbox-new main.inbox-chat > div > .MuiPaper-elevation1:not([class*="MessageInput"]):not([class*="ticketHeader"]) {
+  display: none !important;
+}
+```
+Adicionalmente esconder via JS-friendly: `.inbox-new [class*="ticketRoot"] > .MuiPaper-root:nth-of-type(1)` quando contém Autocomplete.
 
-4. **Travar overflow horizontal global** no `.inbox-new` com `overflow-x: hidden` e garantir que nenhum filho com `position: absolute` vaze pra fora (`right: 0` + `max-width: 100%`).
+### 3. Ícones e textos muito grandes no MessageInput (img 5)
 
-5. **Garantir que `.inbox-info-panel` quando absolute** fique dentro do `.inbox-new` (que já é `position: relative`) e nunca ultrapasse a borda direita — adicionar `right: 0; max-width: 100%`.
+Os ícones `<Mood/>`, `<AccountTree/>`, `<Create/>` etc renderizam direto dentro de `IconButton` no `classes.newMessageBox` mas em tamanho default (24px+padding). O input tem fonte herdada grande.
 
-### Resultado esperado
+**Fix:** adicionar regras escopadas:
+```css
+.inbox-new [class*="newMessageBox"] .MuiIconButton-root {
+  padding: 6px !important;
+  width: 36px !important;
+  height: 36px !important;
+}
+.inbox-new [class*="newMessageBox"] .MuiIconButton-root .MuiSvgIcon-root,
+.inbox-new [class*="newMessageBox"] svg {
+  width: 20px !important;
+  height: 20px !important;
+  font-size: 20px !important;
+}
+.inbox-new [class*="messageInputWrapper"] textarea,
+.inbox-new [class*="messageInputWrapper"] .MuiInputBase-input {
+  font-size: 13.5px !important;
+  line-height: 1.4 !important;
+  padding: 8px 14px !important;
+}
+.inbox-new [class*="newMessageBox"] [class*="invertedFabMenu"] svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+```
 
-- Sidebar (lista de tickets) **sempre visível** no desktop, qualquer que seja a largura ≥900px.
-- Info-panel direito **sempre lado-a-lado** até 1024px; **só vira overlay** em telas pequenas reais (<900px).
-- Sem corte na direita (faixa amarela), sem fragmentos de tags soltos no canto superior.
-- Layout volta a ser o "3 colunas" mostrado na 3ª foto de referência aprovada anteriormente.
+### 4. Popover Follow UP com label sobreposto + texto exagerado (img 1)
+
+No `FloupSelector/index.js` linha 411-434, o `InputLabel shrink` fica posicionado sobre o `MenuItem em <em>Escolher template...</em>`, criando texto duplicado em itálico grande.
+
+**Fix no JSX** (`frontend/src/components/FloupSelector/index.js`):
+- Trocar `<InputLabel shrink>Selecionar Follow UP</InputLabel>` por uma label simples acima do Select (`<Typography variant="caption">`), removendo o overlap
+- Trocar `<em>Escolher template...</em>` por texto normal cinza (`<span style={{ color: '#94a3b8' }}>Escolher template…</span>`)
+- Reduzir `Schedule` de fontSize 18 para 16 e padronizar cor para `#475569` (cinza neutro, sem azul forte)
 
 ### Arquivos afetados
 
-- `frontend/src/styles/inboxNew.css` (apenas CSS)
+- `frontend/src/styles/inboxNew.css` (ajustes 1, 2, 3)
+- `frontend/src/components/FloupSelector/index.js` (ajuste 4 — popover)
+
+### Resultado esperado
+
+- Sem botão fantasma atrás do actionbar
+- Sem barra branca de Tags acima do chat
+- Ícones e fonte do input proporcionais (20px ícones / 13.5px texto)
+- Popover Follow UP limpo, sem label sobreposto e com cor neutra
 
