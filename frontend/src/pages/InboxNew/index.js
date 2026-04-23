@@ -1209,7 +1209,7 @@ const InboxNew = () => {
             <Button
               size="small"
               variant="contained"
-              color="primary"
+              className="inbox-pop-btn-primary"
               onClick={handleCreateQuickReply}
               disabled={qrSaving}
               startIcon={<AddIcon fontSize="small" />}
@@ -1246,7 +1246,7 @@ const InboxNew = () => {
                 <span>
                   <IconButton
                     size="small"
-                    color="primary"
+                    className="inbox-chat-action-primary"
                     disabled={!ticketId}
                     onClick={() => handleSendQuickReply(q)}
                   >
