@@ -47,13 +47,16 @@ export default memo(({ data, isConnectable, id }) => {
     <div
       style={{
         background: "#F4FBF4",
-        padding: "14px 16px 16px",
-        borderRadius: "18px",
+        padding: "10px 12px 12px",
+        borderRadius: "14px",
         boxShadow:
-          "0 0 0 2px #3aba38, 0 0 0 5px rgba(58,186,56,0.18), 0 10px 28px -10px rgba(58,186,56,0.45)",
+          "0 0 0 1.5px #3aba38, 0 0 0 3px rgba(58,186,56,0.15), 0 6px 18px -8px rgba(58,186,56,0.4)",
         border: "1px solid rgba(58,186,56,0.55)",
-        minWidth: 320,
+        width: 240,
+        minWidth: 240,
+        maxWidth: 240,
         fontFamily: "Inter, system-ui, sans-serif",
+        fontSize: 12,
       }}
     >
       {/* Cabeçalho */}
