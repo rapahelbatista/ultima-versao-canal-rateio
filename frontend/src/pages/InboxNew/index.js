@@ -606,7 +606,7 @@ const InboxNew = () => {
       <main className="inbox-chat">
         {ticketId ? (
           <>
-            {/* Toolbar flutuante com ações do chat */}
+            {/* Toolbar flutuante com ações do chat (espelha mockup) */}
             {currentTicket && (
               <div className="inbox-chat-actionbar">
                 <Tooltip title="Marcar como não lido">
@@ -619,15 +619,6 @@ const InboxNew = () => {
                     <MarkUnreadIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Responder">
-                  <IconButton
-                    size="small"
-                    className="inbox-chat-action inbox-chat-action-primary"
-                    onClick={(e) => handleQuickReply(e, currentTicket)}
-                  >
-                    <ReplyIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
                 <Tooltip title="Resolver / Arquivar">
                   <IconButton
                     size="small"
@@ -638,12 +629,32 @@ const InboxNew = () => {
                     <DoneIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title={infoOpen ? "Fechar info do chat" : "Info do chat"}>
+                <span className="inbox-chat-actionbar-sep" />
+                <Tooltip title="Filtrar Mensagens">
                   <IconButton
                     size="small"
-                    className={`inbox-chat-action ${
-                      infoOpen ? "inbox-chat-action-info-active" : ""
-                    }`}
+                    className={`inbox-chat-action ${msgSearch ? "inbox-chat-action-info-active" : ""}`}
+                    onClick={(e) => {
+                      setTempMsgSearch(msgSearch);
+                      setMsgFilterAnchor(e.currentTarget);
+                    }}
+                  >
+                    <SearchIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Export Conversation">
+                  <IconButton
+                    size="small"
+                    className="inbox-chat-action"
+                    onClick={() => handleExportConversation(currentTicket)}
+                  >
+                    <ExportIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title={infoOpen ? "Hide info" : "Show info"}>
+                  <IconButton
+                    size="small"
+                    className={`inbox-chat-action ${infoOpen ? "inbox-chat-action-info-active" : ""}`}
                     onClick={toggleInfoDrawer}
                   >
                     <InfoIcon fontSize="small" />
