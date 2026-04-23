@@ -13,19 +13,14 @@ import {
   Search as SearchIcon,
   Add as AddIcon,
   FilterList as FilterIcon,
-  Info as InfoIcon,
-  Search as SearchHeaderIcon,
-  GetApp as DownloadIcon,
   CheckBox as CheckBoxIcon,
   MoreVert as MoreVertIcon,
 } from "@material-ui/icons";
 import { format, isToday, isYesterday } from "date-fns";
 
-import api from "../../services/api";
 import useTickets from "../../hooks/useTickets";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import NewTicketModal from "../../components/NewTicketModal";
-import ContactDrawer from "../../components/ContactDrawer";
 import "../../styles/inboxNew.css";
 
 const Ticket = React.lazy(() => import("../../components/Ticket"));
@@ -71,10 +66,6 @@ const InboxNew = () => {
   const [search, setSearch] = useState("");
   const [pageNumber] = useState(1);
   const [newTicketOpen, setNewTicketOpen] = useState(false);
-  const [showInfoDrawer, setShowInfoDrawer] = useState(false);
-  const [contact, setContact] = useState({});
-  const [ticketObj, setTicketObj] = useState(null);
-  const [loadingContact, setLoadingContact] = useState(false);
 
   const tabConfig = TABS.find((t) => t.id === activeTab) || TABS[0];
 
@@ -106,7 +97,6 @@ const InboxNew = () => {
     let list = [];
     if (tabConfig.statuses.includes("open")) list = list.concat(openTickets || []);
     if (tabConfig.statuses.includes("pending")) list = list.concat(pendingTickets || []);
-    // dedupe + sort por updatedAt desc
     const map = new Map();
     list.forEach((t) => map.set(t.id, t));
     return Array.from(map.values()).sort(
@@ -122,32 +112,6 @@ const InboxNew = () => {
   const handleSelectTicket = (t) => {
     history.push(`/inbox/${t.uuid || t.id}`);
   };
-
-  // Carrega contato do ticket aberto para o drawer
-  useEffect(() => {
-    if (!ticketId) {
-      setTicketObj(null);
-      setContact({});
-      return;
-    }
-    let cancel = false;
-    (async () => {
-      setLoadingContact(true);
-      try {
-        const { data } = await api.get(`/tickets/u/${ticketId}`);
-        if (cancel) return;
-        setTicketObj(data);
-        setContact(data?.contact || {});
-      } catch {
-        /* silent */
-      } finally {
-        if (!cancel) setLoadingContact(false);
-      }
-    })();
-    return () => {
-      cancel = true;
-    };
-  }, [ticketId]);
 
   return (
     <div className="inbox-new">
@@ -272,60 +236,25 @@ const InboxNew = () => {
         </div>
       </aside>
 
-      {/* ============== ÁREA DE CHAT ============== */}
+      {/* ============== ÁREA DE CHAT ==============
+          O componente <Ticket /> é a fonte única de verdade:
+          - Lê o ticketId da URL (useParams)
+          - Faz fetch dos dados via /tickets/u/:id
+          - Mantém socket sincronizado (atualizações em tempo real)
+          - Renderiza TicketHeader (com botão (i) que abre/fecha
+            o ContactDrawer interno) + MessagesList + MessageInput
+          ================================================ */}
       <main className="inbox-chat">
         {ticketId ? (
-          <>
-            {/* Top bar do chat */}
-            <div className="inbox-chat-header">
-              <div className="inbox-chat-header-left">
-                <Avatar
-                  src={contact?.profilePicUrl}
-                  style={{ background: "#ef4444", color: "#fff" }}
-                >
-                  {getInitials(contact?.name)}
-                </Avatar>
-                <div className="inbox-chat-header-info">
-                  <strong>{contact?.name || "Selecionando..."}</strong>
-                  <span>{contact?.number ? `+${contact.number}` : ""}</span>
-                </div>
+          <Suspense
+            fallback={
+              <div className="inbox-loader" style={{ height: "100%" }}>
+                <CircularProgress />
               </div>
-              <div className="inbox-chat-header-actions">
-                <Tooltip title="Buscar">
-                  <IconButton size="small">
-                    <SearchHeaderIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Exportar">
-                  <IconButton size="small">
-                    <DownloadIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Info do Chat">
-                  <IconButton
-                    size="small"
-                    className={showInfoDrawer ? "inbox-info-active" : ""}
-                    onClick={() => setShowInfoDrawer((v) => !v)}
-                  >
-                    <InfoIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </div>
-            </div>
-
-            {/* Conteúdo do chat (reutiliza componente Ticket existente) */}
-            <div className="inbox-chat-body">
-              <Suspense
-                fallback={
-                  <div className="inbox-loader" style={{ height: "100%" }}>
-                    <CircularProgress />
-                  </div>
-                }
-              >
-                <Ticket />
-              </Suspense>
-            </div>
-          </>
+            }
+          >
+            <Ticket />
+          </Suspense>
         ) : (
           <div className="inbox-empty-chat">
             <div className="inbox-empty-chat-card">
@@ -338,17 +267,6 @@ const InboxNew = () => {
           </div>
         )}
       </main>
-
-      {/* ============== DRAWER INFO DO CHAT (toggle) ============== */}
-      {ticketId && (
-        <ContactDrawer
-          open={showInfoDrawer}
-          handleDrawerClose={() => setShowInfoDrawer(false)}
-          contact={contact}
-          ticket={ticketObj}
-          loading={loadingContact}
-        />
-      )}
 
       {/* ============== MODAL NOVA CONVERSA ============== */}
       <NewTicketModal

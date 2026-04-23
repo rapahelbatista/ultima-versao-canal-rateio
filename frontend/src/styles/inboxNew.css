@@ -371,10 +371,12 @@
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
 }
 
-/* Esconde header duplicado do componente Ticket interno (já temos o nosso) */
+/* Header do Ticket interno: estilo verde clean */
 .inbox-new [class*="ticketHeader"],
 .inbox-new [class*="TicketHeader"] {
-  display: none !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  min-height: 64px !important;
 }
 
 /* Responsivo */
