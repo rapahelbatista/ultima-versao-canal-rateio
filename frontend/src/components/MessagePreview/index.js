@@ -232,7 +232,87 @@ const useStyles = makeStyles((theme) => ({
     borderRadius: 6,
     marginBottom: 6,
   },
+  warnBox: {
+    margin: "10px 14px 0",
+    padding: "8px 10px",
+    background: "#fff7ed",
+    border: "1px solid #fdba74",
+    borderRadius: 8,
+    fontSize: 12,
+    color: "#9a3412",
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+  },
+  warnTitle: {
+    fontWeight: 700,
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    color: "#c2410c",
+  },
+  warnItem: {
+    display: "flex",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 6,
+    paddingLeft: 4,
+  },
+  warnChip: {
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    background: "#fee2e2",
+    color: "#b91c1c",
+    border: "1px solid #fecaca",
+    borderRadius: 4,
+    padding: "0 6px",
+    fontSize: 11,
+    fontWeight: 600,
+  },
+  suggestChip: {
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    background: "#dcfce7",
+    color: "#15803d",
+    border: "1px solid #bbf7d0",
+    borderRadius: 4,
+    padding: "0 6px",
+    fontSize: 11,
+    fontWeight: 600,
+  },
+  highlightUnknown: {
+    backgroundColor: "#fee2e2",
+    color: "#b91c1c",
+    border: "1px dashed #fca5a5",
+    borderRadius: 3,
+    padding: "0 3px",
+    fontWeight: 600,
+  },
 }));
+
+// Distância de Levenshtein para sugestão de placeholders
+const levenshtein = (a, b) => {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const m = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) m[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      m[i][j] = Math.min(m[i - 1][j] + 1, m[i][j - 1] + 1, m[i - 1][j - 1] + cost);
+    }
+  }
+  return m[a.length][b.length];
+};
+
+const suggestPlaceholders = (unknown, knownKeys) => {
+  const u = unknown.toLowerCase();
+  return knownKeys
+    .map((k) => ({ k, d: levenshtein(u, k.toLowerCase()) }))
+    .filter((x) => x.d <= Math.max(2, Math.floor(u.length / 2)))
+    .sort((a, b) => a.d - b.d)
+    .slice(0, 3)
+    .map((x) => x.k);
+};
 
 // Calcula saudação baseada no horário atual
 const getSaudacao = () => {
@@ -305,7 +385,21 @@ const renderTextWithVars = (text, classes, samples, useExamples) => {
   if (!text) return null;
   const parts = text.split(/(\{[\w]+\})/gi);
   return parts.map((part, i) => {
-    if (/^\{[\w]+\}$/i.test(part)) {
+    const m = part.match(/^\{([\w]+)\}$/i);
+    if (m) {
+      const key = m[1].toLowerCase();
+      const isKnown = samples[key] !== undefined;
+      if (!isKnown) {
+        return (
+          <span
+            key={i}
+            className={classes.highlightUnknown}
+            title="Placeholder desconhecido — não será substituído no envio"
+          >
+            {part}
+          </span>
+        );
+      }
       if (!useExamples) {
         return <span key={i} className={classes.highlightRaw}>{part}</span>;
       }
@@ -340,6 +434,14 @@ const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
     while ((m = re.exec(currentMessage)) !== null) found.add(m[1].toLowerCase());
     return Array.from(found);
   }, [currentMessage]);
+
+  // Detecta placeholders desconhecidos e calcula sugestões via similaridade
+  const unknownVars = useMemo(() => {
+    const knownKeys = Object.keys(samples);
+    return usedVars
+      .filter((v) => samples[v] === undefined)
+      .map((v) => ({ key: v, suggestions: suggestPlaceholders(v, knownKeys) }));
+  }, [usedVars, samples]);
 
   const getAttachmentPreview = () => {
     if (attachment) {
@@ -433,6 +535,30 @@ const MessagePreview = ({ messages, attachment, mediaPath, mediaName }) => {
           </IconButton>
         </Box>
       </Box>
+
+      {/* Aviso de placeholders desconhecidos */}
+      {unknownVars.length > 0 && (
+        <Box className={classes.warnBox}>
+          <span className={classes.warnTitle}>
+            ⚠️ {unknownVars.length === 1 ? "Placeholder desconhecido" : `${unknownVars.length} placeholders desconhecidos`}
+          </span>
+          {unknownVars.map(({ key, suggestions }) => (
+            <span key={key} className={classes.warnItem}>
+              <span className={classes.warnChip}>{`{${key}}`}</span>
+              {suggestions.length > 0 ? (
+                <>
+                  <span>— você quis dizer:</span>
+                  {suggestions.map((s) => (
+                    <span key={s} className={classes.suggestChip}>{`{${s}}`}</span>
+                  ))}
+                </>
+              ) : (
+                <span>— não há substituição; será enviado literalmente.</span>
+              )}
+            </span>
+          ))}
+        </Box>
+      )}
 
       {/* Toggle entre exemplos e bruto */}
       <Box className={classes.toggleRow}>
