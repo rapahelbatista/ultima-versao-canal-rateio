@@ -293,6 +293,134 @@
   background: #d1fae5 !important;
   color: #047857 !important;
 }
+.inbox-chat-actionbar-sep {
+  width: 1px;
+  height: 18px;
+  background: #e5e7eb;
+  margin: 0 4px;
+}
+.inbox-icon-filter.is-active {
+  background: #10b981 !important;
+  color: #fff !important;
+}
+
+/* ============== POPOVERS ============== */
+.inbox-pop {
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18) !important;
+  border: 1px solid #e5e7eb;
+  margin-top: 6px;
+}
+.inbox-pop-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 13px;
+  font-weight: 700;
+  border-bottom: 1px solid #d1fae5;
+}
+.inbox-pop-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.inbox-pop-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-top: 6px;
+}
+.inbox-pop-footer {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px 14px;
+  border-top: 1px solid #f1f5f9;
+  background: #ffffff;
+}
+.inbox-pop-btn-outline {
+  flex: 1;
+  border: 1px solid #10b981 !important;
+  color: #047857 !important;
+  border-radius: 999px !important;
+  text-transform: none !important;
+  font-weight: 700 !important;
+}
+.inbox-pop-btn-primary {
+  flex: 1;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #fff !important;
+  border-radius: 999px !important;
+  text-transform: none !important;
+  font-weight: 700 !important;
+}
+.inbox-pop-btn-primary.Mui-disabled {
+  background: #e5e7eb !important;
+  color: #94a3b8 !important;
+}
+.inbox-pop-options-row {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  justify-content: center;
+}
+.inbox-pop-circle {
+  width: 44px !important;
+  height: 44px !important;
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  border-radius: 50% !important;
+}
+.inbox-pop-circle.active {
+  background: #d1fae5 !important;
+  color: #047857 !important;
+}
+.inbox-quick-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.inbox-quick-item:hover {
+  background: #ecfdf5;
+}
+.inbox-quick-item strong {
+  color: #047857;
+  font-size: 12px;
+  font-weight: 700;
+}
+.inbox-quick-item span {
+  color: #64748b;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.inbox-pop-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: #94a3b8;
+}
+.inbox-pop-search input {
+  font-size: 13px;
+}
+.inbox-msg-hl {
+  outline: 2px solid #10b981 !important;
+  outline-offset: 2px !important;
+}
 
 .inbox-item-avatar .MuiAvatar-root {
   width: 44px !important;
