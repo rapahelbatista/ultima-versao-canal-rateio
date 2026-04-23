@@ -496,6 +496,40 @@ const ContactListItems = () => {
                         {i18n.t("contactListItems.buttons.add")}
                       </Button>
                     </Grid>
+                    <Grid xs={12} sm={12} item style={{ display: "flex", justifyContent: "flex-end", paddingTop: 4 }}>
+                      <Tooltip title="Mostrar/ocultar colunas">
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<ViewColumnIcon />}
+                          onClick={(e) => setColumnsMenuAnchor(e.currentTarget)}
+                          className={classes.columnsBtn}
+                        >
+                          Colunas ({visibleOptionalCount})
+                        </Button>
+                      </Tooltip>
+                      <Menu
+                        anchorEl={columnsMenuAnchor}
+                        open={Boolean(columnsMenuAnchor)}
+                        onClose={() => setColumnsMenuAnchor(null)}
+                        keepMounted
+                      >
+                        {OPTIONAL_COLUMNS.map((col) => (
+                          <MenuItem
+                            key={col.key}
+                            onClick={() => toggleColumn(col.key)}
+                            dense
+                          >
+                            <Checkbox
+                              checked={!!visibleColumns[col.key]}
+                              size="small"
+                              color="primary"
+                            />
+                            <ListItemText primary={col.label} />
+                          </MenuItem>
+                        ))}
+                      </Menu>
+                    </Grid>
                   </Grid>
                 </Grid>
               </Grid>
