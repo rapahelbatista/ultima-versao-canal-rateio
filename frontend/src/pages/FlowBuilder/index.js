@@ -193,65 +193,42 @@ const useStyles = makeStyles((theme) => ({
   },
   flowCard: {
     backgroundColor: theme.palette.background.paper,
-    borderRadius: 16,
-    marginBottom: theme.spacing(2),
+    borderRadius: 12,
+    marginBottom: theme.spacing(1),
     border: `1px solid ${theme.palette.divider}`,
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    transition: 'all 0.2s ease',
     cursor: 'pointer',
     '&:hover': {
-      transform: 'translateY(-2px)',
-      boxShadow: theme.shadows[4],
+      boxShadow: theme.shadows[2],
       borderColor: theme.palette.primary.light,
-    },
-    [theme.breakpoints.down('sm')]: {
-      marginBottom: theme.spacing(1.5),
-      borderRadius: 12,
     },
   },
   flowCardContent: {
-    padding: theme.spacing(3),
+    padding: theme.spacing(1.25, 2) + ' !important',
     '&:last-child': {
-      paddingBottom: theme.spacing(3),
-    },
-    [theme.breakpoints.down('sm')]: {
-      padding: theme.spacing(2),
-      '&:last-child': {
-        paddingBottom: theme.spacing(2),
-      },
+      paddingBottom: theme.spacing(1.25) + ' !important',
     },
   },
   flowIcon: {
-    width: 48,
-    height: 48,
+    width: 36,
+    height: 36,
     backgroundColor: theme.palette.primary.main,
-    borderRadius: 12,
+    borderRadius: 8,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: theme.spacing(2),
-    [theme.breakpoints.down('sm')]: {
-      width: 40,
-      height: 40,
-      marginRight: theme.spacing(1.5),
-    },
+    flexShrink: 0,
   },
   flowName: {
-    fontSize: '1.125rem',
+    fontSize: '0.95rem',
     fontWeight: 600,
     color: theme.palette.text.primary,
-    lineHeight: 1.4,
-    [theme.breakpoints.down('sm')]: {
-      fontSize: '1rem',
-    },
+    lineHeight: 1.2,
   },
   flowActions: {
     display: 'flex',
     alignItems: 'center',
-    gap: theme.spacing(1),
-    marginTop: theme.spacing(2),
-    [theme.breakpoints.down('sm')]: {
-      marginTop: theme.spacing(1.5),
-    },
+    gap: theme.spacing(0.5),
   },
   statusChip: {
     fontWeight: 500,
