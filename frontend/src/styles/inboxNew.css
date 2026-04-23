@@ -1047,8 +1047,60 @@ body:has(.inbox-new) #root {
 }
 .iip-manage {
   font-size: 11px;
-  color: #64748b;
+  color: #047857;
   cursor: pointer;
+  font-weight: 600;
+}
+.iip-manage:hover { text-decoration: underline; }
+
+/* Tag picker popover */
+.iip-tag-pop {
+  width: 280px;
+  max-width: calc(100vw - 32px);
+  border-radius: 10px !important;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18) !important;
+  border: 1px solid #e2e8f0;
+}
+.iip-tag-pop-inner {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.iip-tag-pop-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.iip-tag-pop-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #1e293b;
+}
+.iip-tag-pop-item:hover { background: #ecfdf5; }
+.iip-tag-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.iip-tag-pop-empty {
+  padding: 12px 6px;
+  font-size: 12px;
+  color: #64748b;
+  text-align: center;
+}
+.iip-tag-pop-empty a {
+  color: #047857;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 4px;
 }
 
 .iip-empty {
