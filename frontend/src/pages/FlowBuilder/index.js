@@ -409,55 +409,59 @@ function FlowCard({ flow, onEdit, onDuplicate, onDelete, onNavigate, onToggleAct
   return (
     <Card className={classes.flowCard} onClick={handleCardClick}>
       <CardContent className={classes.flowCardContent}>
-        <Stack direction="row" alignItems="flex-start" spacing={2}>
+        <Stack direction="row" alignItems="center" spacing={1.5}>
           <div className={classes.flowIcon}>
-            <DevicesFold style={{ color: theme.palette.primary.contrastText, fontSize: isMobile ? 20 : 24 }} />
+            <Workflow size={18} color={theme.palette.primary.contrastText} strokeWidth={2.2} />
           </div>
-          
-          <Box flex={1}>
-            <Typography className={classes.flowName}>
+
+          <Box flex={1} minWidth={0}>
+            <Typography className={classes.flowName} noWrap>
               {flow.name}
             </Typography>
-            
-            <div className={classes.flowActions}>
+            <Box mt={0.5}>
               <Chip
                 size="small"
                 label={flow.active ? "Ativo" : "Inativo"}
                 className={`${classes.statusChip} ${flow.active ? 'active' : 'inactive'}`}
-                icon={flow.active ? <PlayArrow /> : <Pause />}
-                onClick={() => onToggleActive && onToggleActive(flow.id, flow.active)}
-                style={{ cursor: 'pointer' }}
+                icon={flow.active
+                  ? <Play size={12} style={{ marginLeft: 6 }} />
+                  : <LucidePause size={12} style={{ marginLeft: 6 }} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleActive && onToggleActive(flow.id, flow.active);
+                }}
+                style={{ cursor: 'pointer', height: 22, fontSize: 11 }}
               />
-              
-              <Box flex={1} />
-              
-              <IconButton
-                className={classes.actionButton}
-                onClick={handleEditClick}
-                size="small"
-              >
-                <Edit fontSize="small" />
-              </IconButton>
-              
-              <IconButton
-                className={classes.actionButton}
-                onClick={handleDuplicateClick}
-                size="small"
-              >
-                <ContentCopy fontSize="small" />
-              </IconButton>
-              
-              <IconButton
-                className={classes.menuButton}
-                onClick={handleMenuOpen}
-                size="small"
-              >
-                <MoreVert fontSize="small" />
-              </IconButton>
-            </div>
+            </Box>
           </Box>
+
+          <div className={classes.flowActions}>
+            <IconButton
+              className={classes.actionButton}
+              onClick={handleEditClick}
+              size="small"
+            >
+              <Pencil size={16} />
+            </IconButton>
+
+            <IconButton
+              className={classes.actionButton}
+              onClick={handleDuplicateClick}
+              size="small"
+            >
+              <Copy size={16} />
+            </IconButton>
+
+            <IconButton
+              className={classes.menuButton}
+              onClick={handleMenuOpen}
+              size="small"
+            >
+              <MoreVertical size={16} />
+            </IconButton>
+          </div>
         </Stack>
-        
+
         <Menu
           className={classes.menu}
           anchorEl={anchorEl}
@@ -468,7 +472,7 @@ function FlowCard({ flow, onEdit, onDuplicate, onDelete, onNavigate, onToggleAct
             event.stopPropagation();
             handleAction(() => onExport(flow.id, flow.name));
           }}>
-            <ContentCopy fontSize="small" style={{ marginRight: 12, color: theme.palette.text.secondary }} />
+            <Download size={16} style={{ marginRight: 12, color: theme.palette.text.secondary }} />
             Exportar (.zip)
           </MenuItem>
           <Divider />
@@ -476,7 +480,7 @@ function FlowCard({ flow, onEdit, onDuplicate, onDelete, onNavigate, onToggleAct
             event.stopPropagation();
             handleAction(() => onNavigate(flow.id));
           }}>
-            <Build fontSize="small" style={{ marginRight: 12, color: theme.palette.text.secondary }} />
+            <Workflow size={16} style={{ marginRight: 12, color: theme.palette.text.secondary }} />
             Abrir fluxo
           </MenuItem>
           <Divider />
@@ -484,7 +488,7 @@ function FlowCard({ flow, onEdit, onDuplicate, onDelete, onNavigate, onToggleAct
             event.stopPropagation();
             handleAction(() => onEdit());
           }}>
-            <Edit fontSize="small" style={{ marginRight: 12, color: theme.palette.text.secondary }} />
+            <Pencil size={16} style={{ marginRight: 12, color: theme.palette.text.secondary }} />
             Editar fluxo
           </MenuItem>
           <Divider />
@@ -492,7 +496,7 @@ function FlowCard({ flow, onEdit, onDuplicate, onDelete, onNavigate, onToggleAct
             event.stopPropagation();
             handleAction(() => onDelete());
           }}>
-            <Delete fontSize="small" style={{ marginRight: 12, color: theme.palette.error.main }} />
+            <Trash2 size={16} style={{ marginRight: 12, color: theme.palette.error.main }} />
             Excluir fluxo
           </MenuItem>
         </Menu>
