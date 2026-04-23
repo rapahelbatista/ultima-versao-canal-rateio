@@ -1179,8 +1179,9 @@ const InboxNew = () => {
         open={Boolean(quickReplyAnchor)}
         anchorEl={quickReplyAnchor}
         onClose={() => setQuickReplyAnchor(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
+        marginThreshold={16}
         PaperProps={{ className: "inbox-pop" }}
       >
         <div className="inbox-pop-header"><QuickReplyIcon fontSize="small" /> <span>Respostas Rápidas</span></div>
