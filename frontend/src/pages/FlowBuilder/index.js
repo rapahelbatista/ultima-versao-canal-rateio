@@ -808,7 +808,7 @@ const FlowBuilder = () => {
             </Button>
             <Button
               onClick={handleOpenContactModal}
-              startIcon={<AddCircle />}
+              startIcon={<Plus size={18} />}
               style={{
                 textTransform: "none",
                 borderRadius: 10,
