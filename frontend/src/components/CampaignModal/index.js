@@ -1740,7 +1740,8 @@ const CampaignModal = ({
                         )}
                       </Grid>
                     </Grid>
-                    </Grid>
+                  </Grid>
+
                   {/* Seletor simples de lista de contatos e tags */}
                   <Grid xs={12} item>
                     <Box style={{ border: "1px solid #e0e0e0", borderRadius: 8, padding: "12px 16px" }}>
