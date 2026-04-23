@@ -419,9 +419,15 @@ const InboxNew = () => {
 
         {/* Barra de busca + ações */}
         <div className="inbox-search-row">
-          <IconButton size="small" className="inbox-icon-btn">
-            <MoreVertIcon fontSize="small" />
-          </IconButton>
+          <Tooltip title="Options">
+            <IconButton
+              size="small"
+              className="inbox-icon-btn"
+              onClick={(e) => setOptionsAnchor(e.currentTarget)}
+            >
+              <MoreVertIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <div className="inbox-search">
             <SearchIcon fontSize="small" className="inbox-search-icon" />
             <InputBase
@@ -432,15 +438,27 @@ const InboxNew = () => {
             />
           </div>
           <Badge badgeContent={unreadBadge || 0} color="primary" overlap="rectangular">
-            <IconButton size="small" className="inbox-icon-btn inbox-icon-filter">
-              <FilterIcon fontSize="small" />
-            </IconButton>
+            <Tooltip title="Filtros">
+              <IconButton
+                size="small"
+                className={`inbox-icon-btn inbox-icon-filter ${
+                  filterOrigin !== "all" || filterAgent !== "all" ? "is-active" : ""
+                }`}
+                onClick={(e) => {
+                  setTempOrigin(filterOrigin);
+                  setTempAgent(filterAgent);
+                  setFilterAnchor(e.currentTarget);
+                }}
+              >
+                <FilterIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           </Badge>
-          <Tooltip title="Nova conversa">
+          <Tooltip title="Iniciar Nova Conversa">
             <IconButton
               size="small"
               className="inbox-icon-btn inbox-icon-new"
-              onClick={() => setNewTicketOpen(true)}
+              onClick={(e) => setNewConvAnchor(e.currentTarget)}
             >
               <AddIcon fontSize="small" />
             </IconButton>
