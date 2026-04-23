@@ -379,12 +379,32 @@ const InboxNew = () => {
     );
   }, [activeTab, dedupedAll, dedupedOpen, dedupedPending]);
 
-  // Totais por aba derivados das mesmas listas exibidas
-  const counts = useMemo(() => ({
-    all: dedupedAll.length,
-    unread: dedupedPending.length,
-    read: dedupedOpen.length,
-  }), [dedupedAll, dedupedOpen, dedupedPending]);
+  // Totais por aba derivados das mesmas listas exibidas.
+  // Fallback: enquanto as listas locais ainda não chegaram (carregamento inicial),
+  // usa o `count` do backend para evitar mostrar "0" indevido.
+  const openReady = Array.isArray(openPag.tickets) && openPag.tickets.length > 0;
+  const pendingReady = Array.isArray(pendingPag.tickets) && pendingPag.tickets.length > 0;
+  const noFiltersActive = filterOrigin === "all" && filterAgent === "all";
+
+  const counts = useMemo(() => {
+    const openCount = openReady
+      ? dedupedOpen.length
+      : (openPag.loading && noFiltersActive ? (openPag.count || 0) : dedupedOpen.length);
+    const pendingCount = pendingReady
+      ? dedupedPending.length
+      : (pendingPag.loading && noFiltersActive ? (pendingPag.count || 0) : dedupedPending.length);
+    const allCount = (openReady || pendingReady)
+      ? dedupedAll.length
+      : ((openPag.loading || pendingPag.loading) && noFiltersActive
+          ? (openPag.count || 0) + (pendingPag.count || 0)
+          : dedupedAll.length);
+
+    return { all: allCount, unread: pendingCount, read: openCount };
+  }, [
+    dedupedAll, dedupedOpen, dedupedPending,
+    openReady, pendingReady, noFiltersActive,
+    openPag.loading, openPag.count, pendingPag.loading, pendingPag.count,
+  ]);
 
   const unreadBadge = useMemo(
     () => (pendingPag.tickets || []).reduce((acc, t) => acc + (t.unreadMessages || 0), 0),
