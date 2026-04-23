@@ -73,12 +73,6 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "Conexão WA Meta",
-    items: [
-      { to: "/meta-api-keys", label: "Vincular Meta WhatsApp", icon: Facebook, restricted: true },
-    ],
-  },
-  {
     label: "Automação e Bots",
     items: [
       { to: "/flowbuilders", label: "Fluxos de Automação", icon: Workflow },
